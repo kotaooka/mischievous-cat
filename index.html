@@ -131,6 +131,9 @@
   .rank .dt { color: var(--ink2); font-size: .72rem; white-space: nowrap; text-align: right; }
   .rank tr.now td { background: #fff0dc; border-color: var(--org); }
   .rank-in { color: var(--org-d) !important; }
+  /* 隅のバージョンとリンク */
+  .ver { margin: 8px 0 -4px; text-align: right; font-size: .7rem; font-weight: 500; color: var(--ink2); }
+  .ver a { color: var(--teal-d); font-weight: 800; }
   .rank .nm-c { word-break: break-all; }
   .tabs { display: flex; gap: 6px; margin: 4px 0 6px; }
   .tabs button { flex: 1; font: inherit; font-weight: 800; font-size: .9rem; color: var(--ink2); background: #fff; border: 2px solid var(--line); border-radius: 999px; padding: 5px; cursor: pointer; }
@@ -191,11 +194,16 @@
 'use strict';
 const cv = document.getElementById('c'), g = cv.getContext('2d');
 const W = 450, H = 540, FLOOR = 500, GRAV = 1400, JUMP = 580, SPEED = 150;
-const DPR = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+// 描画の解像度：ゲーム座標 1 単位あたりの実ピクセル数。fit() で「表示の拡大率 × 端末のピクセル比」に合わせる
+// （PC の大きな画面で引き伸ばされてぼやけないように。重くなりすぎないよう 1〜3 に収める）
+let DPR = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
 let VH = H, OY = 0;   // VH：表示する高さ（縦長の画面では壁を上に伸ばす）、OY：その伸ばした分
 cv.width = W * DPR; cv.height = H * DPR;
 const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Yu Gothic UI","Meiryo",system-ui,sans-serif';
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
+// バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
+const APP_VER = '2.1.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const pick = a => a[(Math.random() * a.length) | 0];
@@ -435,6 +443,11 @@ if (!ACCS.some(a => a.id === selAcc)) selAcc = 'none';
 let run, cat, items = [], puddles = [], prints = [], parts = [], pops = [], vac = null, dog = null, newRec = false, newTitles = [];
 let snap = null, chains = {}, tut = { on: false, broke: false, arrow: null, stop: false }, pulseId = null;
 let lever = null, ball = null, spots = [], stageYen0 = 0, stageBonus = null;
+// 言葉を使わない手がかり：まだ一度も使っていない仕掛けにだけ、絵の合図（とボタンの点滅）を出す。一度使えば、その合図は出なくなる
+// mis 落とす以外のいたずら / lever てこ / ball 転がるもの / high 壁の高い足場
+let learned = new Set();
+try { learned = new Set(JSON.parse(store.get('nekoLearned', '[]'))); } catch (e) {}
+function learn(k) { if (learned.has(k)) return; learned.add(k); store.set('nekoLearned', JSON.stringify([...learned])); }
 // ランキング（この端末の上位10件）：{ y 被害額, s ステージ, st ★, c ネコ, d 日付 }
 let ranking = [], rankNow = 0;
 try { ranking = JSON.parse(store.get('nekoRank', '[]')).filter(r => r && typeof r.y === 'number').slice(0, 10); } catch (e) { ranking = []; }
@@ -983,6 +996,7 @@ function updCat(dt) {
         c.sq = -Math.min(0.32, imp / 2000);
         if (best === LEVP && lever) triggerLever(imp);
         if (best === PL.ac && state === 'play') { run.top = true; taskHit('top'); }
+        if (HIGH.includes(best) && state === 'play') learn('high');
         if (imp > 650) for (let k = 0; k < 6; k++) addPart({ k: 'drop', x: c.x + rnd(-14, 14), y: best.y - 2, vx: rnd(-60, 60), vy: rnd(-90, -30), life: 0.45, gy: best.y, c: 'rgba(230,210,180,.9)', s: rnd(2, 3.5), rot: 0, vr: 0 });
         if (best.soft && imp > 300) { c.sq = -0.35; sfx.boing(); taskHit('bounce'); }
       }
@@ -1053,6 +1067,7 @@ function doPunch(strong) {
   }
   if (hit) run.touched = true;
   if (bHit && !hit) sfx.pon(0.4);
+  if (bHit) learn('ball');
   if (hit && kaku) pops.push({ x: c.x, y: c.y - 60, text: '確信犯', life: 1.2, col: '#2fb3a3', size: 18 });
   if (strong) { sfx.strong(); hearNoise(c.x, 0.5); } else sfx.weak();
   if (hit && !strong) sfx.thud();
@@ -1179,6 +1194,7 @@ function damage(y, key, x, py, loud) {
   if (y >= 10000) { slowT = 0.6; shake = 0.25; } sfx.kaching(); buzz(y >= 10000 ? [80, 50, 120] : 40); hearNoise(x, loud == null ? 0.9 : loud);
 }
 function finishMischief(sp) {
+  learn('mis');
   const m = MISCHIEF[sp.id], x = (m.x[0] + m.x[1]) / 2, py = PL[m.plat].y;
   sp.done = true; cat.autoScr = null; cat.happyT = 1.4; run.mis++; taskHit('mis');
   pops.push({ x, y: py - 74, text: m.n, life: 1.8, col: '#9b5fc0', size: 18 });
@@ -1219,7 +1235,7 @@ function triggerLever(imp) {
   lever.tilt = 1; sfx.lever(); buzz(20);
   const it = lever.item;
   if (!it || !items.includes(it) || it.state !== 'rest' || it.plat !== PL.table || Math.abs(it.x - SEAT) > 12) return;
-  lever.item = null; lever.used = true; run.touched = true;
+  lever.item = null; lever.used = true; run.touched = true; learn('lever');
   it.state = 'fall'; it.plat = null; it.y0 = PL.table.y; it.y = PL.table.y - 2;
   it.vy = -(430 + Math.min(150, imp * 0.2)); it.vx = rnd(120, 170); it.vr = rnd(6, 10); it.launched = true; it.chain = ++chainSeq;
   taskHit('launch');
@@ -1352,7 +1368,8 @@ function setPulse(id) {
 }
 function updTut() {
   tut.arrow = null; tut.stop = false;
-  if (!tut.on || state !== 'play') { setPulse(null); return; }
+  if (state !== 'play') { setPulse(null); return; }
+  if (!tut.on) { setPulse(hintPulse()); return; }
   if ((owner.mode === 'warn' || owner.mode === 'look') && cat.onFurn) { tut.stop = true; setPulse(null); return; }
   const c = cat, rest = items.filter(i => i.state === 'rest');
   if (!rest.length) { setPulse(null); return; }
@@ -1368,6 +1385,61 @@ function updTut() {
     id = (c.x >= p.x0 && c.x <= p.x1 && p.y < c.plat.y) ? 'bJ' : ((p.x0 + p.x1) / 2 > c.x ? 'bR' : 'bL');
   }
   setPulse(id);
+}
+
+// ---------- 言葉を使わない手がかり ----------
+const inSpot = sp => { const m = MISCHIEF[sp.id]; return !sp.done && cat.plat === PL[m.plat] && cat.x >= m.x[0] - 6 && cat.x <= m.x[1] + 6; };
+const leverReady = () => lever && lever.item && items.includes(lever.item) && lever.item.state === 'rest' && Math.abs(lever.item.x - SEAT) <= 12;
+const ballNear = () => ball && ball.plat && ball.plat === cat.plat && Math.abs(ball.x - cat.x) < 70;
+function hintPulse() {
+  // その場で押すボタンを光らせる（いたずらの場所 → パンチ長押し、てこの先 → ジャンプ、転がるものの横 → パンチ）
+  if (!cat.plat || cat.scratch) return null;
+  if (!learned.has('mis') && spots.some(inSpot)) return 'bP';
+  if (!learned.has('lever') && cat.plat === LEVP && leverReady()) return 'bJ';
+  if (!learned.has('ball') && ballNear()) return 'bP';
+  return null;
+}
+function drawHints() {
+  if (state !== 'play' || introT > 0) return;
+  const b = Math.abs(Math.sin(tAnim * 4)) * 5, pulse = 0.55 + 0.45 * Math.abs(Math.sin(tAnim * 3));
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+  // いたずらの場所：近くにいると、爪あとの絵が上に浮かぶ。場所の中に入ると、空の輪（長押しの合図）が出る
+  if (!learned.has('mis')) for (const sp of spots) {
+    if (sp.done) continue;
+    const m = MISCHIEF[sp.id], cx = (m.x[0] + m.x[1]) / 2, py = PL[m.plat].y;
+    if (Math.abs(cat.x - cx) > 130) continue;
+    const y = py - (m.plat === 'floor' ? 44 : 64) - b;   // 床の場所はテーブルの天板より下に出す
+    g.globalAlpha = pulse; g.fillStyle = '#fff'; g.strokeStyle = '#9b5fc0'; g.lineWidth = 2.5;
+    g.beginPath(); g.arc(cx, y, 12, 0, TAU); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(cx - 6, y + 4); g.lineTo(cx, y + 8); g.lineTo(cx + 6, y + 4); g.fill(); g.stroke();
+    g.strokeStyle = '#9b5fc0'; g.lineWidth = 2; for (let i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(cx + i * 4 - 2, y - 6); g.lineTo(cx + i * 4 + 2, y + 5); g.stroke(); }
+    if (inSpot(sp)) { g.globalAlpha = 0.35 + 0.35 * Math.abs(Math.sin(tAnim * 5)); g.strokeStyle = '#9b5fc0'; g.lineWidth = 4; g.beginPath(); g.arc(cat.x, cat.y - 20, 30, 0, TAU); g.stroke(); }
+  }
+  // てこ：内側の端にものが乗っていれば、飛ぶ道すじを点線で、外の端の上に下向きの矢印を出す
+  if (!learned.has('lever') && leverReady() && cat.x > 200) {
+    g.globalAlpha = 0.5 * pulse; g.fillStyle = '#9b5fc0';
+    for (let t = 0.06; t < 0.75; t += 0.06) { const x = SEAT + 145 * t, y = PL.table.y - 12 - 520 * t + 700 * t * t; if (x > PL.book.x0 - 6) break; g.beginPath(); g.arc(x, y, 2, 0, TAU); g.fill(); }
+    if (cat.plat !== LEVP) {
+      const x = (LEVP.x0 + LEVP.x1) / 2, y = LEVP.y - 30 - b;
+      g.globalAlpha = pulse; g.fillStyle = '#ffc94a'; g.strokeStyle = '#fff'; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(x, y + 12); g.lineTo(x - 9, y); g.lineTo(x - 3.5, y); g.lineTo(x - 3.5, y - 10); g.lineTo(x + 3.5, y - 10); g.lineTo(x + 3.5, y); g.lineTo(x + 9, y); g.closePath(); g.stroke(); g.fill();
+    }
+  }
+  // 転がるもの：そばに来ると、ネコと反対側に「転がる向き」の線が出る
+  if (!learned.has('ball') && ballNear()) {
+    const d = Math.sign(ball.x - cat.x) || 1, x = ball.x + d * (ball.r + 6), y = ball.y - ball.r;
+    g.globalAlpha = pulse; g.strokeStyle = BALL[room].c; g.lineWidth = 2;
+    // 「＞＞＞」が転がる向きへ流れていく
+    for (let i = 0; i < 3; i++) { const k = (tAnim * 1.5 + i / 3) % 1, cx = x + d * (k * 18); g.globalAlpha = pulse * (1 - k); g.beginPath(); g.moveTo(cx - d * 3, y - 5); g.lineTo(cx + d * 2, y); g.lineTo(cx - d * 3, y + 5); g.stroke(); }
+  }
+  // 壁の高い足場：まだ乗ったことがなければ、そこに置かれたものがきらきら光る
+  if (!learned.has('high')) for (const it of items) {
+    if (!HIGH.includes(it.plat)) continue;
+    const k = (tAnim * 1.2 + it.x * 0.01) % 1, x = it.x + 8, y = it.plat.y - IT[it.t].h - 6, r = 3 + 4 * Math.sin(k * Math.PI);
+    g.globalAlpha = Math.sin(k * Math.PI); g.fillStyle = '#fff6a8';
+    g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r * 0.3, y - r * 0.3); g.lineTo(x + r, y); g.lineTo(x + r * 0.3, y + r * 0.3); g.lineTo(x, y + r); g.lineTo(x - r * 0.3, y + r * 0.3); g.lineTo(x - r, y); g.lineTo(x - r * 0.3, y - r * 0.3); g.closePath(); g.fill();
+  }
+  g.restore();
 }
 
 // ---------- 結果 ----------
@@ -2206,6 +2278,7 @@ function draw() {
   drawBark();
   drawLight();
   drawParts();
+  drawHints();
   drawTut();
   // 足音の予告
   if (state === 'play' && owner.mode === 'away' && owner.t < 1.1 && owner.t > 0) {
@@ -2322,7 +2395,8 @@ function fit() {
     if (vh < H) { vh = H; s = r.height / H; w = W * s; }
     vh = Math.min(vh, H * 1.6);
     VH = Math.round(vh); OY = VH - H;
-    cv.width = W * DPR; cv.height = VH * DPR;
+    DPR = clamp(s * (window.devicePixelRatio || 1), 1, 3);
+    cv.width = Math.round(W * DPR); cv.height = Math.round(VH * DPR);
     const fr = $('frame'); fr.style.width = Math.floor(w) + 'px'; fr.style.height = Math.floor(VH * s) + 'px';
   } catch (e) {}
 }
@@ -2346,7 +2420,7 @@ function showTitle() {
     <button class="btn go" id="goBtn" type="button">あそぶ</button>
     <div class="row"><button class="btn w" id="ohBtn" type="button">かたて操作：${oneHand ? 'ON' : 'OFF'}</button></div>
     <div class="row"><button class="btn w" id="rkBtn" type="button">ランキング</button><button class="btn w" id="zkBtn" type="button">称号図鑑 ${unlocked.size}/${TITLES.length}</button></div>
-    <p class="best">ベスト被害額 ${yen(bestYen)}</p></div>`;
+    <p class="best">ベスト被害額 ${yen(bestYen)}</p>${verLine()}</div>`;
   ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
   ov.querySelectorAll('.cats button').forEach(b => b.addEventListener('click', () => {
     selCat = +b.dataset.i; store.set('nekoCat', String(selCat)); audio(); bgmStart(); sfx.meow(CATS[selCat].voice, pickVoice());
@@ -2502,7 +2576,7 @@ function showPause() {
     <div class="big-logo" style="font-size:1.6rem">ひとやすみ</div><p class="sub">PAUSE</p>
     <button class="btn go" id="pResume" type="button">つづける</button>
     <div class="row"><button class="btn w" id="pRetry" type="button">やりなおす</button><button class="btn w" id="pTop" type="button">トップへ</button></div>
-    <div class="row"><button class="btn w" id="pSnd" type="button">${muted ? '音をオンにする' : '音をオフにする'}</button><button class="btn w" id="pOh" type="button">かたて操作：${oneHand ? 'ON' : 'OFF'}</button></div></div>`;
+    <div class="row"><button class="btn w" id="pSnd" type="button">${muted ? '音をオンにする' : '音をオフにする'}</button><button class="btn w" id="pOh" type="button">かたて操作：${oneHand ? 'ON' : 'OFF'}</button></div>${verLine()}</div>`;
   $('pResume').addEventListener('click', resumeGame);
   $('pRetry').addEventListener('click', () => { audio(); startGame(); });
   $('pTop').addEventListener('click', showTitle);
