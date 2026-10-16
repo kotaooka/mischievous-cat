@@ -221,7 +221,7 @@ function taskHit(id, inc) {
   const k = tasks.find(t => t.id === id && !t.done); if (!k || state !== 'play') return;
   k.n += inc || 1; if (k.n < k.need) return;
   k.done = true; run.stars++; timeLeft += 5; sfx.combo(3); buzz(30);
-  pops.push({ x: W / 2, y: 200, text: '★ お題クリア +5秒', life: 1.8, col: '#c95f17', size: 22 });
+  pops.push({ x: W / 2, y: 170, text: '★ お題クリア +5秒', life: 1.8, col: '#c95f17', size: 22 });
 }
 function openCat(id) {
   if (catsOpen.has(id)) return;
@@ -317,7 +317,7 @@ const LINES = {
 // お題（やることリスト）：ステージごとに3つ。達成すると★と +5秒
 const TASKS = {
   kaku:    { t: '目が合ってから落とす', ok: () => true },
-  chain:   { t: '2連鎖を出す', ok: () => items.length >= 2 },
+  chain:   { t: '2連鎖を出す', ok: () => ['side', 'table', 'shelf', 'book'].some(k => items.filter(i => i.plat === PL[k]).length >= 2) },
   strong:  { t: '強パンチで3個落とす', ok: () => items.length >= 3, need: 3 },
   big:     { t: '1万円以上のものを落とす', ok: () => items.some(i => IT[i.t].yen >= 10000) },
   water:   { t: '水入りコップを割る', ok: () => items.some(i => i.water) },
@@ -533,14 +533,14 @@ function bgmHat(dest, t, v) { const s2 = ac.createBufferSource(), f = ac.createB
 function bgmKick(dest, t, v) { const o = ac.createOscillator(), gn = ac.createGain(); o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.15); gn.gain.setValueAtTime(v, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.18); o.connect(gn); gn.connect(dest); o.start(t); o.stop(t + 0.2); }
 function bgmStart() {
   if (BGM.on || muted) return; const a = audio(); if (!a) return;
-  if (!BGM.bus) { BGM.bus = a.createGain(); BGM.bus.gain.value = 0; BGM.bus.connect(master); BGM.L = {}; ['base', 'calm', 'tense', 'danger'].forEach(k => { const gn = a.createGain(); gn.gain.value = 0; gn.connect(BGM.bus); BGM.L[k] = gn; }); }
+  if (!BGM.bus) { BGM.bus = a.createGain(); BGM.bus.gain.value = 0; BGM.bus.connect(master); BGM.L = {}; ['base', 'calm', 'tense', 'danger', 'chase'].forEach(k => { const gn = a.createGain(); gn.gain.value = 0; gn.connect(BGM.bus); BGM.L[k] = gn; }); }
   BGM.on = true; BGM.step = 0; BGM.mixKey = ''; BGM.next = a.currentTime + 0.08; BGM.bus.gain.setTargetAtTime(0.55, a.currentTime, 0.3);
   BGM.timer = setInterval(bgmTick, 30);
 }
 function bgmStop() { if (!BGM.on) return; BGM.on = false; clearInterval(BGM.timer); if (ac && BGM.bus) BGM.bus.gain.setTargetAtTime(0, ac.currentTime, 0.25); }
 function bgmTick() {
   if (!ac || !BGM.on) return;
-  const ph = phaseIx(level), tr = TRANS[ph], spb = 60 / TEMPO[ph] / 2;
+  const ph = phaseIx(level), tr = TRANS[ph], spb = 60 / (TEMPO[ph] * (chaseT > 0 ? 1.5 : 1)) / 2;   // 追いかけっこ中は1.5倍速
   if (BGM.next < ac.currentTime) BGM.next = ac.currentTime + 0.02;   // 裏に回ったあとなど、遅れた分は飛ばす
   while (BGM.next < ac.currentTime + 0.15) { bgmStep(BGM.step, BGM.next, tr, spb); BGM.next += spb; BGM.step = (BGM.step + 1) % 64; }
 }
@@ -551,21 +551,41 @@ function bgmStep(st, t, tr, spb) {
   if (i % 2 === 1) { bgmNote(L.tense, mtof(root + 12 + [0, 3, 7, 12][i >> 1]), t, spb * 0.5, 'square', 0.03); bgmHat(L.tense, t, 0.035); }
   if (i === 0 || i === 4) bgmKick(L.danger, t, 0.45); else if (i === 1 || i === 5) bgmKick(L.danger, t, 0.28);
   if (i === 0) bgmNote(L.danger, mtof(root - 12), t, spb * 8, 'sawtooth', 0.04);
+  // 追いかけっこ：16分で刻むベースと、サイレンのような高い2音
+  const cr = ROOTS[bar % 2 ? 7 : 0] + tr - 12;
+  bgmNote(L.chase, mtof(cr + (i % 2 ? 12 : 0)), t, spb * 0.45, 'square', 0.07); bgmNote(L.chase, mtof(cr + 7), t + spb / 2, spb * 0.4, 'square', 0.05);
+  if (i % 2 === 0) bgmNote(L.chase, mtof(cr + 36 + (i % 4 ? 3 : 0)), t, spb * 0.9, 'triangle', 0.06);
+  if (i % 2 === 0) bgmKick(L.chase, t, 0.4); else bgmHat(L.chase, t, 0.06);
 }
 function bgmMix() {
   if (!BGM.on || !ac) return;
-  const om = owner.mode; let mix = [1, 1, 0, 0];
+  const om = owner.mode; let mix = [1, 1, 0, 0, 0];   // base, calm, tense, danger, chase
   if (state === 'play' || state === 'clear') {
-    if (om === 'chase') mix = [0.8, 0, 0.6, 1];
-    else if (om === 'warn' || om === 'phone') mix = [1, 0.15, 1, 0];
-    else if (om === 'look' || om === 'up' || om === 'search') mix = [0.6, 0, 0.5, 1];
+    if (om === 'chase') mix = [0.5, 0, 0, 0.5, 1];
+    else if (om === 'warn' || om === 'phone') mix = [1, 0.15, 1, 0, 0];
+    else if (om === 'look' || om === 'up' || om === 'search') mix = [0.6, 0, 0.5, 1, 0];
     if (state === 'play' && timeLeft < 10) mix[2] = Math.max(mix[2], 0.7);
-  } else if (state === 'pause') mix = [0.3, 0.3, 0, 0];
-  else if (state === 'dayend') mix = [0.4, 0.6, 0, 0];
+  } else if (state === 'pause') mix = [0.3, 0.3, 0, 0, 0];
+  else if (state === 'dayend') mix = [0.4, 0.6, 0, 0, 0];
   const key = mix.join(); if (key === BGM.mixKey) return; BGM.mixKey = key;
-  ['base', 'calm', 'tense', 'danger'].forEach((k, i) => BGM.L[k].gain.setTargetAtTime(mix[i], ac.currentTime, 0.2));
+  ['base', 'calm', 'tense', 'danger', 'chase'].forEach((k, i) => BGM.L[k].gain.setTargetAtTime(mix[i], ac.currentTime, k === 'chase' ? 0.05 : 0.2));
 }
-function buzz(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+let hapLabel = null;
+function buzz(p) {
+  try {
+    if (navigator.vibrate) { navigator.vibrate(p); return; }
+    // iOS Safari には Vibration API がない。switch 付きチェックボックスのラベルを押すと触覚が出る（公式の方法ではないので、効かない端末もある）
+    if (!('ontouchstart' in window)) return;
+    if (!hapLabel) {
+      const inp = document.createElement('input'); inp.type = 'checkbox'; inp.setAttribute('switch', ''); inp.id = 'neko-hap'; inp.tabIndex = -1;
+      inp.style.cssText = hapLabel = 'position:fixed;left:-100px;top:0;opacity:0;pointer-events:none';
+      const lb = document.createElement('label'); lb.htmlFor = 'neko-hap'; lb.style.cssText = hapLabel; lb.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(inp); document.body.appendChild(lb); hapLabel = lb;
+    }
+    const n = Array.isArray(p) ? Math.ceil(p.length / 2) : 1;
+    for (let i = 0; i < n; i++) setTimeout(() => hapLabel.click(), i * 110);
+  } catch (e) {}
+}
 function breakSound(it) { const d = IT[it.t]; ({ glass: sfx.glass, cera: sfx.cera, elec: sfx.elec, paper: sfx.paper, pens: sfx.pens, alarm: sfx.alarm })[d.snd](d.noise); }
 
 // ---------- ステージ ----------
@@ -682,7 +702,7 @@ function startSearch() {
 function rush(x) {
   const o = owner;
   if (o.mode === 'away') { o.t = Math.min(o.t, 0.5); o.hint = x; return; }
-  if (o.mode === 'search') return;
+  if (o.mode === 'search' || o.mode === 'chase') return;
   o.stops.splice(o.si, 0, { kind: 'check', x: clamp(x, 40, 330), quick: true });
   if (o.mode !== 'warn' && o.mode !== 'look' && o.mode !== 'up') nextStop();
 }
@@ -735,7 +755,7 @@ function updOwner(dt) {
     case 'warn': o.t -= dt; if (o.t <= 0) { setMode('look', lookTime(level)); sfx.watch(); } break;
     case 'look': o.t -= dt; if (o.t <= 0) nextStop(); break;
     case 'busy':
-      o.t -= dt; o.talkT -= dt; if (o.talkT <= 0) { o.talkT = 2; say(pick(o.busy.text), 1.5); }
+      o.t -= dt; o.talkT -= dt; o.face = o.busy.face; if (o.talkT <= 0) { o.talkT = 2; say(pick(o.busy.text), 1.5); }
       if (o.t <= 0) nextStop();
       break;
     case 'chase': break;
@@ -873,6 +893,7 @@ function doPunch(strong) {
   if (hit && kaku) pops.push({ x: c.x, y: c.y - 60, text: '確信犯', life: 1.2, col: '#2fb3a3', size: 18 });
   if (strong) { sfx.strong(); hearNoise(c.x, 0.5); } else sfx.weak();
   if (hit && !strong) sfx.thud();
+  if (hit) buzz(strong ? 30 : 15);
 }
 function updItems(dt) {
   for (let i = items.length - 1; i >= 0; i--) {
@@ -961,7 +982,7 @@ function breakItem(it, plat) {
     const dx = o.x - it.x;
     if (Math.abs(dx) < 36) { o.vx += (Math.sign(dx) || 1) * 150 / IT[o.t].m; o.state = 'slide'; o.chain = it.chain; o.kaku = o.kaku || it.kaku; }
   }
-  breakSound(it); if (d.m >= 2) sfx.thud(); buzz(big ? 60 : 25);
+  breakSound(it); if (d.m >= 2) sfx.thud(); buzz(big ? [80, 50, 120] : d.m >= 2 ? 60 : 40);
   shake = Math.max(shake, d.noise > 1 ? 0.3 : 0.12);
   hearNoise(it.x, d.noise);
   if (tut.on) tut.broke = true;
@@ -971,7 +992,7 @@ function damage(y, key, x, py) {
   // ものではない被害（書斎のデータなど）
   run.touched = true; run.yen += y; if (run.yen >= 100000) openCat('mike'); run.broke[key] = (run.broke[key] || 0) + 1; run.lastBroke = key;
   pops.push({ x, y: py - 40, text: '+' + yen(y), life: 1.8, col: '#e0362c', size: 28 });
-  slowT = 0.6; shake = 0.25; sfx.kaching(); buzz(60); hearNoise(x, 0.9);
+  slowT = 0.6; shake = 0.25; sfx.kaching(); buzz([80, 50, 120]); hearNoise(x, 0.9);
 }
 function dogBark() {
   if (!dog) return;
@@ -1030,7 +1051,7 @@ function updSus(dt) {
 function startChase() {
   const o = owner; chaseUsed = true; chaseT = 3; o.lureT = 0; o.up = false;
   if (o.mode === 'away') { o.x = cat.x < 200 ? 380 : -40; }
-  setMode('chase'); o.face = Math.sign(cat.x - o.x) || 1; say('待てーっ!!', 3); sfx.alert(); sfx.bark(); buzz([40, 30, 40]); shake = 0.3;
+  setMode('chase'); setPulse(null); tapTarget = null; o.face = Math.sign(cat.x - o.x) || 1; say('待てーっ!!', 3); sfx.alert(); sfx.bark(); buzz([40, 30, 40]); shake = 0.3;
 }
 function updChase(dt) {
   const o = owner; chaseT -= dt;
@@ -1456,7 +1477,7 @@ function drawOwner() {
   // 見える範囲（背景に薄く）
   if (m !== 'leave') {
     let col = null;
-    if (m === 'warn') col = 'rgba(255,190,40,.16)'; else if (m === 'look' || m === 'up' || m === 'search') col = 'rgba(255,70,60,.12)'; else if (m === 'walk') col = 'rgba(255,255,255,.08)'; else if (m === 'phone') col = 'rgba(100,150,255,.12)';
+    if (m === 'warn') col = 'rgba(255,190,40,.16)'; else if (m === 'look' || m === 'up' || m === 'search') col = 'rgba(255,70,60,.12)'; else if (m === 'walk') col = 'rgba(255,255,255,.08)'; else if (m === 'phone') col = 'rgba(100,150,255,.12)'; else if (m === 'busy') col = 'rgba(80,190,120,.13)';
     if (col) {
       g.fillStyle = col;
       if (o.omni) g.fillRect(x - o.range, -OY, o.range * 2, FLOOR + OY);
@@ -1503,7 +1524,7 @@ function drawOwner() {
   // 吹き出し・記号
   let mark = null, col = '#ffb020';
   if (m === 'warn' || m === 'search' && !(o.say && o.sayT > 0)) { mark = '？'; }
-  else if (m === 'look' || m === 'up' && o.t <= 0.5 || state === 'caught') { mark = '!!'; col = '#ff3b30'; }
+  else if (m === 'look' || m === 'chase' || m === 'up' && o.t <= 0.5 || state === 'caught') { mark = '!!'; col = '#ff3b30'; }
   else if (m === 'up') { mark = '!'; }
   else if (o.lureT > 0) { mark = '？'; }
   if (mark) {
