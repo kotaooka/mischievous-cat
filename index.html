@@ -131,6 +131,13 @@
   .rank .dt { color: var(--ink2); font-size: .72rem; white-space: nowrap; text-align: right; }
   .rank tr.now td { background: #fff0dc; border-color: var(--org); }
   .rank-in { color: var(--org-d) !important; }
+  .rank .nm-c { word-break: break-all; }
+  .tabs { display: flex; gap: 6px; margin: 4px 0 6px; }
+  .tabs button { flex: 1; font: inherit; font-weight: 800; font-size: .9rem; color: var(--ink2); background: #fff; border: 2px solid var(--line); border-radius: 999px; padding: 5px; cursor: pointer; }
+  .tabs button[aria-pressed="true"] { color: #fff; background: var(--teal); border-color: var(--teal); }
+  .online { border: 2px dashed var(--line); border-radius: 14px; padding: 4px 8px; margin: 6px 0; }
+  .nm { flex: 1; min-width: 0; font: inherit; font-size: 16px; font-weight: 800; color: var(--ink); border: 2px solid var(--line); border-radius: 12px; padding: 8px 10px; background: #fff; user-select: text; -webkit-user-select: text; }
+  .nm-err { color: var(--red-d); font-size: .78rem; font-weight: 800; margin: 0; min-height: 1em; }
   .btn:focus-visible, .cats button:focus-visible, #pad button:focus-visible, #bSnd:focus-visible, #bPause:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
 
   /* 下段の操作ボタン */
@@ -1417,7 +1424,9 @@ function gameOver() {
   }
   newAccs = ACCS.filter(a => a.need > 0 && a.need <= unlocked.size && a.need > unlocked.size - newTitles.length).map(a => a.name);
   store.set('nekoTitles', JSON.stringify([...unlocked]));
+  worldNow = null;
   showOver();
+  if (onlineOn() && myName) postAndRefresh();
 }
 
 // ---------- 描画：ネコ・飼い主・もの ----------
@@ -2352,21 +2361,117 @@ function showTitle() {
   $('goBtn').addEventListener('click', () => { audio(); startGame(); });
   $('ohBtn').addEventListener('click', () => { setOneHand(!oneHand); $('ohBtn').textContent = 'かたて操作：' + (oneHand ? 'ON' : 'OFF'); });
   $('zkBtn').addEventListener('click', showZukan);
-  $('rkBtn').addEventListener('click', showRank);
+  $('rkBtn').addEventListener('click', () => showRank());
 }
-function showRank() {
-  // ランキング（この端末の上位10件）
-  const back = state === 'over' ? showOver : showTitle;
-  ov.hidden = false;
-  const row = (r, i) => {
-    const cn = (CATS.find(c => c.id === r.c) || CATS[2]).name, now = state === 'over' && i + 1 === rankNow;
-    return `<tr class="${now ? 'now' : ''}"><td class="no">${i + 1}</td><td class="yen">${yen(r.y)}${r.sk ? `<small>腕前 ${yen(r.sk)}</small>` : ''}</td><td>${dayOf(r.s)}日目・${phaseOf(r.s).name}<small>★${r.st}・${cn}</small></td><td class="dt">${r.d.slice(5).replace('-', '/')}</td></tr>`;
+// ---------- みんなのランキング（Firebase Cloud Firestore の REST API）----------
+// projectId を空にしておくと、みんなのランキングは出さない（この端末のランキングだけ）
+// apiKey は Firebase の「ウェブアプリ」設定の値。公開してよい値で、書き込みの可否は firestore.rules で決まる
+const ONLINE = { projectId: '', apiKey: '' };
+const onlineOn = () => !!ONLINE.projectId;
+const FS = () => `https://firestore.googleapis.com/v1/projects/${ONLINE.projectId}/databases/(default)/documents`;
+const esc = t => String(t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+let myName = store.get('nekoName', ''), myUid = store.get('nekoUid', '');
+if (!myUid) { myUid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); store.set('nekoUid', myUid); }
+let worldCache = null, worldAt = 0, worldNow = null, worldBest = 0;   // worldNow：今回の記録の「みんな」での順位（null は未送信、0 は圏外）
+// ニックネームの確認：1〜10文字、制御文字なし、よくない言葉を含まない（かんたんな確認だけ）
+const NG = ['死ね', 'しね', 'ころす', '殺す', 'ちんこ', 'まんこ', 'うんこ', 'fuck', 'shit', 'sex', 'http', 'www.'];
+function cleanName(t) {
+  t = String(t || '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 10);
+  if (!t) return null;
+  const low = t.toLowerCase(); if (NG.some(w => low.includes(w))) return null;
+  return t;
+}
+async function fetchWorld(force) {
+  // 上位100件を取り、同じ人（uid）は一番よい記録だけ残す。読み取りを減らすため 60 秒はキャッシュを使う
+  if (!onlineOn()) return null;
+  if (!force && worldCache && Date.now() - worldAt < 60000) return worldCache;
+  const res = await fetch(`${FS()}:runQuery?key=${encodeURIComponent(ONLINE.apiKey)}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'scores' }], orderBy: [{ field: { fieldPath: 'y' }, direction: 'DESCENDING' }], limit: 100 } })
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const rows = (await res.json()).filter(r => r.document).map(r => {
+    const f = r.document.fields || {}, num = k => +(f[k] && (f[k].integerValue || f[k].doubleValue) || 0), str = k => (f[k] && f[k].stringValue) || '';
+    return { name: str('name'), y: num('y'), s: num('s'), st: num('st'), c: str('c'), uid: str('uid'), sk: num('sk'), d: (r.document.createTime || '').slice(0, 10) };
+  });
+  const seen = new Set(); worldCache = rows.filter(r => !seen.has(r.uid) && seen.add(r.uid)).slice(0, 50); worldAt = Date.now();
+  return worldCache;
+}
+async function sendScore() {
+  // 今回の記録を送る（1プレイにつき1回）。送ったあと、みんなの中での順位を出す
+  if (!onlineOn() || !myName || !run || run.sent || run.yen <= 0) return;
+  run.sent = true; worldNow = null;
+  const I = v => ({ integerValue: String(Math.round(v)) }), S = v => ({ stringValue: v });
+  const body = { fields: { name: S(myName), y: I(run.yen), s: I(run.stage), st: I(run.stars), c: S(CATS[selCat].id), uid: S(myUid), sk: I(Math.min(run.skill, run.yen)), v: I(2) } };
+  const res = await fetch(`${FS()}/scores?key=${encodeURIComponent(ONLINE.apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!res.ok) { run.sent = false; throw new Error('HTTP ' + res.status); }
+  const list = await fetchWorld(true), i = list.findIndex(r => r.uid === myUid && r.y === Math.round(run.yen));
+  worldNow = i >= 0 ? i + 1 : 0;
+  // 同じ人は一番よい記録だけ載るので、今回が自己ベスト未満なら、載っている自己ベストの順位を出す
+  worldBest = i >= 0 ? 0 : list.findIndex(r => r.uid === myUid) + 1;
+}
+function onlineBox() {
+  // 結果画面の「みんなのランキング」欄
+  if (!onlineOn() || run.yen <= 0) return '';
+  if (!myName) return `<div class="online"><p class="best">みんなのランキングに登録する</p>
+    <div class="row"><input id="nmIn" class="nm" maxlength="10" placeholder="ニックネーム（10文字まで）" autocomplete="off"><button class="btn t" id="nmGo" type="button" style="flex:none;padding:10px 14px">登録</button></div><p class="nm-err" id="nmErr"></p></div>`;
+  const msg = worldNow == null ? (run.sent ? '送信中…' : '送信できませんでした') : worldNow ? `みんなのランキング ${worldNow}位` : worldBest ? `自己ベスト未満（あなたの最高は ${worldBest}位）` : 'みんなのランキング 50位圏外';
+  return `<div class="online"><p class="best rank-in" id="wMsg">${msg}</p><p class="sub" style="margin:0">${esc(myName)} で登録</p></div>`;
+}
+function bindOnline() {
+  const go = $('nmGo'); if (!go) return;
+  const submit = () => {
+    const n = cleanName($('nmIn').value);
+    if (!n) { $('nmErr').textContent = '1〜10文字で、使えない言葉を含まない名前にしてください'; return; }
+    myName = n; store.set('nekoName', n); postAndRefresh();
   };
+  go.addEventListener('click', submit);
+  $('nmIn').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') submit(); });
+  $('nmIn').addEventListener('keyup', e => e.stopPropagation());
+}
+function postAndRefresh() {
+  // 送信して、結果画面が出ていればその欄を書き換える
+  const p = sendScore();
+  const upd = () => { const box = ov.querySelector('.online'); if (box && state === 'over') { box.outerHTML = onlineBox(); bindOnline(); } };
+  upd(); p.then(upd, upd);
+}
+function showRank(tab) {
+  // ランキング：みんな（Firestore）／この端末（上位10件）
+  const back = state === 'over' ? showOver : showTitle;
+  tab = tab || (onlineOn() ? 'world' : 'local');
+  ov.hidden = false;
+  const cname = id => (CATS.find(c => c.id === id) || CATS[2]).name;
+  const local = (r, i) => {
+    const now = state === 'over' && i + 1 === rankNow;
+    return `<tr class="${now ? 'now' : ''}"><td class="no">${i + 1}</td><td class="yen">${yen(r.y)}${r.sk ? `<small>腕前 ${yen(r.sk)}</small>` : ''}</td><td>${dayOf(r.s)}日目・${phaseOf(r.s).name}<small>★${r.st}・${cname(r.c)}</small></td><td class="dt">${r.d.slice(5).replace('-', '/')}</td></tr>`;
+  };
+  const world = (r, i) => {
+    const s = clamp(r.s | 0, 1, 999);
+    return `<tr class="${r.uid === myUid ? 'now' : ''}"><td class="no">${i + 1}</td><td class="nm-c">${esc(r.name)}<small>${dayOf(s)}日目・${phaseOf(s).name}・${esc(cname(r.c))}</small></td><td class="yen">${yen(r.y)}${r.sk ? `<small>腕前 ${yen(r.sk)}</small>` : ''}</td></tr>`;
+  };
+  const tabs = onlineOn() ? `<div class="tabs"><button type="button" data-t="world" aria-pressed="${tab === 'world'}">みんな</button><button type="button" data-t="local" aria-pressed="${tab === 'local'}">この端末</button></div>` : '';
+  const body = tab === 'local'
+    ? (ranking.length ? `<table class="rank"><tbody>${ranking.map(local).join('')}</tbody></table>` : '<p class="best">まだ記録がありません</p>')
+    : '<div id="wList"><p class="best">読み込み中…</p></div>';
+  const nameRow = tab === 'world' ? `<div class="row"><input id="nmIn2" class="nm" maxlength="10" placeholder="ニックネーム（10文字まで）" value="${esc(myName)}" autocomplete="off"><button class="btn w" id="nmSave" type="button" style="flex:none;padding:10px 14px">保存</button></div><p class="nm-err" id="nmErr2"></p>` : '';
   ov.innerHTML = `<div class="panel">
-    <div class="big-logo" style="font-size:1.5rem">ランキング</div><p class="sub">この端末の上位10件</p>
-    ${ranking.length ? `<table class="rank"><tbody>${ranking.map(row).join('')}</tbody></table>` : '<p class="best">まだ記録がありません</p>'}
+    <div class="big-logo" style="font-size:1.5rem">ランキング</div><p class="sub">${tab === 'local' ? 'この端末の上位10件' : 'みんなの上位50人（1人1件）'}</p>
+    ${tabs}${nameRow}${body}
     <div class="row"><button class="btn" id="rkBack" type="button">もどる</button></div></div>`;
   $('rkBack').addEventListener('click', back);
+  ov.querySelectorAll('.tabs button').forEach(bt => bt.addEventListener('click', () => showRank(bt.dataset.t)));
+  if (tab !== 'world') return;
+  const sv = $('nmSave'), inp = $('nmIn2');
+  ['keydown', 'keyup'].forEach(ev => inp.addEventListener(ev, e => e.stopPropagation()));
+  sv.addEventListener('click', () => {
+    const n = cleanName(inp.value);
+    if (!n) { $('nmErr2').textContent = '1〜10文字で、使えない言葉を含まない名前にしてください'; return; }
+    myName = n; store.set('nekoName', n); $('nmErr2').textContent = '保存しました（次の記録からこの名前で載ります）';
+  });
+  fetchWorld().then(list => {
+    const el = $('wList'); if (!el) return;
+    el.innerHTML = list && list.length ? `<table class="rank"><tbody>${list.map(world).join('')}</tbody></table>` : '<p class="best">まだ記録がありません</p>';
+  }, () => { const el = $('wList'); if (el) el.innerHTML = '<p class="best">読み込めませんでした。通信を確認してください</p>'; });
 }
 function catLook(i) {
   // 鍵のかかったネコは黒いシルエットで描く
@@ -2412,7 +2517,8 @@ async function showOver() {
   ov.innerHTML = `<div class="panel">
     <p class="res-yen">本日の被害額<b>${yen(run.yen)}</b></p>
     <p class="best">お題 ★${run.stars}${run.skill > 0 ? `　うち腕前ボーナス ${yen(run.skill)}` : ''}</p>
-    ${rankNow ? `<p class="best rank-in">ランキング ${rankNow}位${rankNow === 1 ? '（自己ベスト）' : ''}</p>` : ''}
+    ${rankNow ? `<p class="best rank-in">この端末のランキング ${rankNow}位${rankNow === 1 ? '（自己ベスト）' : ''}</p>` : ''}
+    ${onlineBox()}
     <div class="badges">${newTitles.includes(titleOf(run.yen)) ? '' : `<span class="badge">${titleOf(run.yen)}</span>`}${newTitles.map(n => `<span class="badge new">NEW ${n}</span>`).join('')}${newAccs.map(n => `<span class="badge new" style="background:var(--teal)">きせかえ ${n}</span>`).join('')}${newCats.map(n => `<span class="badge new" style="background:var(--org)">NEW ネコ ${n}</span>`).join('')}</div>
     ${newRec ? '<p class="best" style="color:var(--red-d)">ベスト更新!</p>' : ''}
     <img id="card" alt="犯行現場写真" width="1200" height="630">
@@ -2422,7 +2528,8 @@ async function showOver() {
   $('bAgain').addEventListener('click', () => { audio(); startGame(); });
   $('bChange').addEventListener('click', showTitle);
   $('bZk').addEventListener('click', showZukan);
-  $('bRk').addEventListener('click', showRank);
+  $('bRk').addEventListener('click', () => showRank());
+  bindOnline();
   $('bShare').addEventListener('click', doShare);
   $('bSave').addEventListener('click', saveCard);
   if (cardFor === run && cardUrl) { $('card').src = cardUrl; return; }
