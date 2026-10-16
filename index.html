@@ -2366,7 +2366,7 @@ function showTitle() {
 // ---------- みんなのランキング（Firebase Cloud Firestore の REST API）----------
 // projectId を空にしておくと、みんなのランキングは出さない（この端末のランキングだけ）
 // apiKey は Firebase の「ウェブアプリ」設定の値。公開してよい値で、書き込みの可否は firestore.rules で決まる
-const ONLINE = { projectId: '', apiKey: '' };
+const ONLINE = { projectId: 'mischievous-cat-3bfd1', apiKey: 'AIzaSyCp6EIE4difEjLQO4B2uzUQylqxOMnCzoE' };
 const onlineOn = () => !!ONLINE.projectId;
 const FS = () => `https://firestore.googleapis.com/v1/projects/${ONLINE.projectId}/databases/(default)/documents`;
 const esc = t => String(t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
