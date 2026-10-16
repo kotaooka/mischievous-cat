@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>こっそりネコ｜QC Workbench</title>
+<title>こっそりネコ - Mischievous Cat</title>
 <meta name="description" content="飼い主に見つからないように、家中でいたずらをして本日の被害額を稼ぐ縦画面のブラウザゲーム。コップも花瓶もスマホも落とす。仕事の合間の息抜きに">
 <meta name="theme-color" content="#1d5c96" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#11161b" media="(prefers-color-scheme: dark)">
-<meta property="og:title" content="こっそりネコ｜QC Workbench">
+<meta property="og:title" content="こっそりネコ - Mischievous Cat">
 <meta property="og:description" content="飼い主に見つからないように、家中でいたずらをして本日の被害額を稼ぐ縦画面のブラウザゲーム。コップも花瓶もスマホも落とす">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://kotaooka.github.io/mischievous-cat/">
-<meta property="og:site_name" content="QC Workbench">
+<meta property="og:site_name" content="こっそりネコ">
 <meta property="og:locale" content="ja_JP">
 <!-- SNS共有用の画像。URLは絶対パスで書く（相対パスだと読めないSNSがある） -->
 <meta property="og:image" content="https://kotaooka.github.io/mischievous-cat/og.png">
@@ -22,11 +22,7 @@
 <link rel="canonical" href="https://kotaooka.github.io/mischievous-cat/">
 <!-- ファビコン（外部ファイル不要のインラインSVG） -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231d5c96'/%3E%3Cpath d='M7 26V8l6 5h6l6-5v18z' fill='%23fff'/%3E%3Ccircle cx='12.5' cy='20' r='1.8' fill='%231d5c96'/%3E%3Ccircle cx='19.5' cy='20' r='1.8' fill='%231d5c96'/%3E%3C/svg%3E">
-<script>
-  // 保存したテーマ（auto / light / dark）を描画前に当てる（保存キーは QC Workbench の全ツール共通）
-  try { const t = localStorage.getItem("qc-workbench-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) { /* 保存できない環境 */ }
-</script>
-<!-- 字体は QC Workbench の各ツールと同じ BIZ UDPゴシック -->
+<!-- 字体は BIZ UDPゴシック（読みやすさ重視） -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap">
@@ -89,9 +85,12 @@
     text-autospace: normal;
   }
   #wrap { max-width: 480px; margin: 0 auto; padding: 4px 12px 20px; text-align: center; }
-  .crumb { text-align: left; font-size: .88rem; color: var(--ink2); padding: 6px 0 6px; }
-  .crumb a { color: var(--accent); font-weight: 700; text-decoration: none; }
-  .crumb a:hover { text-decoration: underline; }
+  /* ゲームの見出し：タイトルと音の切り替え */
+  #top { display: flex; align-items: center; gap: 8px; padding: 6px 0; text-align: left; }
+  #top h1 { margin: 0; font-size: 1.15rem; line-height: 1.2; color: var(--ink); }
+  #top h1 small { display: block; font-size: .7rem; font-weight: 400; color: var(--muted); letter-spacing: .04em; }
+  #top button { margin-left: auto; font: inherit; font-size: .82rem; font-weight: 700; color: var(--accent); background: transparent; border: 2px solid var(--accent); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+  #top button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   /* 上部の表示：スコア・被害額・怪しまれ度 */
   #hud { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr; gap: 6px; margin-bottom: 6px; }
@@ -101,7 +100,7 @@
   #hud .bar { display: block; height: 14px; margin-top: 4px; background: var(--grid); border-radius: 7px; overflow: hidden; }
   #hud .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: background .2s; }
 
-  #stage { position: relative; width: min(100%, max(260px, calc((100svh - 270px) * 0.8333))); margin: 0 auto; }
+  #stage { position: relative; width: min(100%, max(260px, calc((100svh - 296px) * 0.8333))); margin: 0 auto; }
   canvas#c {
     display: block; width: 100%; height: auto; aspect-ratio: 450 / 540;
     border-radius: 10px; border: 1px solid var(--line); background: #000; touch-action: none;
@@ -149,7 +148,7 @@
 </head>
 <body>
 <div id="wrap">
-  <nav class="crumb"><a href="https://kotaooka.github.io/">QC Workbench</a> › こっそりネコ</nav>
+  <header id="top"><h1>こっそりネコ<small>Mischievous Cat</small></h1><button id="bSnd" type="button" aria-pressed="true">音：ON</button></header>
   <div id="hud">
     <div><span class="k">スコア</span><b id="hS">0</b></div>
     <div><span class="k">被害額</span><b id="hY">¥0</b></div>
@@ -239,7 +238,7 @@ const MODE = {
 // ---------- 状態 ----------
 let state = 'title', level = 1, sus = 0, muted = false, selCat = 0, bestYen = 0;
 let stageT = 0, clearT = 0, caughtT = 0, shake = 0, tAnim = 0, susCd = 0;
-try { bestYen = +localStorage.getItem('nekoBestYen') || 0; selCat = clamp((+localStorage.getItem('nekoCat')) | 0, 0, CATS.length - 1); } catch (e) {}
+try { muted = localStorage.getItem('nekoMute') === '1'; bestYen = +localStorage.getItem('nekoBestYen') || 0; selCat = clamp((+localStorage.getItem('nekoCat')) | 0, 0, CATS.length - 1); } catch (e) {}
 let run, cat, items = [], puddles = [], prints = [], parts = [], pops = [], vac = null, dog = null, newRec = false;
 const keys = { L: false, R: false };
 const owner = { x: -60, face: 1, mode: 'away', t: 3, range: 0, rate: 0, omni: false, stops: [], si: 0, gx: 0, spd: 70, lureT: 0, say: '', sayT: 0, warned: false, hint: null, phoneLeft: 0, upIn: 0, searchRetarget: 0, up: false, step: 0 };
@@ -1067,7 +1066,7 @@ window.addEventListener('keydown', e => {
   else if (k === 'ArrowUp' || k === 'w' || k === 'W') { if (!e.repeat) jumpPress(); }
   else if (k === ' ' || k === 'z' || k === 'Z') { if (state === 'play') { if (!e.repeat) { audio(); punchDown(); } } else return; }
   else if (k === 'x' || k === 'X') { if (!e.repeat && state === 'play') meow(); }
-  else if (k === 'm' || k === 'M') { muted = !muted; }
+  else if (k === 'm' || k === 'M') { toggleSound(); }
   else return;
   if (state === 'play' || state === 'clear') e.preventDefault();
 });
@@ -1077,6 +1076,10 @@ window.addEventListener('keyup', e => {
   else if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.R = false;
   else if (k === ' ' || k === 'z' || k === 'Z') punchUp();
 });
+function toggleSound() { muted = !muted; try { localStorage.setItem('nekoMute', muted ? '1' : '0'); } catch (e) {} soundLabel(); }
+function soundLabel() { const b = $('bSnd'); b.textContent = muted ? '音：OFF' : '音：ON'; b.setAttribute('aria-pressed', String(!muted)); }
+$('bSnd').addEventListener('click', () => { toggleSound(); if (!muted) audio(); });
+soundLabel();
 window.addEventListener('blur', () => { keys.L = keys.R = false; punchUp(); });
 
 // ---------- ループ ----------
