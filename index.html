@@ -670,7 +670,8 @@ function updItems(dt) {
       it.x += it.vx * dt;
       const f = 220 * dt;
       if (Math.abs(it.vx) <= f) { it.vx = 0; it.state = 'rest'; } else it.vx -= Math.sign(it.vx) * f;
-      if (it.x < 8) { it.x = 8; it.vx = 0; } else if (it.x > W - 8) { it.x = W - 8; it.vx = 0; }
+      // 壁際：ネコが反対側に回り込めるよう、壁から 26px 手前で跳ね返す（壁に張り付くと押せなくなるため）
+      if (it.x < 26) { it.x = 26; it.vx = Math.abs(it.vx) * 0.4; } else if (it.x > W - 26) { it.x = W - 26; it.vx = -Math.abs(it.vx) * 0.4; }
       // 連鎖：すべっているものが同じ段のものに当たったら、勢いを分ける（反発係数 0.8 の1次元衝突）
       for (const o of items) {
         if (o === it || o.plat !== it.plat || o.state === 'fall') continue;
