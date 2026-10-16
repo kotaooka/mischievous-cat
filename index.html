@@ -2518,12 +2518,13 @@ hold('bJ', jumpPress, () => {});
 hold('bP', punchDown, punchUp);
 hold('bM', () => { if (state === 'play') meow(); }, () => {});
 // 片手操作：ゲーム画面をタップ・スワイプで遊ぶ（ボタンは隠す）
-function setOneHand(on) { oneHand = on; store.set('nekoOneHand', on ? '1' : '0'); try { document.body.classList.toggle('onehand', on); } catch (e) {} fit(); }
+function setOneHand(on) { oneHand = on; tapTarget = null; if (cat) cat.autoScr = null; store.set('nekoOneHand', on ? '1' : '0'); try { document.body.classList.toggle('onehand', on); } catch (e) {} fit(); }
 try { document.body.classList.toggle('onehand', oneHand); } catch (e) {}
 let touch0 = null;
-cv.addEventListener('pointerdown', e => { if (state !== 'play') return; e.preventDefault(); audio(); touch0 = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+// かたて操作が OFF のときは、画面のタップ・スワイプでは操作しない（下のボタンだけで遊ぶ）
+cv.addEventListener('pointerdown', e => { if (state !== 'play' || !oneHand) return; e.preventDefault(); audio(); touch0 = { x: e.clientX, y: e.clientY, t: performance.now() }; });
 cv.addEventListener('pointerup', e => {
-  if (!touch0 || state !== 'play') { touch0 = null; return; }
+  if (!touch0 || state !== 'play' || !oneHand) { touch0 = null; return; }
   const r = cv.getBoundingClientRect(), dx = e.clientX - touch0.x, dy = e.clientY - touch0.y, held = performance.now() - touch0.t; touch0 = null;
   const sx = W / r.width, wx = (e.clientX - r.left) * sx, wy = (e.clientY - r.top) * sx - OY;
   if (dy * sx < -36 && Math.abs(dy) > Math.abs(dx) * 0.7) { jumpPress(); if (Math.abs(dx) * sx > 20) tapTarget = { x: cat.x + Math.sign(dx) * 90 }; return; }   // 上へスワイプでジャンプ
