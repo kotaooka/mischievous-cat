@@ -1,6 +1,6 @@
 // こっそりネコのサービスワーカー：一度開けばオフラインでも遊べるようにする
 // 中身を更新したら VERSION を上げる（古いキャッシュを消すため）
-const VERSION = 'neko-v3';
+const VERSION = 'neko-v4';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

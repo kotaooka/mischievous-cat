@@ -143,7 +143,6 @@
 <div id="app">
   <header id="top">
     <div class="logo">こっそり<span>ネコ</span><small>Mischievous Cat</small></div>
-    <span class="pill" id="hS" aria-label="スコア">★0</span>
     <span class="pill yen" id="hY" aria-label="被害額">¥0</span>
     <button id="bPause" type="button" aria-label="ポーズ" hidden><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg></button>
     <button id="bSnd" type="button" aria-label="音" aria-pressed="true"></button>
@@ -251,7 +250,7 @@ const TITLES = [
   { id: 'dog', name: '番犬の天敵', test: r => r.barks >= 3 },
   { id: 'book', name: '本棚の主', test: r => r.bookBroke >= 3 },
   { id: 'fast', name: '秒殺', test: r => r.fast },
-  { id: 'zero', name: '冤罪ネコ', test: r => r.yen === 0 },
+  { id: 'zero', name: 'ただの良いネコ', test: r => r.yen === 0 && r.timeup },
   { id: 'food', name: 'くいしんぼう', test: r => r.fed >= 3 },
   { id: 'day', name: '一日中いたずら', test: r => r.days >= 1 },
   { id: 'data', name: '在宅勤務の敵', test: r => !!r.broke.data },
@@ -541,7 +540,7 @@ function setupStage(L) {
   }
   const T = CATS[selCat];
   cat = cat || {};
-  Object.assign(cat, { type: T, x: 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: 'にゃー', wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false });
+  Object.assign(cat, { type: T, x: 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: 'にゃー', wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0 });
   owner.mode = 'away'; owner.t = L === 1 ? 5 : rnd(2.5, 4.5); owner.range = 0; owner.lureT = 0; owner.warned = false; owner.hint = null; owner.say = ''; owner.x = -60;
   sus = Math.min(sus, 25);
   dog = L >= 4 && (room === 'living' || room === 'bed') ? { x: 60, alertT: 0, cd: 0, barkT: 0 } : null;
@@ -555,7 +554,7 @@ function setupStage(L) {
   timeMax = timeLeft = Math.round(25 + items.length * 7); lastTick = 99; bowl = null; feeds = 0;
 }
 function newRun() {
-  run = { yen: 0, score: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '' };
+  run = { yen: 0, score: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '', touched: false };
   sus = 0; snap = null; setupStage(1);
 }
 
@@ -636,6 +635,13 @@ function placeBowl(x) {
   x = clamp(x, 40, 330); if (Math.abs(x - BOX.x) < 40) x = BOX.x + (x < BOX.x ? -40 : 40);
   if (bowl || feeds >= 2) return;
   bowl = { x, t: 0 }; feeds++; say(pick(LINES.feed), 1.6); sfx.bowl();
+}
+function alertOwner(x) {
+  // いたずらではない物音（ロボにぶつかった など）：怪しまれ度は上げず、飼い主が気にしてそちらを見るだけ
+  const o = owner;
+  if (o.mode === 'away') { o.t = Math.min(o.t, 0.8); o.hint = x; return; }
+  if (o.mode === 'search') return;
+  o.face = Math.sign(x - o.x) || o.face; o.lureT = Math.max(o.lureT, 1.2); say(pick(LINES.unseen), 1.2);
 }
 function meow() {
   const c = cat; if (c.meowCd > 0 || state !== 'play') return;
@@ -758,6 +764,7 @@ function updCat(dt) {
   }
   c.hidden = c.plat === PL.floor && Math.abs(c.x - BOX.x) < BOX.w / 2 - 6;
   c.safe = c.plat === PL.tower;
+  c.onFurn = c.plat === PL.side || c.plat === PL.table || c.plat === PL.shelf || c.plat === PL.book;
   c.acting = (c.plat !== VACP && Math.abs(c.vx) > 6) || !c.plat || c.punchT > 0 || c.meowT > 0;
   // カメラ目線：ものの横でしばらく止まると、こちらを見る
   if (c.plat && c.plat !== VACP && !dir && Math.abs(c.vx) < 5 && state === 'play') c.still += dt; else c.still = 0;
@@ -780,6 +787,7 @@ function doPunch(strong) {
     const dx = (it.x - c.x) * c.face;
     if (dx > -4 && dx < reach + IT[it.t].w / 2) { it.vx = c.face * force * T.punch / IT[it.t].m; it.state = 'slide'; it.chain = id; it.kaku = kaku; hit = true; }
   }
+  if (hit) run.touched = true;
   if (hit && kaku) pops.push({ x: c.x, y: c.y - 60, text: '確信犯', life: 1.2, col: '#2fb3a3', size: 18 });
   if (strong) { sfx.strong(); hearNoise(c.x, 0.5); } else sfx.weak();
   if (hit && !strong) sfx.thud();
@@ -824,7 +832,7 @@ function addPart(o) { if (parts.length < 320) parts.push(o); }
 function breakItem(it, plat) {
   const d = IT[it.t];
   const pts = Math.round(d.pts * cat.type.score * (it.kaku ? 2 : 1));
-  run.yen += d.yen; run.score += pts; run.broke[it.t] = (run.broke[it.t] || 0) + 1; run.lastBroke = it.t;
+  run.touched = true; run.yen += d.yen; run.score += pts; run.broke[it.t] = (run.broke[it.t] || 0) + 1; run.lastBroke = it.t;
   if (it.t === 'alarm') rush(it.x);
   if (it.home === 'book') run.bookBroke++;
   if (it.kaku) run.kakushin++;
@@ -866,13 +874,13 @@ function breakItem(it, plat) {
 
 function damage(y, key, x, py) {
   // ものではない被害（書斎のデータなど）
-  run.yen += y; run.score += Math.round(y / 100 * cat.type.score); run.broke[key] = (run.broke[key] || 0) + 1; run.lastBroke = key;
+  run.touched = true; run.yen += y; run.score += Math.round(y / 100 * cat.type.score); run.broke[key] = (run.broke[key] || 0) + 1; run.lastBroke = key;
   pops.push({ x, y: py - 40, text: '+' + yen(y), life: 1.8, col: '#e0362c', size: 28 });
   slowT = 0.6; shake = 0.25; sfx.kaching(); buzz(60); hearNoise(x, 0.9);
 }
 function dogBark() {
   if (!dog) return;
-  dog.barkT = 0.7; dog.cd = 7; dog.alertT = 0; run.barks++; sfx.bark(); sus += 12; rush(cat.x); say('どうした？', 1.4);
+  dog.barkT = 0.7; dog.cd = 7; dog.alertT = 0; run.barks++; sfx.bark(); rush(cat.x); say('どうした？', 1.4);
 }
 function updDog(dt) {
   if (!dog) return;
@@ -890,7 +898,7 @@ function updVac(dt) {
   if (vac.t <= 0) { vac.dir = Math.random() < 0.5 ? -1 : 1; vac.t = rnd(3, 6); }
   VACP.x0 = vac.x - 22; VACP.x1 = vac.x + 22;
   if (!ridden && vac.cd <= 0 && cat.stun <= 0 && cat.y > FLOOR - 12 && cat.plat === PL.floor && Math.abs(cat.x - vac.x) < 30) {
-    cat.stun = 0.9; cat.vx = (cat.x >= vac.x ? 1 : -1) * 200; vac.cd = 1.6; sfx.bump(); sus += 18; hearNoise(cat.x, 0.5);
+    cat.stun = 0.9; cat.vx = (cat.x >= vac.x ? 1 : -1) * 200; vac.cd = 1.6; sfx.bump(); alertOwner(cat.x);
   }
 }
 function updSus(dt) {
@@ -898,11 +906,17 @@ function updSus(dt) {
   let seen = false;
   if (o.mode !== 'away' && !cat.hidden && !cat.safe) seen = ownerSees(cat.x);
   let rate = o.rate; if (o.mode === 'up' && o.t > 0.5) rate = 8;
+  // 怪しまれるのは「いたずら」だけ。床を歩く・跳ぶ・鳴く・食べるのはネコとして普通なので上がらない
   let gain = 0;
-  if (seen && cat.acting) gain += rate * cat.type.sus;
+  if (seen) {
+    if (cat.punchT > 0) { gain += rate * cat.type.sus; cat.mark = 0.4; }   // パンチの現行犯
+    else if (cat.onFurn) { gain += rate * (Math.abs(cat.vx) > 6 ? 0.35 : 0.2) * cat.type.sus; cat.mark = 0.4; }   // 乗ってはいけない所にいる
+  }
   if (o.mode !== 'away') {
-    for (const it of items) if (it.state !== 'rest' && ownerSees(it.x)) { gain += rate * 0.7; break; }
-    if (rate >= 60 || o.mode === 'walk') { let n = 0; for (const p of prints) if (ownerSees(p.x) && ++n <= 5) gain += 2.5; }
+    let mv = false;
+    for (const it of items) if (it.state !== 'rest' && ownerSees(it.x)) { mv = true; it.mark = 0.4; }   // ものが動いている・落ちている
+    if (mv) gain += rate * 0.8;
+    if (rate >= 60 || o.mode === 'walk') { let n = 0; for (const p of prints) if (ownerSees(p.x) && ++n <= 5) { gain += 2.5; p.mark = 0.4; } }   // 足跡（証拠）
   }
   if (o.mode === 'search') gain *= 1.15;
   if (gain > 0) sus += gain * dt;
@@ -910,6 +924,9 @@ function updSus(dt) {
   if (susCd > 0) susCd -= dt;
   cat.seen = seen;
   sus = Math.max(0, sus);
+  // まだ何もいたずらをしていないうちは、見つからない（怪しまれ度は 90% で止まる）
+  if (!run.touched) sus = Math.min(sus, 90);
+  if (cat.mark > 0) cat.mark -= dt; for (const it of items) if (it.mark > 0) it.mark -= dt; for (const p of prints) if (p.mark > 0) p.mark -= dt;
   if (sus >= 65 && susCd <= 0 && o.mode !== 'search' && sus < 100) startSearch();
   if (sus >= 100) { sus = 100; caught(); }
 }
@@ -943,7 +960,7 @@ function setPulse(id) {
 function updTut() {
   tut.arrow = null; tut.stop = false;
   if (!tut.on || state !== 'play') { setPulse(null); return; }
-  if (tut.broke && (owner.mode === 'warn' || owner.mode === 'look')) { tut.stop = true; setPulse(null); return; }
+  if ((owner.mode === 'warn' || owner.mode === 'look') && cat.onFurn) { tut.stop = true; setPulse(null); return; }
   const c = cat, rest = items.filter(i => i.state === 'rest');
   if (!rest.length) { setPulse(null); return; }
   const it = rest.filter(i => i.plat === c.plat)[0] || rest.reduce((a, b) => Math.abs(a.x - c.x) < Math.abs(b.x - c.x) ? a : b);
@@ -1470,7 +1487,7 @@ function drawCatNow() {
   let pose = 'walk';
   if (state === 'caught') pose = 'caught'; else if (c.punchT > 0) pose = 'punch'; else if (state === 'clear' || state === 'dayend' || c.plat === VACP) pose = 'smug'; else if (c.stare) pose = 'stare';
   else if (c.still > 2.5) pose = ((c.still - 2.5) % 4.4) < 2.2 ? 'groom' : 'yawn';
-  drawCat(g, c.x, c.y, { type: c.type, face: c.face, scale: 1, t: c.anim, move: moving, pose, sq: c.sq, acc: selAcc, sweat: c.seen && !c.acting && sus > 30 && state === 'play' });
+  drawCat(g, c.x, c.y, { type: c.type, face: c.face, scale: 1, t: c.anim, move: moving, pose, sq: c.sq, acc: selAcc, sweat: c.seen && c.onFurn && state === 'play' });
   if (c.pDown && c.pHeld > 0.12 && state === 'play') {
     const r = clamp((c.pHeld - 0.12) / 0.23, 0, 1);
     g.strokeStyle = r >= 1 ? '#ff3b30' : '#ffb020'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.arc(c.x, c.y - 20, 30, -Math.PI / 2, -Math.PI / 2 + r * TAU); g.stroke();
@@ -1480,7 +1497,13 @@ function drawCatNow() {
   if (c.eatT > 0) label('もぐもぐ', c.x, c.y - 52 - Math.abs(Math.sin(tAnim * 12)) * 3, '#c95f17', 14);
   else if (c.meowT > 0) label(c.meowTxt, c.x + c.face * 30, c.y - 52, '#1d8174', 15);
   else if (c.stare && state === 'play') label('じーっ', c.x, c.y - 56, '#4a2f1d', 14);
+  if (c.mark > 0 && state === 'play') markAt(c.x - c.face * 22, c.y - 44);
   if (c.stun > 0) { g.fillStyle = '#ffb020'; g.font = `800 16px ${FONT}`; g.fillText('★', c.x - 10, c.y - 52); g.fillText('★', c.x + 10, c.y - 48); }
+}
+function markAt(x, y) {
+  // 怪しまれ度が上がった原因の目印
+  g.fillStyle = '#ff3b30'; g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 8, 0, TAU); g.fill(); g.stroke();
+  g.fillStyle = '#fff'; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('!', x, y + 0.5);
 }
 function drawTut() {
   if (!tut.on || state !== 'play') return;
@@ -1491,11 +1514,11 @@ function drawTut() {
     g.beginPath(); g.moveTo(it.x, y); g.lineTo(it.x - 11, y - 14); g.lineTo(it.x - 4, y - 14); g.lineTo(it.x - 4, y - 26); g.lineTo(it.x + 4, y - 26); g.lineTo(it.x + 4, y - 14); g.lineTo(it.x + 11, y - 14); g.closePath(); g.stroke(); g.fill();
   }
   if (tut.stop) {
-    // 飼い主が見ている間は止まる、の合図（止まれの標識）
+    // 飼い主が見ている間は家具から降りる、の合図
     const x = cat.x, y = cat.y - 78;
     g.fillStyle = '#ff3b30'; g.strokeStyle = '#fff'; g.lineWidth = 3;
     g.beginPath(); for (let i = 0; i < 8; i++) { const a = Math.PI / 8 + i * TAU / 8; g.lineTo(x + Math.cos(a) * 22, y + Math.sin(a) * 22); } g.closePath(); g.fill(); g.stroke();
-    g.fillStyle = '#fff'; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('とまれ', x, y + 1);
+    g.fillStyle = '#fff'; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('おりて', x, y + 1);
   }
 }
 function drawCutscene() {
@@ -1535,6 +1558,7 @@ function draw() {
   drawFurniture();
   drawPuddles();
   for (const it of items) drawItem(g, it.t, it.x, it.state === 'fall' ? it.y : it.plat.y, it.rot, it.water);
+  if (state === 'play') { for (const it of items) if (it.mark > 0) markAt(it.x, (it.state === 'fall' ? it.y : it.plat.y) - IT[it.t].h - 12); for (const p of prints) if (p.mark > 0) markAt(p.x, p.y - 12); }
   drawBowl();
   drawVac();
   drawCatNow();
@@ -1620,7 +1644,7 @@ function update(dt) {
 
 // ---------- 画面（HUD・タイトル・結果・図鑑）----------
 const $ = id => document.getElementById(id);
-const hS = $('hS'), hY = $('hY'), hB = $('hB'), ov = $('ov'), bPause = $('bPause');
+const hY = $('hY'), hB = $('hB'), ov = $('ov'), bPause = $('bPause');
 // ゲーム画面を、残りの領域いっぱいに広げる。
 // 横幅で決まるとき（縦長の画面）は、余った高さの分だけ壁を上に伸ばす（最大で 1.6 倍）。
 function fit() {
@@ -1641,7 +1665,7 @@ function hud() {
   bgmMix();
   const showP = state === 'play' || state === 'clear'; if (bPause.hidden === showP) bPause.hidden = !showP;
   const key = s + '|' + y + '|' + b; if (key === lastHud) return; lastHud = key;
-  hS.textContent = '★' + s; hY.textContent = y; hB.style.width = b + '%';
+  hY.textContent = y; hB.style.width = b + '%';
   hB.style.background = b >= 70 ? 'var(--red)' : b >= 40 ? 'var(--yel)' : 'var(--teal)';
 }
 function showTitle() {
@@ -1707,6 +1731,7 @@ async function showOver() {
     <p class="res-yen">本日の被害額<b>${yen(run.yen)}</b></p>
     <div class="badges">${newTitles.includes(titleOf(run.yen)) ? '' : `<span class="badge">${titleOf(run.yen)}</span>`}${newTitles.map(n => `<span class="badge new">NEW ${n}</span>`).join('')}${newAccs.map(n => `<span class="badge new" style="background:var(--teal)">きせかえ ${n}</span>`).join('')}</div>
     ${newRec ? '<p class="best" style="color:var(--red-d)">ベスト更新!</p>' : ''}
+    <p class="best">スコア ★${run.score.toLocaleString('ja-JP')}</p>
     <img id="card" alt="犯行現場写真" width="1200" height="630">
     <div class="row"><button class="btn t" id="bShare" type="button">シェア</button><button class="btn w" id="bSave" type="button">保存</button><a class="btn w" id="bX" href="${xUrl}" target="_blank" rel="noopener">Xに投稿</a></div>
     <div class="row"><button class="btn go" id="bAgain" type="button">もう一回</button></div>
