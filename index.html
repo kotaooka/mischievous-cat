@@ -93,6 +93,8 @@
   .cats button b { font-size: .84rem; line-height: 1.3; }
   .cats button span { font-size: .66rem; color: var(--ink2); line-height: 1.3; }
   .cats button[aria-pressed="true"] { border-color: var(--org); background: #fff0dc; }
+  .cats button:disabled { background: #fbf3e6; cursor: default; }
+  .cats button:disabled b { color: #b39a80; }
   .row { display: flex; gap: 8px; margin: 8px 0; }
   .btn { flex: 1; min-width: 0; font: inherit; font-size: 1rem; font-weight: 800; text-align: center; text-decoration: none; padding: 10px 6px; border: 0; border-radius: 14px; background: var(--org); color: #fff; cursor: pointer; display: block; box-shadow: 0 4px 0 var(--org-d); }
   .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--org-d); }
@@ -202,13 +204,23 @@ const BOX = { x: 215, w: 46, h: 46 };    // ダンボール（床で入ると隠
 // pip は選択画面の目盛り（はやさ・ジャンプ・パンチ・かくれ・くいしんぼ、1〜5）。数値の倍率と合わせてある
 // sus：見られたときの怪しまれやすさ、food：ごはんで増える時間の倍率
 const CATS = [
-  { id: 'kuro', name: '黒猫', note: 'かくれ上手', body: '#2b2b35', belly: '#3b3b48', eye: '#f2c94c', sus: 0.6, punch: 0.9, jump: 1, speed: 1, score: 1, food: 1, voice: 1.05, pip: [3, 3, 2, 5, 3] },
-  { id: 'cha', name: '茶トラ', note: 'パンチ自慢', body: '#e8913f', belly: '#f7cf98', stripe: '#b8661e', eye: '#7bbf5a', sus: 1.05, punch: 1.35, jump: 1, speed: 1.08, score: 1, food: 1, voice: 1, pip: [4, 3, 4, 2, 3] },
-  { id: 'saba', name: 'サバトラ', note: 'バランス', body: '#8e939c', belly: '#dfe2e6', stripe: '#4a4f58', eye: '#d6b84a', sus: 0.85, punch: 1.1, jump: 1.05, speed: 1.04, score: 1, food: 1, voice: 1.1, pip: [3, 4, 3, 3, 3] },
-  { id: 'maine', name: 'メインクーン', note: '怪力・大食い', body: '#a8794a', belly: '#e6d0ad', stripe: '#6d4a2a', eye: '#d6b84a', sus: 1.15, punch: 1.6, jump: 0.85, speed: 0.95, score: 1, food: 1.5, big: 1.18, voice: 0.78, pip: [2, 2, 5, 1, 5] },
-  { id: 'mike', name: '三毛猫', note: 'スコア1.3倍', body: '#f7f2e9', belly: '#ffffff', patch: [[-9, -22, 8, '#e8913f'], [8, -14, 7, '#2b2b35'], [14, -30, 6, '#e8913f'], [-16, -12, 5, '#2b2b35']], eye: '#7bbf5a', sus: 1, punch: 0.95, jump: 1, speed: 1, score: 1.3, food: 1, voice: 1.15, pip: [3, 3, 3, 3, 3], tag: 'スコア1.3倍' }
+  { id: 'kuro', name: '黒猫', note: 'かくれ上手', body: '#2b2b35', belly: '#3b3b48', eye: '#f2c94c', sus: 0.6, punch: 0.9, jump: 1, speed: 1, food: 1, voice: 1.05, pip: [3, 3, 2, 5, 3] },
+  { id: 'cha', name: '茶トラ', note: 'パンチ自慢', body: '#e8913f', belly: '#f7cf98', stripe: '#b8661e', eye: '#7bbf5a', sus: 1.05, punch: 1.35, jump: 1, speed: 1.08, food: 1, voice: 1, pip: [4, 3, 4, 2, 3] },
+  { id: 'saba', name: 'サバトラ', note: 'バランス', body: '#8e939c', belly: '#dfe2e6', stripe: '#4a4f58', eye: '#d6b84a', sus: 0.85, punch: 1.1, jump: 1.05, speed: 1.04, food: 1, voice: 1.1, pip: [3, 4, 3, 3, 3] },
+  { id: 'maine', name: 'メインクーン', note: '怪力・大食い', body: '#a8794a', belly: '#e6d0ad', stripe: '#6d4a2a', eye: '#d6b84a', sus: 1.15, punch: 1.6, jump: 0.85, speed: 0.95, food: 1.5, big: 1.18, voice: 0.78, pip: [2, 2, 5, 1, 5] },
+  { id: 'mike', name: '三毛猫', note: '招き猫', body: '#f7f2e9', belly: '#ffffff', patch: [[-9, -22, 8, '#e8913f'], [8, -14, 7, '#2b2b35'], [14, -30, 6, '#e8913f'], [-16, -12, 5, '#2b2b35']], eye: '#7bbf5a', sus: 1, punch: 0.95, jump: 1, speed: 1, food: 1, lucky: true, voice: 1.15, pip: [3, 3, 3, 3, 3], tag: '高いものが出やすい' }
 ];
 const PIPS = ['はやさ', 'ジャンプ', 'パンチ', 'かくれ', 'くいしんぼ'];
+// 最初はサバトラと茶トラだけ。ほかは条件を満たすと解禁（lock は鍵がかかっている間の短い条件表示）
+const CAT_LOCK = { kuro: 'こっそりクリア', maine: '重いもの5個', mike: '1回で¥10万' };
+let catsOpen = new Set(['saba', 'cha']);
+try { JSON.parse(store.get('nekoCats', '[]')).forEach(id => catsOpen.add(id)); } catch (e) {}
+let heavyCount = +store.get('nekoHeavy', 0) || 0, newCats = [], stageMaxSus = 0, carryT = 0, lastCarry = 0;
+function openCat(id) {
+  if (catsOpen.has(id)) return;
+  catsOpen.add(id); store.set('nekoCats', JSON.stringify([...catsOpen])); newCats.push(CATS.find(c => c.id === id).name);
+  pops.push({ x: W / 2, y: 175, text: 'NEW ネコ：' + CATS.find(c => c.id === id).name, life: 1.8, col: '#1d8174', size: 22 });
+}
 
 // ---------- 壊れるもの ----------
 // snd：割れる音の種類（glass ガラス / cera 陶器 / elec 電子機器 / paper 紙 / pens ペン）
@@ -299,11 +311,12 @@ const ACCS = [
 
 // ---------- 状態 ----------
 let state = 'title', level = 1, sus = 0, muted = store.get('nekoMute', '0') === '1';
-let selCat = clamp((+store.get('nekoCat', 0)) | 0, 0, CATS.length - 1), bestYen = +store.get('nekoBestYen', 0) || 0;
+let selCat = clamp((+store.get('nekoCat', 2)) | 0, 0, CATS.length - 1), bestYen = +store.get('nekoBestYen', 0) || 0;
 let tutDone = store.get('nekoTut', '0') === '1';
 let stageT = 0, clearT = 0, caughtT = 0, shake = 0, tAnim = 0, susCd = 0, slowT = 0, chainSeq = 0;
 let timeLeft = 40, timeMax = 40, lastTick = 99, bowl = null, feeds = 0, pausedFrom = null;
 let room = 'living', kb = null, snack = null, dayT = 0, introT = 0, newAccs = [];
+if (!catsOpen.has(CATS[selCat].id)) selCat = 2;
 let selAcc = store.get('nekoAcc', 'none');
 if (!ACCS.some(a => a.id === selAcc)) selAcc = 'none';
 let run, cat, items = [], puddles = [], prints = [], parts = [], pops = [], vac = null, dog = null, newRec = false, newTitles = [];
@@ -528,6 +541,7 @@ function setupStage(L) {
     bed:     [['alarm', 'cup', 'tissue'], ['pens', 'wine'], ['phone', 'vase'], ['tablet'], ['console', 'phone']]
   }[room];
   const pool = POOLS[0].slice(); for (let k = 1; k < POOLS.length; k++) if (L >= k + 1) pool.push(...POOLS[k]);
+  if (CATS[selCat].lucky) [['wine', 1], ['vase', 2], ['phone', 3], ['tablet', 4], ['console', 5]].forEach(([t, lv]) => { if (L >= lv) pool.push(t, t); });
   const n = Math.min(2 + L, 8);
   for (let guard = 0; items.length < n && guard < 200; guard++) {
     const t = pick(pool);
@@ -551,11 +565,11 @@ function setupStage(L) {
   PL.table.soft = room === 'bed';
   tut.on = L === 1 && !tutDone; tut.broke = false;
   // 制限時間：もの1個につき7秒＋25秒
-  timeMax = timeLeft = Math.round(25 + items.length * 7); lastTick = 99; bowl = null; feeds = 0;
+  timeMax = timeLeft = Math.round(25 + items.length * 7) + carryT; carryT = 0; lastTick = 99; bowl = null; feeds = 0; stageMaxSus = 0;
 }
 function newRun() {
-  run = { yen: 0, score: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '', touched: false };
-  sus = 0; snap = null; setupStage(1);
+  run = { yen: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '', touched: false };
+  sus = 0; snap = null; carryT = 0; newCats = []; setupStage(1);
 }
 
 // ---------- 飼い主 ----------
@@ -831,8 +845,7 @@ function updItems(dt) {
 function addPart(o) { if (parts.length < 320) parts.push(o); }
 function breakItem(it, plat) {
   const d = IT[it.t];
-  const pts = Math.round(d.pts * cat.type.score * (it.kaku ? 2 : 1));
-  run.touched = true; run.yen += d.yen; run.score += pts; run.broke[it.t] = (run.broke[it.t] || 0) + 1; run.lastBroke = it.t;
+  run.touched = true; run.yen += d.yen; run.broke[it.t] = (run.broke[it.t] || 0) + 1; run.lastBroke = it.t;
   if (it.t === 'alarm') rush(it.x);
   if (it.home === 'book') run.bookBroke++;
   if (it.kaku) run.kakushin++;
@@ -842,8 +855,13 @@ function breakItem(it, plat) {
   // 連鎖の数え上げ
   if (it.chain) {
     const n = chains[it.chain] = (chains[it.chain] || 0) + 1;
-    if (n >= 2) { run.score += 200 * (n - 1); run.maxChain = Math.max(run.maxChain, n); pops.push({ x: it.x, y: plat.y - 62, text: n + '連鎖!', life: 1.8, col: '#ff8a3d', size: 22 }); sfx.combo(n); }
+    if (n >= 2) { const b = Math.round(d.yen * 0.2); run.yen += b; run.maxChain = Math.max(run.maxChain, n); pops.push({ x: it.x, y: plat.y - 62, text: n + '連鎖 巻き添え+' + yen(b), life: 1.8, col: '#ff8a3d', size: 22 }); sfx.combo(n); }
   }
+  // 確信犯：目が合ってから落とされた飼い主の、精神的ダメージ
+  if (it.kaku) { const b = Math.round(d.yen * 0.5); run.yen += b; pops.push({ x: it.x, y: plat.y - 90, text: '精神的ダメージ+' + yen(b), life: 1.8, col: '#1d8174', size: 18 }); }
+  // ネコの解禁：重いもの（通算）・1回の被害額
+  if (it.t === 'mug' || it.t === 'vase' || it.t === 'console') { heavyCount++; store.set('nekoHeavy', String(heavyCount)); if (heavyCount >= 5) openCat('maine'); }
+  if (run.yen >= 100000) openCat('mike');
   const gy = plat.y;
   const col = { cup: '#f5f7fa', mug: '#2f8f83', wine: '#e9a3b4', vase: '#3b7ea1', phone: '#20252b', tablet: '#2a2f36', console: '#e9ecef', tissue: '#6fb3e8', pens: '#c0504d' }[it.t];
   if (it.t === 'tissue') {
@@ -874,7 +892,7 @@ function breakItem(it, plat) {
 
 function damage(y, key, x, py) {
   // ものではない被害（書斎のデータなど）
-  run.touched = true; run.yen += y; run.score += Math.round(y / 100 * cat.type.score); run.broke[key] = (run.broke[key] || 0) + 1; run.lastBroke = key;
+  run.touched = true; run.yen += y; if (run.yen >= 100000) openCat('mike'); run.broke[key] = (run.broke[key] || 0) + 1; run.lastBroke = key;
   pops.push({ x, y: py - 40, text: '+' + yen(y), life: 1.8, col: '#e0362c', size: 28 });
   slowT = 0.6; shake = 0.25; sfx.kaching(); buzz(60); hearNoise(x, 0.9);
 }
@@ -928,6 +946,7 @@ function updSus(dt) {
   if (!run.touched) sus = Math.min(sus, 90);
   if (cat.mark > 0) cat.mark -= dt; for (const it of items) if (it.mark > 0) it.mark -= dt; for (const p of prints) if (p.mark > 0) p.mark -= dt;
   if (sus >= 65 && susCd <= 0 && o.mode !== 'search' && sus < 100) startSearch();
+  stageMaxSus = Math.max(stageMaxSus, sus);
   if (sus >= 100) { sus = 100; caught(); }
 }
 function takeSnap() {
@@ -943,10 +962,12 @@ function caught(timeup) {
 }
 function checkClear() {
   if (state !== 'play' || items.length) return;
-  run.score += 300 + Math.round(Math.max(0, timeLeft) * 10);
+  if (stageMaxSus < 50) openCat('kuro');
   if (level >= 2 && stageT < 15) run.fast = true;
   if (tut.on) { tutDone = true; tut.on = false; store.set('nekoTut', '1'); }
-  if (level % 4 === 0) { run.days = dayOf(level); run.score += 1000 * run.days; state = 'dayend'; dayT = 4; sfx.dayend(); setPulse(null); setMode('away', 99); owner.warned = true; owner.lureT = 0; return; }
+  if (level % 4 === 0) { run.days = dayOf(level); carryT = 0; state = 'dayend'; dayT = 4; sfx.dayend(); setPulse(null); setMode('away', 99); owner.warned = true; owner.lureT = 0; return; }
+  // 残り時間の半分を次のステージへ持ち越す（最大20秒）
+  lastCarry = carryT = Math.min(20, Math.round(Math.max(0, timeLeft) * 0.5));
   state = 'clear'; clearT = 2.4; sfx.clear(); setPulse(null);
   setMode('away', 99); owner.warned = true; owner.lureT = 0;
 }
@@ -1590,16 +1611,17 @@ function draw() {
     g.globalAlpha = k; g.fillStyle = '#fff'; for (let i = 0; i < 26; i++) { const sx = (i * 97) % W, sy = -OY + (i * 53) % (VH * 0.6); g.fillRect(sx, sy, 2, 2); }
     g.fillStyle = '#fff6c8'; g.beginPath(); g.arc(340, 100, 26, 0, TAU); g.fill(); g.fillStyle = 'rgba(16,22,60,1)'; g.beginPath(); g.arc(328, 92, 24, 0, TAU); g.fill();
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.font = `800 34px ${FONT}`; g.fillText(dayOf(level) + '日目　おしまい', W / 2, 190);
-    g.font = `800 17px ${FONT}`; g.fillStyle = '#ffe9a8'; g.fillText('飼い主はねむった… Zzz', W / 2, 232); g.fillText('ボーナス +' + (1000 * dayOf(level)).toLocaleString('ja-JP'), W / 2, 262);
+    g.font = `800 17px ${FONT}`; g.fillStyle = '#ffe9a8'; g.fillText('飼い主はねむった… Zzz', W / 2, 232); g.fillText('被害額 ' + yen(run.yen), W / 2, 262);
     drawCat(g, W / 2 + 20, 400, { type: cat.type, face: 1, scale: 2.4, pose: 'smug', t: tAnim, acc: selAcc });
     g.globalAlpha = 1;
   }
   if (state === 'clear') {
     const k = clamp((2.4 - clearT) / 0.25, 0, 1), sc = 0.5 + 0.5 * k;
     g.save(); g.translate(W / 2, 245); g.scale(sc, sc); g.rotate(-0.04);
-    g.fillStyle = '#ff8a3d'; g.strokeStyle = '#fff'; g.lineWidth = 5; rr(g, -150, -50, 300, 100, 24); g.fill(); g.stroke();
+    g.fillStyle = '#ff8a3d'; g.strokeStyle = '#fff'; g.lineWidth = 5; rr(g, -150, -50, 300, lastCarry > 0 ? 122 : 100, 24); g.fill(); g.stroke();
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = `800 32px ${FONT}`; g.fillText('ステージクリア!', 0, -6);
     g.font = `800 17px ${FONT}`; g.fillText('被害額 ' + yen(run.yen), 0, 28);
+    if (lastCarry > 0) { g.fillStyle = '#fff3a0'; g.fillText('+' + lastCarry + '秒 持ち越し', 0, 54); }
     g.restore();
   }
   if (state === 'play' || state === 'clear' || state === 'pause' || state === 'caught') {
@@ -1661,7 +1683,7 @@ function fit() {
 window.addEventListener('resize', fit);
 let lastHud = '';
 function hud() {
-  const s = run ? run.score.toLocaleString('ja-JP') : '0', y = run ? yen(run.yen) : '¥0', b = Math.round(sus);
+  const s = '', y = run ? yen(run.yen) : '¥0', b = Math.round(sus);
   bgmMix();
   const showP = state === 'play' || state === 'clear'; if (bPause.hidden === showP) bPause.hidden = !showP;
   const key = s + '|' + y + '|' + b; if (key === lastHud) return; lastHud = key;
@@ -1672,13 +1694,13 @@ function showTitle() {
   state = 'title'; newRun(); ov.hidden = false; setPulse(null);
   ov.innerHTML = `<div class="panel">
     <div class="big-logo">こっそり<span>ネコ</span></div><p class="sub">MISCHIEVOUS CAT</p>
-    <div class="cats" role="group" aria-label="ネコをえらぶ">${CATS.map((c, i) => `<button type="button" data-i="${i}" aria-pressed="${i === selCat}"><canvas width="144" height="108"></canvas><b>${c.name}</b><span>${c.note}</span></button>`).join('')}</div>
+    <div class="cats" role="group" aria-label="ネコをえらぶ">${CATS.map((c, i) => { const ok = catsOpen.has(c.id); return `<button type="button" data-i="${i}" aria-pressed="${i === selCat}" ${ok ? '' : 'disabled'}><canvas width="144" height="108"></canvas><b>${ok ? c.name : '？？？'}</b><span>${ok ? c.note : CAT_LOCK[c.id]}</span></button>`; }).join('')}</div>
     <div class="stats" id="stats"></div>
     <div class="accs" role="group" aria-label="きせかえ">${ACCS.map(a => { const ok = unlocked.size >= a.need; return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : '★' + a.need}</button>`; }).join('')}</div>
     <button class="btn go" id="goBtn" type="button">あそぶ</button>
     <div class="row"><button class="btn w" id="zkBtn" type="button">称号図鑑 ${unlocked.size}/${TITLES.length}</button></div>
     <p class="best">ベスト被害額 ${yen(bestYen)}</p></div>`;
-  ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 34, 49, { type: CATS[i], face: 1, scale: 0.8, t: 0, pose: 'walk', acc: selAcc }); });
+  ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
   ov.querySelectorAll('.cats button').forEach(b => b.addEventListener('click', () => {
     selCat = +b.dataset.i; store.set('nekoCat', String(selCat)); audio(); bgmStart(); sfx.meow(CATS[selCat].voice, pickVoice());
     ov.querySelectorAll('.cats button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); setupStage(1); showStats();
@@ -1686,11 +1708,16 @@ function showTitle() {
   ov.querySelectorAll('.accs button').forEach(b => b.addEventListener('click', () => {
     selAcc = b.dataset.a; store.set('nekoAcc', selAcc); audio(); sfx.bowl();
     ov.querySelectorAll('.accs button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.setTransform(2, 0, 0, 2, 0, 0); c2.clearRect(0, 0, 72, 54); drawCat(c2, 34, 49, { type: CATS[i], face: 1, scale: 0.8, t: 0, pose: 'walk', acc: selAcc }); });
+    ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.setTransform(2, 0, 0, 2, 0, 0); c2.clearRect(0, 0, 72, 54); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
   }));
   showStats();
   $('goBtn').addEventListener('click', () => { audio(); startGame(); });
   $('zkBtn').addEventListener('click', showZukan);
+}
+function catLook(i) {
+  // 鍵のかかったネコは黒いシルエットで描く
+  const c = CATS[i]; if (catsOpen.has(c.id)) return c;
+  return Object.assign({}, c, { body: '#8a6a4f', belly: '#8a6a4f', eye: '#8a6a4f', stripe: null, patch: null });
 }
 function showStats() {
   const T = CATS[selCat], el = $('stats'); if (!el) return;
@@ -1729,9 +1756,8 @@ async function showOver() {
   ov.hidden = false;
   ov.innerHTML = `<div class="panel">
     <p class="res-yen">本日の被害額<b>${yen(run.yen)}</b></p>
-    <div class="badges">${newTitles.includes(titleOf(run.yen)) ? '' : `<span class="badge">${titleOf(run.yen)}</span>`}${newTitles.map(n => `<span class="badge new">NEW ${n}</span>`).join('')}${newAccs.map(n => `<span class="badge new" style="background:var(--teal)">きせかえ ${n}</span>`).join('')}</div>
+    <div class="badges">${newTitles.includes(titleOf(run.yen)) ? '' : `<span class="badge">${titleOf(run.yen)}</span>`}${newTitles.map(n => `<span class="badge new">NEW ${n}</span>`).join('')}${newAccs.map(n => `<span class="badge new" style="background:var(--teal)">きせかえ ${n}</span>`).join('')}${newCats.map(n => `<span class="badge new" style="background:var(--org)">NEW ネコ ${n}</span>`).join('')}</div>
     ${newRec ? '<p class="best" style="color:var(--red-d)">ベスト更新!</p>' : ''}
-    <p class="best">スコア ★${run.score.toLocaleString('ja-JP')}</p>
     <img id="card" alt="犯行現場写真" width="1200" height="630">
     <div class="row"><button class="btn t" id="bShare" type="button">シェア</button><button class="btn w" id="bSave" type="button">保存</button><a class="btn w" id="bX" href="${xUrl}" target="_blank" rel="noopener">Xに投稿</a></div>
     <div class="row"><button class="btn go" id="bAgain" type="button">もう一回</button></div>
