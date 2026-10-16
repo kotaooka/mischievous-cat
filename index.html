@@ -21,8 +21,10 @@
 <meta property="og:image:alt" content="こっそりネコ：飼い主に見つからないように、家中のものを落とすネコのゲーム">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://kotaooka.github.io/mischievous-cat/">
-<!-- ファビコン（外部ファイル不要のインラインSVG） -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23ff8a3d'/%3E%3Cpath d='M7 26V8l6 5h6l6-5v18z' fill='%234a2f1d'/%3E%3Ccircle cx='12.5' cy='19' r='2' fill='%23ffc94a'/%3E%3Ccircle cx='19.5' cy='19' r='2' fill='%23ffc94a'/%3E%3C/svg%3E">
+<!-- ファビコン -->
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <!-- 字体は丸ゴシック（M PLUS Rounded 1c） -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -64,8 +66,9 @@
   .logo small { display: block; font-size: .6rem; font-weight: 500; color: var(--ink2); letter-spacing: .08em; }
   .pill { background: var(--card); border: 2px solid var(--line); border-radius: 999px; padding: 1px 10px; font-weight: 800; font-size: .92rem; white-space: nowrap; line-height: 1.6; }
   .pill.yen { color: var(--red-d); }
-  #bSnd { width: 38px; height: 34px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0; flex: none; }
-  #bSnd svg { width: 22px; height: 22px; }
+  #bSnd, #bPause { width: 38px; height: 34px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0; flex: none; }
+  #bSnd svg, #bPause svg { width: 22px; height: 22px; }
+  #bPause[hidden] { display: none; }
   /* 怪しまれ度 */
   #meter { display: flex; align-items: center; gap: 6px; margin-top: 6px; margin-bottom: 6px; }
   #meter svg { width: 26px; height: 18px; flex: none; }
@@ -103,10 +106,15 @@
   .badge { background: var(--brn); color: var(--yel); font-weight: 800; border-radius: 999px; padding: 3px 12px; font-size: .9rem; }
   .badge.new { background: var(--red); color: #fff; }
   .panel img { width: 100%; height: auto; border-radius: 12px; display: block; margin: 6px 0; background: #f6e2c4; aspect-ratio: 1200 / 630; }
+  .stats { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; align-items: center; text-align: left; margin: 2px 4px 10px; font-weight: 800; font-size: .78rem; }
+  .stats .pips { display: flex; gap: 4px; }
+  .stats .pips i { width: 18px; height: 10px; border-radius: 5px; background: #f2e2c8; }
+  .stats .pips i.on { background: var(--org); }
+  .stats .tag { grid-column: 1 / -1; text-align: center; color: var(--teal-d); font-size: .82rem; }
   .zukan { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 8px 0; text-align: left; }
   .zukan div { border: 2px solid var(--line); border-radius: 12px; padding: 6px 8px; font-weight: 800; font-size: .86rem; background: #fff; }
   .zukan div.off { color: #c9b39a; background: #fbf3e6; }
-  .btn:focus-visible, .cats button:focus-visible, #pad button:focus-visible, #bSnd:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+  .btn:focus-visible, .cats button:focus-visible, #pad button:focus-visible, #bSnd:focus-visible, #bPause:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
 
   /* 下段の操作ボタン */
   #pad { display: grid; grid-template-columns: 1fr 1fr .9fr 1.15fr 1.15fr; gap: 6px; margin-top: 10px; }
@@ -133,6 +141,7 @@
     <div class="logo">こっそり<span>ネコ</span><small>Mischievous Cat</small></div>
     <span class="pill" id="hS" aria-label="スコア">★0</span>
     <span class="pill yen" id="hY" aria-label="被害額">¥0</span>
+    <button id="bPause" type="button" aria-label="ポーズ" hidden><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg></button>
     <button id="bSnd" type="button" aria-label="音" aria-pressed="true"></button>
   </header>
   <div id="meter" aria-label="怪しまれ度">
@@ -187,13 +196,16 @@ const VACP = { x0: 0, x1: 0, y: FLOOR - 14, vac: true };   // お掃除ロボの
 const BOX = { x: 215, w: 46, h: 46 };    // ダンボール（床で入ると隠れる）
 
 // ---------- ネコ ----------
+// pip は選択画面の目盛り（はやさ・ジャンプ・パンチ・かくれ・くいしんぼ、1〜5）。数値の倍率と合わせてある
+// sus：見られたときの怪しまれやすさ、food：ごはんで増える時間の倍率
 const CATS = [
-  { id: 'kuro', name: '黒猫', note: 'かくれ上手', body: '#2b2b35', belly: '#3b3b48', eye: '#f2c94c', sus: 0.6, punch: 1, jump: 1, speed: 1, score: 1, voice: 1.05 },
-  { id: 'cha', name: '茶トラ', note: 'パンチ強め', body: '#e8913f', belly: '#f7cf98', stripe: '#b8661e', eye: '#7bbf5a', sus: 1, punch: 1.35, jump: 1, speed: 1, score: 1, voice: 1 },
-  { id: 'saba', name: 'サバトラ', note: 'バランス', body: '#8e939c', belly: '#dfe2e6', stripe: '#4a4f58', eye: '#d6b84a', sus: 1, punch: 1, jump: 1, speed: 1, score: 1, voice: 1.1 },
-  { id: 'maine', name: 'メインクーン', note: '怪力・低ジャンプ', body: '#a8794a', belly: '#e6d0ad', stripe: '#6d4a2a', eye: '#d6b84a', sus: 1, punch: 1.5, jump: 0.85, speed: 0.95, score: 1, big: 1.18, voice: 0.78 },
-  { id: 'mike', name: '三毛猫', note: 'スコア×1.3', body: '#f7f2e9', belly: '#ffffff', patch: [[-9, -22, 8, '#e8913f'], [8, -14, 7, '#2b2b35'], [14, -30, 6, '#e8913f'], [-16, -12, 5, '#2b2b35']], eye: '#7bbf5a', sus: 1, punch: 1, jump: 1, speed: 1, score: 1.3, voice: 1.15 }
+  { id: 'kuro', name: '黒猫', note: 'かくれ上手', body: '#2b2b35', belly: '#3b3b48', eye: '#f2c94c', sus: 0.6, punch: 0.9, jump: 1, speed: 1, score: 1, food: 1, voice: 1.05, pip: [3, 3, 2, 5, 3] },
+  { id: 'cha', name: '茶トラ', note: 'パンチ自慢', body: '#e8913f', belly: '#f7cf98', stripe: '#b8661e', eye: '#7bbf5a', sus: 1.05, punch: 1.35, jump: 1, speed: 1.08, score: 1, food: 1, voice: 1, pip: [4, 3, 4, 2, 3] },
+  { id: 'saba', name: 'サバトラ', note: 'バランス', body: '#8e939c', belly: '#dfe2e6', stripe: '#4a4f58', eye: '#d6b84a', sus: 0.85, punch: 1.1, jump: 1.05, speed: 1.04, score: 1, food: 1, voice: 1.1, pip: [3, 4, 3, 3, 3] },
+  { id: 'maine', name: 'メインクーン', note: '怪力・大食い', body: '#a8794a', belly: '#e6d0ad', stripe: '#6d4a2a', eye: '#d6b84a', sus: 1.15, punch: 1.6, jump: 0.85, speed: 0.95, score: 1, food: 1.5, big: 1.18, voice: 0.78, pip: [2, 2, 5, 1, 5] },
+  { id: 'mike', name: '三毛猫', note: 'スコア×1.3', body: '#f7f2e9', belly: '#ffffff', patch: [[-9, -22, 8, '#e8913f'], [8, -14, 7, '#2b2b35'], [14, -30, 6, '#e8913f'], [-16, -12, 5, '#2b2b35']], eye: '#7bbf5a', sus: 1, punch: 0.95, jump: 1, speed: 1, score: 1.3, food: 1, voice: 1.15, pip: [3, 3, 3, 3, 3], tag: 'スコア1.3倍' }
 ];
+const PIPS = ['はやさ', 'ジャンプ', 'パンチ', 'かくれ', 'くいしんぼ'];
 
 // ---------- 壊れるもの ----------
 // snd：割れる音の種類（glass ガラス / cera 陶器 / elec 電子機器 / paper 紙 / pens ペン）
@@ -233,7 +245,8 @@ const TITLES = [
   { id: 'dog', name: '番犬の天敵', test: r => r.barks >= 3 },
   { id: 'book', name: '本棚の主', test: r => r.bookBroke >= 3 },
   { id: 'fast', name: '秒殺', test: r => r.fast },
-  { id: 'zero', name: '冤罪ネコ', test: r => r.yen === 0 }
+  { id: 'zero', name: '冤罪ネコ', test: r => r.yen === 0 },
+  { id: 'food', name: 'くいしんぼう', test: r => r.fed >= 3 }
 ];
 let unlocked = new Set();
 try { unlocked = new Set(JSON.parse(store.get('nekoTitles', '[]'))); } catch (e) {}
@@ -247,9 +260,11 @@ const MODE = {
   look:   { range: 600, rate: 60 },
   up:     { range: 600, rate: 60 },
   phone:  { range: 100, rate: 10, omni: true },
-  search: { range: 600, rate: 70 }
+  search: { range: 600, rate: 70 },
+  feed:   { range: 230, rate: 28 }
 };
 const REACT = ['こらーっ!!', '見〜た〜ぞ〜', 'またお前か!!', 'ちょっと!?', '何してんの!!'];
+const REACT_TIME = ['もう寝るよ〜', 'はい、おしまい', 'そろそろ寝なさい'];
 const CAUGHT_DUR = 2.9;
 
 // ---------- 状態 ----------
@@ -257,6 +272,7 @@ let state = 'title', level = 1, sus = 0, muted = store.get('nekoMute', '0') === 
 let selCat = clamp((+store.get('nekoCat', 0)) | 0, 0, CATS.length - 1), bestYen = +store.get('nekoBestYen', 0) || 0;
 let tutDone = store.get('nekoTut', '0') === '1';
 let stageT = 0, clearT = 0, caughtT = 0, shake = 0, tAnim = 0, susCd = 0, slowT = 0, chainSeq = 0;
+let timeLeft = 40, timeMax = 40, lastTick = 99, bowl = null, feeds = 0, pausedFrom = null;
 let run, cat, items = [], puddles = [], prints = [], parts = [], pops = [], vac = null, dog = null, newRec = false, newTitles = [];
 let snap = null, chains = {}, tut = { on: false, broke: false, arrow: null, stop: false }, pulseId = null;
 const keys = { L: false, R: false };
@@ -291,22 +307,43 @@ function noise(t, dur, peak, type, f1, f2, q, at) {
   const gn = envGain(a, t, at || 0.003, dur, peak); s.connect(f); f.connect(gn);
   s.start(t, rnd(0, 0.5)); s.stop(t + dur + 0.05);
 }
+// 母音ごとのフォルマント周波数（Hz）。N はンのような閉じた口
+const VOW = { N: [350, 1900, 3000], I: [450, 2600, 3400], E: [700, 2100, 3300], A: [950, 1600, 3200], O: [650, 1100, 3000] };
+// 鳴き方：txt 表示、dur 長さ（秒）、pts 音程の動き [時刻の割合, 倍率]、vow 口の動き [時刻の割合, 母音]、w 出やすさ
+const VOICES = [
+  { txt: 'にゃー', dur: 0.6, pts: [[0, 0.85], [0.2, 1.3], [0.55, 1.15], [1, 0.75]], vow: [[0, 'N'], [0.12, 'E'], [0.3, 'A'], [0.85, 'A'], [1, 'O']], w: 3 },
+  { txt: 'にゃっ', dur: 0.2, pts: [[0, 0.9], [0.4, 1.35], [1, 1.05]], vow: [[0, 'N'], [0.3, 'A'], [1, 'A']], w: 2 },
+  { txt: 'にゃお〜ん', dur: 1.0, pts: [[0, 0.8], [0.15, 1.25], [0.45, 1.05], [0.7, 1.2], [1, 0.7]], vow: [[0, 'N'], [0.12, 'A'], [0.5, 'A'], [0.7, 'O'], [0.9, 'O'], [1, 'N']], w: 1 },
+  { txt: 'みゃ', dur: 0.28, pitch: 1.25, pts: [[0, 1], [0.35, 1.3], [1, 1.1]], vow: [[0, 'I'], [0.4, 'A'], [1, 'A']], w: 2 },
+  { txt: 'にゃにゃ', dur: 0.18, rep: 2, pts: [[0, 0.95], [0.4, 1.35], [1, 1.1]], vow: [[0, 'N'], [0.35, 'A'], [1, 'A']], w: 1.5 },
+  { txt: 'なーお', dur: 0.8, pitch: 0.85, pts: [[0, 1], [0.3, 1.15], [1, 0.8]], vow: [[0, 'N'], [0.15, 'A'], [0.6, 'A'], [1, 'O']], w: 1 },
+  { txt: 'にゃ〜ん', dur: 0.75, pts: [[0, 0.9], [0.25, 1.3], [0.7, 1.15], [1, 0.85]], vow: [[0, 'N'], [0.15, 'A'], [0.75, 'A'], [1, 'N']], w: 2 },
+  { txt: 'みゃ〜お', dur: 0.7, pitch: 1.15, pts: [[0, 0.95], [0.3, 1.25], [1, 0.8]], vow: [[0, 'I'], [0.25, 'A'], [0.7, 'A'], [1, 'O']], w: 1 }
+];
+function pickVoice() { const tot = VOICES.reduce((a, v) => a + v.w, 0); let r = Math.random() * tot; for (const v of VOICES) { r -= v.w; if (r <= 0) return v; } return VOICES[0]; }
 const sfx = {
-  // 鳴き声：のこぎり波を3つのフォルマント（声道の共鳴）に通し、音程と口の開きを「ミ・ャ・ー・ウ」と動かす
-  meow(p) {
-    const a = A(); if (!a) return; const t = a.currentTime + 0.01, f0 = 560 * (p || 1);
-    const o = a.createOscillator(); o.type = 'sawtooth';
-    o.frequency.setValueAtTime(f0 * 0.85, t); o.frequency.linearRampToValueAtTime(f0 * 1.3, t + 0.13); o.frequency.linearRampToValueAtTime(f0 * 1.15, t + 0.32); o.frequency.linearRampToValueAtTime(f0 * 0.72, t + 0.6);
-    const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = 7; lg.gain.value = f0 * 0.025; lfo.connect(lg); lg.connect(o.frequency);
-    const amp = a.createGain(); amp.gain.setValueAtTime(0.0001, t); amp.gain.exponentialRampToValueAtTime(0.5, t + 0.06); amp.gain.setValueAtTime(0.5, t + 0.35); amp.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
-    amp.connect(master);
-    [[800, 1500, 700, 0.9], [1900, 2900, 1300, 0.5], [3200, 3600, 2800, 0.15]].forEach(([s, m, e, v]) => {
-      const f = a.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 7;
-      f.frequency.setValueAtTime(s, t); f.frequency.linearRampToValueAtTime(m, t + 0.15); f.frequency.linearRampToValueAtTime(e, t + 0.6);
-      const gv = a.createGain(); gv.gain.value = v; o.connect(f); f.connect(gv); gv.connect(amp);
-    });
-    o.start(t); lfo.start(t); o.stop(t + 0.7); lfo.stop(t + 0.7);
+  // 鳴き声：のこぎり波を3つのフォルマント（声道の共鳴）に通し、音程と母音（口の形）を時間で動かす
+  meow(p, v) {
+    const a = A(); if (!a) return; const f0 = 560 * (p || 1), fs = 0.85 + 0.15 * (p || 1);
+    for (let r = 0; r < (v.rep || 1); r++) {
+      const t = a.currentTime + 0.01 + r * (v.dur + 0.06), d = v.dur, f1 = f0 * (v.pitch || 1);
+      const o = a.createOscillator(); o.type = 'sawtooth';
+      v.pts.forEach(([k, m], i) => { if (i === 0) o.frequency.setValueAtTime(f1 * m, t); else o.frequency.linearRampToValueAtTime(f1 * m, t + k * d); });
+      const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = 6.5; lg.gain.value = f1 * 0.02; lfo.connect(lg); lg.connect(o.frequency);
+      const amp = a.createGain(); amp.gain.setValueAtTime(0.0001, t); amp.gain.exponentialRampToValueAtTime(0.5, t + Math.min(0.04, d * 0.2));
+      amp.gain.setValueAtTime(0.5, t + d * 0.65); amp.gain.exponentialRampToValueAtTime(0.0001, t + d); amp.connect(master);
+      [0, 1, 2].forEach(j => {
+        const f = a.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 6;
+        v.vow.forEach(([k, vw], i) => { const hz = VOW[vw][j] * fs; if (i === 0) f.frequency.setValueAtTime(hz, t); else f.frequency.linearRampToValueAtTime(hz, t + k * d); });
+        const gv = a.createGain(); gv.gain.value = [1, 0.55, 0.2][j]; o.connect(f); f.connect(gv); gv.connect(amp);
+      });
+      o.start(t); lfo.start(t); o.stop(t + d + 0.05); lfo.stop(t + d + 0.05);
+    }
   },
+  tick() { const a = A(); if (!a) return; osc('square', 1250, 1250, a.currentTime, 0.04, 0.06); },
+  eat() { const a = A(); if (!a) return; const t = a.currentTime; for (let i = 0; i < 4; i++) noise(t + i * 0.16, 0.06, 0.18, 'bandpass', rnd(1800, 2600), 0, 3); osc('triangle', 880, 1320, t + 0.7, 0.18, 0.12); },
+  bowl() { const a = A(); if (!a) return; const t = a.currentTime; osc('triangle', 1600, 1500, t, 0.25, 0.1); osc('triangle', 2400, 2300, t + 0.01, 0.2, 0.05); },
+  timeup() { const a = A(); if (!a) return; const t = a.currentTime + 0.3; [784, 659, 523, 392].forEach((fr, i) => osc('triangle', fr, fr, t + i * 0.18, 0.3, 0.14)); },
   jump() { const a = A(); if (!a) return; osc('sine', 380, 900, a.currentTime, 0.13, 0.12); },
   weak() { const a = A(); if (!a) return; noise(a.currentTime, 0.06, 0.25, 'bandpass', 1400, 0, 1.5); },
   strong() { const a = A(); if (!a) return; const t = a.currentTime; noise(t, 0.16, 0.35, 'bandpass', 500, 2600, 2, 0.04); osc('sine', 150, 50, t + 0.1, 0.15, 0.4); },
@@ -365,6 +402,7 @@ const sfx = {
   kaching() { const a = A(); if (!a) return; const t = a.currentTime; osc('square', 1568, 1568, t, 0.08, 0.08); osc('square', 2093, 2093, t + 0.08, 0.3, 0.08); },
   combo(n) { const a = A(); if (!a) return; const t = a.currentTime; for (let i = 0; i < Math.min(n, 5); i++) osc('triangle', 660 * Math.pow(1.26, i), 660 * Math.pow(1.26, i), t + i * 0.07, 0.12, 0.14); }
 };
+function buzz(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
 function breakSound(it) { const d = IT[it.t]; ({ glass: sfx.glass, cera: sfx.cera, elec: sfx.elec, paper: sfx.paper, pens: sfx.pens })[d.snd](d.noise); }
 
 // ---------- ステージ ----------
@@ -384,15 +422,17 @@ function setupStage(L) {
   }
   const T = CATS[selCat];
   cat = cat || {};
-  Object.assign(cat, { type: T, x: 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false });
+  Object.assign(cat, { type: T, x: 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: 'にゃー', wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false });
   owner.mode = 'away'; owner.t = L === 1 ? 5 : rnd(2.5, 4.5); owner.range = 0; owner.lureT = 0; owner.warned = false; owner.hint = null; owner.say = ''; owner.x = -60;
   sus = Math.min(sus, 25);
   dog = L >= 4 ? { x: 60, alertT: 0, cd: 0, barkT: 0 } : null;
   vac = L >= 2 ? { x: rnd(160, 300), dir: pick([-1, 1]), t: rnd(3, 6), cd: 0 } : null;
   tut.on = L === 1 && !tutDone; tut.broke = false;
+  // 制限時間：もの1個につき7秒＋25秒
+  timeMax = timeLeft = Math.round(25 + items.length * 7); lastTick = 99; bowl = null; feeds = 0;
 }
 function newRun() {
-  run = { yen: 0, score: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false };
+  run = { yen: 0, score: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false };
   sus = 0; snap = null; setupStage(1);
 }
 
@@ -419,6 +459,7 @@ function newPlan(hint) {
     const kind = i === 0 ? 'check' : (level >= 2 && r < 0.45 ? 'phone' : (r < 0.7 ? 'shelf' : 'check'));
     stops.push({ kind, x: kind === 'shelf' ? rnd(125, 260) : rnd(90, 330) });
   }
+  if (!bowl && feeds < 2 && Math.random() < 0.35) stops.splice(1, 0, { kind: 'feed', x: rnd(60, 320) });
   owner.stops = stops; owner.si = 0;
 }
 function enter() {
@@ -433,6 +474,7 @@ function nextStop() {
 function goAway() { const r = awayRange(level); setMode('away', rnd(r[0], r[1])); owner.warned = false; }
 function arrive() {
   const s = owner.cur;
+  if (s.kind === 'feed') { setMode('feed', 1.1); return; }
   if (s.kind === 'phone') {
     owner.face = Math.random() < 0.5 ? 1 : -1;
     owner.phoneLeft = rnd(3, 4.5); owner.upIn = rnd(1, 2); setMode('phone', owner.phoneLeft);
@@ -464,11 +506,21 @@ function hearNoise(x, loud) {
   else { sus += 12 * loud; if (o.mode !== 'search') { o.face = Math.sign(x - o.x) || o.face; o.lureT = Math.max(o.lureT, 1.2); say('ん？', 1.2); } }
   if (dog && dog.cd <= 0 && Math.abs(x - dog.x) < 70 && loud >= 0.8) dogBark();
 }
+function placeBowl(x) {
+  // ごはん皿を床に置く（ダンボールと本棚にはかからない位置）
+  x = clamp(x, 40, 330); if (Math.abs(x - BOX.x) < 40) x = BOX.x + (x < BOX.x ? -40 : 40);
+  if (bowl || feeds >= 2) return;
+  bowl = { x, t: 0 }; feeds++; say('ごはんだよ〜', 1.6); sfx.bowl();
+}
 function meow() {
   const c = cat; if (c.meowCd > 0 || state !== 'play') return;
-  c.meowT = 0.6; c.meowCd = 3.5; sfx.meow(c.type.voice);
+  const v = pickVoice(); c.meowTxt = v.txt; c.meowT = Math.max(0.6, v.dur * (v.rep || 1) + 0.25); c.meowCd = 3.5; sfx.meow(c.type.voice, v);
   const o = owner;
   if (o.mode === 'away' || o.mode === 'search') return;
+  // 飼い主のそばで、怪しまれていないときに鳴くと「おねだり」になる
+  if (Math.abs(c.x - o.x) < 90 && sus < 35 && !bowl && feeds < 2 && o.mode !== 'feed') {
+    say('しょうがないなあ', 1.4); o.stops.splice(o.si, 0, { kind: 'feed', x: o.x }); o.lureT = 0; nextStop(); return;
+  }
   o.face = c.face; o.lureT = 2.2; o.up = false; say('にゃー？', 1.6);
 }
 function updOwner(dt) {
@@ -487,6 +539,10 @@ function updOwner(dt) {
     case 'leave': o.face = -1; o.x -= o.spd * 1.3 * dt; o.step += dt; if (o.x < -50) goAway(); break;
     case 'warn': o.t -= dt; if (o.t <= 0) { setMode('look', lookTime(level)); sfx.watch(); } break;
     case 'look': o.t -= dt; if (o.t <= 0) nextStop(); break;
+    case 'feed':
+      o.t -= dt;
+      if (o.t <= 0) { placeBowl(o.x + o.face * 22); nextStop(); }
+      break;
     case 'phone':
       o.t -= dt; o.upIn -= dt;
       if (o.t <= 0) nextStop();
@@ -521,7 +577,8 @@ function updCat(dt) {
   if (c.jumpBuf > 0) c.jumpBuf -= dt; if (c.coyote > 0) c.coyote -= dt;
   if (c.pDown) c.pHeld += dt;
   if (c.stun > 0) c.stun -= dt;
-  const dir = c.stun > 0 ? 0 : (keys.R ? 1 : 0) - (keys.L ? 1 : 0);
+  if (c.eatT > 0) { c.eatT -= dt; c.vx = 0; if (c.eatT <= 0) { const add = Math.round(10 * T.food); timeLeft += add; run.fed++; pops.push({ x: c.x, y: c.y - 50, text: '+' + add + '秒', life: 1.4, col: '#1d8174', size: 20 }); bowl = null; } }
+  const dir = (c.stun > 0 || c.eatT > 0) ? 0 : (keys.R ? 1 : 0) - (keys.L ? 1 : 0);
   const riding = c.plat === VACP;
   if (riding) {
     // お掃除ロボに乗っている間は、左右でロボの向きを変える
@@ -553,6 +610,7 @@ function updCat(dt) {
       if (best) { c.y = best.y; c.vy = 0; c.plat = best; if (best === VACP) { c.x = vac.x; } }
     }
   }
+  if (bowl && !c.eatT && c.plat === PL.floor && Math.abs(c.x - bowl.x) < 16) { c.eatT = 0.9; c.vx = 0; sfx.eat(); }
   c.hidden = c.plat === PL.floor && Math.abs(c.x - BOX.x) < BOX.w / 2 - 6;
   c.safe = c.plat === PL.tower;
   c.acting = (c.plat !== VACP && Math.abs(c.vx) > 6) || !c.plat || c.punchT > 0 || c.meowT > 0;
@@ -652,7 +710,7 @@ function breakItem(it, plat) {
     const dx = o.x - it.x;
     if (Math.abs(dx) < 36) { o.vx += (Math.sign(dx) || 1) * 150 / IT[o.t].m; o.state = 'slide'; o.chain = it.chain; o.kaku = o.kaku || it.kaku; }
   }
-  breakSound(it); if (d.m >= 2) sfx.thud();
+  breakSound(it); if (d.m >= 2) sfx.thud(); buzz(big ? 60 : 25);
   shake = Math.max(shake, d.noise > 1 ? 0.3 : 0.12);
   hearNoise(it.x, d.noise);
   if (tut.on) tut.broke = true;
@@ -704,16 +762,16 @@ function takeSnap() {
   // 見つかった瞬間の画面（犯行現場写真）を写し取る
   try { const s = document.createElement('canvas'); s.width = W * 2; s.height = H * 2; const c = s.getContext('2d'); c.drawImage(cv, 0, OY * DPR, W * DPR, H * DPR, 0, 0, s.width, s.height); return s; } catch (e) { return null; }
 }
-function caught() {
+function caught(timeup) {
   snap = takeSnap();
-  state = 'caught'; caughtT = CAUGHT_DUR; run.idle = !cat.acting; run.react = pick(REACT); shake = 0.35; slowT = 0;
-  sfx.watch(); sfx.caught(); setPulse(null);
+  state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.idle = !timeup && !cat.acting; run.react = pick(timeup ? REACT_TIME : REACT); shake = timeup ? 0 : 0.35; slowT = 0;
+  if (timeup) sfx.timeup(); else { sfx.watch(); sfx.caught(); } buzz(timeup ? 80 : [60, 40, 120]); setPulse(null);
   if (owner.mode === 'away') { owner.x = clamp(cat.x - 70, 20, 330); owner.face = 1; }
   setMode('look', 9); owner.lureT = 0; owner.face = Math.sign(cat.x - owner.x) || 1; owner.up = false;
 }
 function checkClear() {
   if (state !== 'play' || items.length) return;
-  run.score += 300 + Math.max(0, Math.round((50 - stageT) * 6));
+  run.score += 300 + Math.round(Math.max(0, timeLeft) * 10);
   if (level >= 2 && stageT < 15) run.fast = true;
   if (tut.on) { tutDone = true; tut.on = false; store.set('nekoTut', '1'); }
   state = 'clear'; clearT = 2.4; sfx.clear(); setPulse(null);
@@ -760,6 +818,8 @@ function commentOf() {
   if (run.rideT >= 4) c.push('ロボに乗って遊んでたでしょ');
   if (run.kakushin >= 1) c.push('目が合ってから落とすのやめて');
   if (run.maxChain >= 2) c.push('なんでまとめて落ちるの');
+  if (run.fed >= 2) c.push('ごはんあげたのに…');
+  if (run.timeup) c.push('今日はこのへんにしておこうね');
   if (run.yen < 10000) c.push('まあ、これくらいなら許す');
   if (!c.length) c.push('…またお前か');
   return pick(c);
@@ -845,18 +905,24 @@ function drawCat(c, x, y, o) {
   c.beginPath(); c.moveTo(30, -25.5); c.lineTo(40, -27); c.moveTo(30, -24.5); c.lineTo(40, -23); c.stroke();
   c.restore();
 }
-function drawOwnerFace(c, x, y, s) {
+function drawOwnerFace(c, x, y, s, calm) {
   // 見つかったときの飼い主のアップ
   c.save(); c.translate(x, y); c.scale(s, s); c.lineCap = 'round';
   c.fillStyle = '#5d8fd0'; rr(c, -44, 30, 88, 50, 18); c.fill();
   c.fillStyle = '#f0c8a0'; c.beginPath(); c.arc(0, 0, 38, 0, TAU); c.fill();
   c.fillStyle = '#3a2a22'; c.beginPath(); c.arc(0, -6, 39, Math.PI * 1.08, Math.PI * 1.92); c.lineTo(30, -16); c.quadraticCurveTo(0, -30, -30, -16); c.fill();
-  c.fillStyle = '#fff'; c.beginPath(); c.arc(-14, -2, 9, 0, TAU); c.arc(14, -2, 9, 0, TAU); c.fill();
-  c.fillStyle = '#222'; c.beginPath(); c.arc(-12, -1, 3.4, 0, TAU); c.arc(12, -1, 3.4, 0, TAU); c.fill();
-  c.strokeStyle = '#3a2a22'; c.lineWidth = 4; c.beginPath(); c.moveTo(-24, -16); c.lineTo(-6, -10); c.moveTo(24, -16); c.lineTo(6, -10); c.stroke();
-  c.fillStyle = '#8a2a2a'; c.beginPath(); c.ellipse(0, 20, 11, 8, 0, 0, TAU); c.fill();
-  c.fillStyle = '#f2777a'; c.beginPath(); c.ellipse(0, 24, 6, 3, 0, 0, TAU); c.fill();
-  c.strokeStyle = '#e0362c'; c.lineWidth = 3; c.beginPath(); c.moveTo(20, -28); c.lineTo(27, -21); c.moveTo(27, -28); c.lineTo(20, -21); c.stroke();
+  if (calm) {
+    c.strokeStyle = '#3a2a22'; c.lineWidth = 3.5; c.beginPath(); c.arc(-14, 2, 7, Math.PI * 1.15, Math.PI * 1.85); c.stroke(); c.beginPath(); c.arc(14, 2, 7, Math.PI * 1.15, Math.PI * 1.85); c.stroke();
+    c.beginPath(); c.arc(0, 14, 9, 0.2, Math.PI - 0.2); c.stroke();
+    c.fillStyle = 'rgba(255,120,120,.45)'; c.beginPath(); c.ellipse(-24, 10, 6, 3.5, 0, 0, TAU); c.ellipse(24, 10, 6, 3.5, 0, 0, TAU); c.fill();
+  } else {
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(-14, -2, 9, 0, TAU); c.arc(14, -2, 9, 0, TAU); c.fill();
+    c.fillStyle = '#222'; c.beginPath(); c.arc(-12, -1, 3.4, 0, TAU); c.arc(12, -1, 3.4, 0, TAU); c.fill();
+    c.strokeStyle = '#3a2a22'; c.lineWidth = 4; c.beginPath(); c.moveTo(-24, -16); c.lineTo(-6, -10); c.moveTo(24, -16); c.lineTo(6, -10); c.stroke();
+    c.fillStyle = '#8a2a2a'; c.beginPath(); c.ellipse(0, 20, 11, 8, 0, 0, TAU); c.fill();
+    c.fillStyle = '#f2777a'; c.beginPath(); c.ellipse(0, 24, 6, 3, 0, 0, TAU); c.fill();
+    c.strokeStyle = '#e0362c'; c.lineWidth = 3; c.beginPath(); c.moveTo(20, -28); c.lineTo(27, -21); c.moveTo(27, -28); c.lineTo(20, -21); c.stroke();
+  }
   c.restore();
 }
 function drawItem(c, type, x, y, rot, water) {
@@ -1000,6 +1066,7 @@ function drawOwner() {
   g.strokeStyle = '#5d8fd0'; g.lineWidth = 8; g.beginPath(); g.moveTo(2, -112);
   if (m === 'phone' || m === 'up') { g.lineTo(14, -92); g.stroke(); g.fillStyle = '#20252b'; rr(g, 13, (m === 'up' ? -112 : -104), 9, 16, 2); g.fill(); g.fillStyle = '#6fb3e8'; g.fillRect(15, (m === 'up' ? -110 : -102), 5, 11); }
   else if (m === 'search') { g.lineTo(16, -100); g.lineTo(10, -118); g.stroke(); }
+  else if (m === 'feed') { g.lineTo(20, -66); g.stroke(); g.fillStyle = '#ff9fb2'; g.beginPath(); g.ellipse(24, -62, 11, 5, 0, 0, Math.PI); g.fill(); g.fillStyle = '#c98a4f'; g.beginPath(); g.arc(20, -64, 2.5, 0, TAU); g.arc(26, -64, 2.5, 0, TAU); g.fill(); }
   else { g.lineTo(sw ? 8 - sw * .5 : 8, -78); g.stroke(); }
   g.restore();
   // 吹き出し・記号
@@ -1038,6 +1105,14 @@ function drawBark() {
   if (!dog || dog.barkT <= 0) return;
   g.fillStyle = '#ff3b30'; g.strokeStyle = '#fff'; g.lineWidth = 4; g.lineJoin = 'round'; g.font = `800 22px ${FONT}`; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
   g.strokeText('ワン!', dog.x + 12, FLOOR - 52); g.fillText('ワン!', dog.x + 12, FLOOR - 52);
+}
+function drawBowl() {
+  if (!bowl) return;
+  const x = bowl.x, y = FLOOR;
+  g.fillStyle = '#c98a4f'; for (let i = -2; i <= 2; i++) { g.beginPath(); g.arc(x + i * 4.5, y - 9 - (i % 2 ? 1.5 : 0), 3, 0, TAU); g.fill(); }
+  g.fillStyle = '#ff7a95'; g.beginPath(); g.moveTo(x - 15, y - 9); g.lineTo(x + 15, y - 9); g.lineTo(x + 11, y); g.lineTo(x - 11, y); g.closePath(); g.fill();
+  g.fillStyle = '#fff'; g.font = `800 9px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('ねこ', x, y - 4.5);
+  const k = (tAnim * 1.5) % 1; g.globalAlpha = 1 - k; g.strokeStyle = '#ffb020'; g.lineWidth = 2; g.beginPath(); g.moveTo(x + 14, y - 18 - k * 8); g.lineTo(x + 14, y - 24 - k * 8); g.moveTo(x + 11, y - 21 - k * 8); g.lineTo(x + 17, y - 21 - k * 8); g.stroke(); g.globalAlpha = 1;
 }
 function drawVac() {
   if (!vac) return;
@@ -1108,7 +1183,8 @@ function drawCatNow() {
   }
   g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
   const label = (t, x, y, col, size) => { g.font = `800 ${size}px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(t, x, y); g.fillStyle = col; g.fillText(t, x, y); };
-  if (c.meowT > 0) label('にゃー', c.x + c.face * 30, c.y - 52, '#1d8174', 15);
+  if (c.eatT > 0) label('もぐもぐ', c.x, c.y - 52 - Math.abs(Math.sin(tAnim * 12)) * 3, '#c95f17', 14);
+  else if (c.meowT > 0) label(c.meowTxt, c.x + c.face * 30, c.y - 52, '#1d8174', 15);
   else if (c.stare && state === 'play') label('じーっ', c.x, c.y - 56, '#4a2f1d', 14);
   if (c.stun > 0) { g.fillStyle = '#ffb020'; g.font = `800 16px ${FONT}`; g.fillText('★', c.x - 10, c.y - 52); g.fillText('★', c.x + 10, c.y - 48); }
 }
@@ -1137,14 +1213,14 @@ function drawCutscene() {
   if (e < 1.65) {
     const k = Math.min(1, (e - 0.35) / 0.16), px = (k - 1) * W;
     g.save(); g.translate(px, 0);
-    g.fillStyle = '#ffc94a'; g.beginPath(); g.moveTo(0, 95); g.lineTo(W, 70); g.lineTo(W, 330); g.lineTo(0, 350); g.closePath(); g.fill();
+    g.fillStyle = run.timeup ? '#9fdcf5' : '#ffc94a'; g.beginPath(); g.moveTo(0, 95); g.lineTo(W, 70); g.lineTo(W, 330); g.lineTo(0, 350); g.closePath(); g.fill();
     g.clip();
     g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 3;
     for (let i = 0; i < 16; i++) { const a = i * TAU / 16 + 0.1; g.beginPath(); g.moveTo(130 + Math.cos(a) * 110, 222 + Math.sin(a) * 110); g.lineTo(130 + Math.cos(a) * 260, 222 + Math.sin(a) * 260); g.stroke(); }
-    drawOwnerFace(g, 130, 222, 2.3);
+    drawOwnerFace(g, 130, 222, 2.3, run.timeup);
     const sh = Math.sin(e * 60) * 2;
     g.save(); g.translate(318 + sh, 165); g.rotate(-0.08);
-    g.font = `800 30px ${FONT}`; g.lineWidth = 8; g.strokeStyle = '#fff'; g.strokeText(run.react, 0, 0); g.fillStyle = '#e0362c'; g.fillText(run.react, 0, 0);
+    g.font = `800 30px ${FONT}`; g.lineWidth = 8; g.strokeStyle = '#fff'; g.strokeText(run.react, 0, 0); g.fillStyle = run.timeup ? '#1d6fa8' : '#e0362c'; g.fillText(run.react, 0, 0);
     g.restore(); g.restore();
   } else {
     const k = Math.min(1, (e - 1.65) / 0.16), px = (1 - k) * W;
@@ -1165,6 +1241,7 @@ function draw() {
   drawFurniture();
   drawPuddles();
   for (const it of items) drawItem(g, it.t, it.x, it.state === 'fall' ? it.y : it.plat.y, it.rot, it.water);
+  drawBowl();
   drawVac();
   drawCatNow();
   drawBox();
@@ -1188,6 +1265,16 @@ function draw() {
     g.font = `800 17px ${FONT}`; g.fillText('被害額 ' + yen(run.yen), 0, 28);
     g.restore();
   }
+  if (state === 'play' || state === 'clear' || state === 'pause' || state === 'caught') {
+    const sec = Math.max(0, Math.ceil(timeLeft)), warn = sec <= 10 && state !== 'clear';
+    const pul = warn && state === 'play' ? 1 + 0.08 * Math.abs(Math.sin(tAnim * 6)) : 1;
+    g.save(); g.translate(W / 2, 20 - OY); g.scale(pul, pul);
+    g.fillStyle = warn ? '#ff3b30' : '#fff'; g.strokeStyle = '#4a2f1d'; g.lineWidth = 2.5; rr(g, -38, -15, 76, 30, 15); g.fill(); g.stroke();
+    const ic = warn ? '#fff' : '#4a2f1d';
+    g.strokeStyle = ic; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath(); g.arc(-19, 0, 8, 0, TAU); g.stroke(); g.beginPath(); g.moveTo(-19, 0); g.lineTo(-19, -5); g.moveTo(-19, 0); g.lineTo(-15, 2); g.stroke();
+    g.fillStyle = ic; g.font = `800 19px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(sec), 9, 1);
+    g.restore();
+  }
   if (state === 'caught') drawCutscene();
   g.restore();
 }
@@ -1198,11 +1285,18 @@ function update(dt) {
   if (slowT > 0 && state === 'play') { slowT -= dt; dt *= 0.3; }   // 高額品が割れたときのスロー
   if (state === 'play') {
     stageT += dt; updCat(dt); updOwner(dt); updItems(dt); updDog(dt); updVac(dt); updSus(dt); checkClear(); updTut();
+    if (state === 'play') {
+      timeLeft -= dt;
+      const sec = Math.ceil(timeLeft); if (sec <= 10 && sec < lastTick && sec > 0) { lastTick = sec; sfx.tick(); }
+      if (timeLeft <= 0) { timeLeft = 0; caught(true); }
+    }
   } else if (state === 'clear') {
     updCat(dt); updItems(dt); updVac(dt); clearT -= dt;
     if (clearT <= 0) { setupStage(level + 1); state = 'play'; }
   } else if (state === 'caught') {
     caughtT -= dt; if (caughtT <= 0) gameOver();
+  } else if (state === 'pause') {
+    return;
   } else {
     cat.anim += dt;
   }
@@ -1211,7 +1305,7 @@ function update(dt) {
 
 // ---------- 画面（HUD・タイトル・結果・図鑑）----------
 const $ = id => document.getElementById(id);
-const hS = $('hS'), hY = $('hY'), hB = $('hB'), ov = $('ov');
+const hS = $('hS'), hY = $('hY'), hB = $('hB'), ov = $('ov'), bPause = $('bPause');
 // ゲーム画面を、残りの領域いっぱいに広げる。
 // 横幅で決まるとき（縦長の画面）は、余った高さの分だけ壁を上に伸ばす（最大で 1.6 倍）。
 function fit() {
@@ -1229,6 +1323,7 @@ window.addEventListener('resize', fit);
 let lastHud = '';
 function hud() {
   const s = run ? run.score.toLocaleString('ja-JP') : '0', y = run ? yen(run.yen) : '¥0', b = Math.round(sus);
+  const showP = state === 'play' || state === 'clear'; if (bPause.hidden === showP) bPause.hidden = !showP;
   const key = s + '|' + y + '|' + b; if (key === lastHud) return; lastHud = key;
   hS.textContent = '★' + s; hY.textContent = y; hB.style.width = b + '%';
   hB.style.background = b >= 70 ? 'var(--red)' : b >= 40 ? 'var(--yel)' : 'var(--teal)';
@@ -1238,16 +1333,22 @@ function showTitle() {
   ov.innerHTML = `<div class="panel">
     <div class="big-logo">こっそり<span>ネコ</span></div><p class="sub">MISCHIEVOUS CAT</p>
     <div class="cats" role="group" aria-label="ネコをえらぶ">${CATS.map((c, i) => `<button type="button" data-i="${i}" aria-pressed="${i === selCat}"><canvas width="144" height="108"></canvas><b>${c.name}</b><span>${c.note}</span></button>`).join('')}</div>
+    <div class="stats" id="stats"></div>
     <button class="btn go" id="goBtn" type="button">あそぶ</button>
     <div class="row"><button class="btn w" id="zkBtn" type="button">称号図鑑 ${unlocked.size}/${TITLES.length}</button></div>
     <p class="best">ベスト被害額 ${yen(bestYen)}</p></div>`;
   ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 34, 49, { type: CATS[i], face: 1, scale: 0.8, t: 0, pose: 'walk' }); });
   ov.querySelectorAll('.cats button').forEach(b => b.addEventListener('click', () => {
-    selCat = +b.dataset.i; store.set('nekoCat', String(selCat)); sfx.meow(CATS[selCat].voice);
-    ov.querySelectorAll('.cats button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); setupStage(1);
+    selCat = +b.dataset.i; store.set('nekoCat', String(selCat)); audio(); sfx.meow(CATS[selCat].voice, pickVoice());
+    ov.querySelectorAll('.cats button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); setupStage(1); showStats();
   }));
+  showStats();
   $('goBtn').addEventListener('click', () => { audio(); startGame(); });
   $('zkBtn').addEventListener('click', showZukan);
+}
+function showStats() {
+  const T = CATS[selCat], el = $('stats'); if (!el) return;
+  el.innerHTML = PIPS.map((n, i) => `<span>${n}</span><span class="pips">${[1, 2, 3, 4, 5].map(k => `<i class="${k <= T.pip[i] ? 'on' : ''}"></i>`).join('')}</span>`).join('') + (T.tag ? `<span class="tag">${T.tag}</span>` : '');
 }
 function showZukan() {
   ov.hidden = false;
@@ -1258,6 +1359,23 @@ function showZukan() {
   $('zkBack').addEventListener('click', state === 'over' ? showOver : showTitle);
 }
 function startGame() { ov.hidden = true; newRun(); state = 'play'; }
+function pauseGame() {
+  if (state !== 'play' && state !== 'clear') return;
+  pausedFrom = state; state = 'pause'; keys.L = keys.R = false; punchUp(); setPulse(null); showPause();
+}
+function resumeGame() { if (state !== 'pause') return; ov.hidden = true; state = pausedFrom; }
+function showPause() {
+  ov.hidden = false;
+  ov.innerHTML = `<div class="panel">
+    <div class="big-logo" style="font-size:1.6rem">ひとやすみ</div><p class="sub">PAUSE</p>
+    <button class="btn go" id="pResume" type="button">つづける</button>
+    <div class="row"><button class="btn w" id="pRetry" type="button">やりなおす</button><button class="btn w" id="pTop" type="button">トップへ</button></div>
+    <div class="row"><button class="btn w" id="pSnd" type="button">${muted ? '音をオンにする' : '音をオフにする'}</button></div></div>`;
+  $('pResume').addEventListener('click', resumeGame);
+  $('pRetry').addEventListener('click', () => { audio(); startGame(); });
+  $('pTop').addEventListener('click', showTitle);
+  $('pSnd').addEventListener('click', () => { toggleSound(); showPause(); });
+}
 let cardBlob = null, cardUrl = null, cardFor = null;
 function shareText() { return `本日の被害額 ${yen(run.yen)}\nステージ${run.stage}／称号「${titleOf(run.yen)}」\n飼い主「${run.comment}」\n#MischievousCat #こっそりネコ`; }
 async function showOver() {
@@ -1270,7 +1388,7 @@ async function showOver() {
     <img id="card" alt="犯行現場写真" width="1200" height="630">
     <div class="row"><button class="btn t" id="bShare" type="button">シェア</button><button class="btn w" id="bSave" type="button">保存</button><a class="btn w" id="bX" href="${xUrl}" target="_blank" rel="noopener">Xに投稿</a></div>
     <div class="row"><button class="btn go" id="bAgain" type="button">もう一回</button></div>
-    <div class="row"><button class="btn w" id="bChange" type="button">ネコをえらぶ</button><button class="btn w" id="bZk" type="button">称号図鑑</button></div></div>`;
+    <div class="row"><button class="btn w" id="bChange" type="button">トップへ</button><button class="btn w" id="bZk" type="button">称号図鑑</button></div></div>`;
   $('bAgain').addEventListener('click', () => { audio(); startGame(); });
   $('bChange').addEventListener('click', showTitle);
   $('bZk').addEventListener('click', showZukan);
@@ -1368,6 +1486,7 @@ const SND_OFF = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="
 function soundLabel() { const b = $('bSnd'); b.innerHTML = muted ? SND_OFF : SND_ON; b.setAttribute('aria-pressed', String(!muted)); }
 function toggleSound() { muted = !muted; store.set('nekoMute', muted ? '1' : '0'); soundLabel(); if (!muted) audio(); }
 $('bSnd').addEventListener('click', toggleSound);
+bPause.addEventListener('click', pauseGame);
 soundLabel();
 window.addEventListener('keydown', e => {
   const k = e.key;
@@ -1377,6 +1496,7 @@ window.addEventListener('keydown', e => {
   else if (k === ' ' || k === 'z' || k === 'Z') { if (state === 'play') { if (!e.repeat) { audio(); punchDown(); } } else return; }
   else if (k === 'x' || k === 'X') { if (!e.repeat && state === 'play') meow(); }
   else if (k === 'm' || k === 'M') { toggleSound(); }
+  else if (k === 'Escape' || k === 'p' || k === 'P') { if (state === 'pause') resumeGame(); else pauseGame(); return; }
   else return;
   if (state === 'play' || state === 'clear') e.preventDefault();
 });
@@ -1386,7 +1506,9 @@ window.addEventListener('keyup', e => {
   else if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.R = false;
   else if (k === ' ' || k === 'z' || k === 'Z') punchUp();
 });
-window.addEventListener('blur', () => { keys.L = keys.R = false; punchUp(); });
+// 別のアプリやタブに切り替えたら、自動でポーズする
+window.addEventListener('blur', () => { keys.L = keys.R = false; punchUp(); pauseGame(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
 
 // ---------- ループ ----------
 let last = 0;
@@ -1397,6 +1519,7 @@ function frame(ts) {
 }
 fit();
 showTitle();
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 requestAnimationFrame(frame);
 })();
 </script>
