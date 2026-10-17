@@ -51,7 +51,7 @@ Walking, jumping, meowing and eating are all "normal cat things", so you won't g
 
 Gamepads work on PC too (D-pad/stick move, A jump, X or B punch, Y meow, START pause). Volume, vibration, mirrored buttons and reduced effects (no screen shake, zoom or flashing) are under **Settings**.
 
-Want to play one-handed? Turn on **One-hand** under **Settings**. **Wherever you touch the game screen becomes a stick**: slide left/right to walk, flick up to jump, tap to punch (the cat turns toward the side you tap), hold still for a power punch or scratching, and tap the cat to meow.
+Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. **Wherever you touch the game screen becomes a stick**: slide left/right to walk, flick up to jump, tap to punch (the cat turns toward the side you tap), hold still for a power punch or scratching, and tap the cat to meow.
 
 ## 💡 Tips
 
