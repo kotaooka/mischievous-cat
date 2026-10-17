@@ -206,7 +206,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '3.2.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '3.3.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -400,7 +400,7 @@ const TITLES = [
   { id: 'top', name: tx('天井の住人', "Ceiling Dweller"), test: r => r.top },
   { id: 'streak', name: tx('ノーマークの達人', "Unseen Master"), test: r => r.maxStreak >= 5 },
   { id: 'perfect', name: tx('完全犯罪', "Perfect Crime"), test: r => r.perfect >= 3 },
-  { id: 'space', name: tx('宇宙ネコ', 'Space Cat'), test: r => r.space >= 1 },
+  { id: 'space', name: tx('踊るネコ', 'Dancing Cat'), test: r => r.space >= 1 },
   { id: 'fish', name: tx('金魚ハンター', 'Goldfish Hunter'), test: r => r.fish >= 3 },
   { id: 'mouse', name: tx('ネズミ退治の名人', 'Mouse Buster'), test: r => r.mice >= 2 },
   { id: 'boss', name: tx('ボス猫キラー', 'Boss Beater'), test: r => r.boss >= 1 },
@@ -430,7 +430,7 @@ const REACT_TIME = [tx('もう寝るよ〜', 'Bedtime~'), tx('はい、おしま
 const CAUGHT_DUR = 2.9;
 // 見つかったときのネコの顔（演出の後半）。w は出やすさ、cap は横に出す字、bg は背景の色
 const CAUGHT_FACES = [
-  { id: 'huh', w: 3 }, { id: 'deadpan', w: 2, cap: tx('……', '……'), bg: '#2fb3a3' },
+  { id: 'deadpan', w: 2, cap: tx('……', '……'), bg: '#2fb3a3' },
   { id: 'innocent', w: 2, cap: tx('ぼく、知らないよ？', 'Wasn\'t me?'), bg: '#ffb3c6' },
   { id: 'blep', w: 2, cap: tx('ぺろっ', 'Blep'), bg: '#ffd27a' },
   { id: 'scream', w: 2, cap: tx('ニャーッ!?', 'MRRAAH!?'), bg: '#ff6b5a' },
@@ -558,7 +558,7 @@ let dailyKey = jstDay();
 const hashStr = t => { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 // 決まった種から同じ並びを出す乱数（mulberry32）
 const seeded = a => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-// 猫ミーム風の演出：spaceT 宇宙猫の残り時間（この間はゲームの進みをゆっくりにする）
+// 猫ミーム風の演出（spaceT は旧・宇宙猫の名残で、いつも 0）
 let spaceT = 0;
 // 言葉を使わない手がかり：まだ一度も使っていない仕掛けにだけ、絵の合図（とボタンの点滅）を出す。一度使えば、その合図は出なくなる
 // mis 落とす以外のいたずら / lever てこ / ball 転がるもの / high 壁の高い足場
@@ -926,7 +926,7 @@ function setupStage(L) {
   }
   const T = CATS[selCat];
   cat = cat || {};
-  Object.assign(cat, { bathT: 0, bathOut: false, inBath: false, type: T, x: room === 'bath' ? 322 : 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: VOICES[0].txt, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0, scratch: null, scrHold: false, autoScr: null, happyT: 0, aimUp: false, scrT: 0, purrT: 0, hopT: 0, jabN: 0, lastPunch: -9 });
+  Object.assign(cat, { danceT: 0, bathT: 0, bathOut: false, inBath: false, type: T, x: room === 'bath' ? 322 : 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: VOICES[0].txt, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0, scratch: null, scrHold: false, autoScr: null, happyT: 0, aimUp: false, scrT: 0, purrT: 0, hopT: 0, jabN: 0, lastPunch: -9 });
   owner.mode = 'away'; owner.t = L === 1 ? 5 : rnd(2.5, 4.5); owner.range = 0; owner.lureT = 0; owner.warned = false; owner.hint = null; owner.say = ''; owner.x = -60; owner.scareT = 0;
   sus = Math.min(sus, 25);
   dog = L >= 4 && (room === 'living' || room === 'bed') ? { x: 60, alertT: 0, cd: 0, barkT: 0 } : null;
@@ -1234,6 +1234,7 @@ function updCat(dt) {
   c.onFurn = c.plat === PL.tank || c.plat === RIMP || c.plat === PL.side || c.plat === PL.table || c.plat === PL.shelf || c.plat === PL.book || c.plat === LEVP || HIGH.includes(c.plat);
   c.acting = (c.plat !== VACP && Math.abs(c.vx) > 6) || !c.plat || c.punchT > 0 || c.meowT > 0 || !!c.scratch;
   if (c.happyT > 0) c.happyT -= dt;
+  if (c.danceT > 0) c.danceT -= dt;
   if (c.hopT > 0) c.hopT -= dt;
   // ねらいを定める：止まっていて、ジャンプで届く上の段にものがある（お尻ふりふり）
   c.aimUp = !!c.plat && c.still > 0.3 && PLS.some(p => p.y < c.plat.y && p.y > c.plat.y - 80 && c.x >= p.x0 - 4 && c.x <= p.x1 + 4 && items.some(o => o.plat === p && o.state === 'rest'));
@@ -1417,9 +1418,8 @@ function updItems(dt) {
 // 猫ミーム風の演出
 // ハッピー跳ね：高いもの（1万円以上）を割る・2連鎖以上で、その場でぴょんぴょん跳ねる（見た目だけで、当たり判定は動かさない）
 function happyHop() { if (cat.hopT <= 0.3) sfx.happy(); cat.hopT = 1.1; cat.happyT = Math.max(cat.happyT, 1.1); }
-// 宇宙猫：3連鎖以上・10万円以上のもので、一瞬背景が宇宙になって固まる（この間はゲームの進みを 1/4 にする）
-const SPACE_DUR = 2.2;
-function spaceCat() { if (spaceT > 0 || state !== 'play') return; spaceT = SPACE_DUR; run.space++; sfx.space(); }
+// ダンス：3連鎖以上・10万円以上のもので、ネコがその場で立ち上がって少し踊る（ゲームは止めない）
+function spaceCat() { if (cat.danceT > 0.4 || state !== 'play') return; cat.danceT = 1.6; run.space++; sfx.happy(); }
 // 小物の着地：少し跳ねて止まる。初めて床に落ちたら「散らかし」として値段を入れる
 function landJunk(it, plat) {
   const d = IT[it.t], v = it.vy;
@@ -3122,6 +3122,16 @@ function drawCatNow() {
     const bt = (ac && BGM.on ? ac.currentTime : tAnim) * TEMPO[phaseIx(level)] / 60;
     nod = Math.abs(Math.sin(bt * Math.PI));
   }
+  const dance = c.danceT > 0 && !!c.plat && !moving && play && !c.inBath && !['punch', 'jab', 'scratch'].includes(pose);
+  if (dance) {
+    // 後ろ足を支点に体を起こし、左右にゆれる。音符も出す
+    const k = c.danceT, sway = Math.sin(k * 16) * 0.16, up = Math.min(1, (1.6 - k) / 0.15, k / 0.15), px = c.x - c.face * 12;
+    g.save(); g.translate(px, c.y); g.rotate(-c.face * (1.05 * up) + sway * up); g.translate(-px, -c.y);
+    drawCat(g, c.x, c.y - Math.abs(Math.sin(k * 16)) * 3 * up, { type: c.type, face: c.face, scale: 1, t: c.anim, pose: 'walk', move: true, acc: selAcc, eyes: 'happy', tail: 'up' });
+    g.restore();
+    const n = (tAnim * 1.2) % 1; g.globalAlpha = 1 - n; g.fillStyle = '#9b7fc0'; g.font = `800 15px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.fillText('♪', c.x - 18, c.y - 58 - n * 18); g.fillText('♫', c.x + 18, c.y - 66 - ((n + 0.5) % 1) * 18); g.globalAlpha = 1;
+  } else
   drawCat(g, c.x, c.y - hop, { type: c.type, face: c.face, scale: 1, t: c.anim, move: moving, pose, sq: hop ? -0.1 : c.sq, acc: selAcc, sweat: c.seen && c.onFurn && play, eyes, ears, tail, air: !c.plat && play && !c.inBath, nod });
   if (c.inBath) { g.fillStyle = 'rgba(79,168,224,.85)'; g.fillRect(BATHW.x0 - 2, 430, BATHW.x1 - BATHW.x0 + 4, 12); drawTubFront(); }   // お湯につかっている
   if (nod && !muted) { const k = (tAnim * 0.7) % 1; g.globalAlpha = 1 - k; g.fillStyle = '#9b7fc0'; g.font = `800 13px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('♪', c.x + c.face * (22 + k * 8), c.y - 50 - k * 16); g.globalAlpha = 1; }
@@ -3163,47 +3173,6 @@ function drawTut() {
     g.beginPath(); for (let i = 0; i < 8; i++) { const a = Math.PI / 8 + i * TAU / 8; g.lineTo(x + Math.cos(a) * 22, y + Math.sin(a) * 22); } g.closePath(); g.fill(); g.stroke();
     g.fillStyle = '#fff'; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('おりて', 'DOWN'), x, y + 1);
   }
-}
-function drawSpace() {
-  // 宇宙猫：画面いっぱいの宇宙。虹色の銀河が回り、星がワープで流れ、ネコの顔がどんどん迫ってくる
-  if (spaceT <= 0) return;
-  const e = SPACE_DUR - spaceT, a = Math.min(1, e / 0.12, spaceT / 0.25), cx = W / 2, cy = -OY + VH * 0.42;
-  g.save(); g.globalAlpha = a;
-  const bg = g.createRadialGradient(cx, cy, 10, cx, cy, 460); bg.addColorStop(0, '#6a2fae'); bg.addColorStop(0.45, '#1a1446'); bg.addColorStop(1, '#03030f');
-  g.fillStyle = bg; g.fillRect(0, -OY, W, VH);
-  // 回る虹色の銀河
-  g.save(); g.translate(cx, cy); g.rotate(e * 0.9);
-  for (let i = 0; i < 6; i++) { g.fillStyle = `hsla(${(i * 60 + e * 160) % 360},95%,62%,.17)`; g.beginPath(); g.ellipse(0, 0, 290 - i * 34, 70 + i * 10, i * 0.52, 0, TAU); g.fill(); }
-  g.restore();
-  // ワープする星
-  g.lineCap = 'round';
-  for (let i = 0; i < 110; i++) {
-    const ang = i * 2.39996, d = ((i * 0.37) % 1 + e * 0.75) % 1, r = 16 + d * d * 480, len = 3 + d * 34, ca = Math.cos(ang), sa = Math.sin(ang);
-    g.strokeStyle = `rgba(255,255,255,${0.2 + 0.8 * d})`; g.lineWidth = 1 + d * 2.5;
-    g.beginPath(); g.moveTo(cx + ca * r, cy + sa * r); g.lineTo(cx + ca * (r + len), cy + sa * (r + len)); g.stroke();
-  }
-  // 惑星が猫のまわりを回る
-  const p1 = e * 2.2, p2 = e * -1.6 + 2;
-  g.fillStyle = '#ffb35c'; g.beginPath(); g.arc(cx + Math.cos(p1) * 165, cy + Math.sin(p1) * 70, 20, 0, TAU); g.fill();
-  g.strokeStyle = 'rgba(255,230,180,.85)'; g.lineWidth = 3; g.beginPath(); g.ellipse(cx + Math.cos(p1) * 165, cy + Math.sin(p1) * 70, 34, 8, -0.3, 0, TAU); g.stroke();
-  g.fillStyle = '#6fd3ff'; g.beginPath(); g.arc(cx + Math.cos(p2) * 140, cy + Math.sin(p2) * 110, 11, 0, TAU); g.fill();
-  // ネコの顔：だんだんズームしながら、ゆらゆら回る（頭の位置を中心に置く）
-  const s = 3.6 + e * 1.4, big = cat.type.big || 1, rot = Math.sin(e * 2.6) * 0.14;
-  g.save(); g.translate(cx, cy + 10); g.rotate(rot);
-  drawCat(g, -20 * s * big, 28 * s * big, { type: cat.type, face: 1, scale: s, pose: 'space', t: tAnim, acc: selAcc });
-  // 瞳のきらめき
-  const tw = 0.6 + 0.4 * Math.sin(tAnim * 14);
-  [[5, -1], [-3.5, -1]].forEach(([ex, ey]) => { const x = ex * s * big, y = ey * s * big, r = s * 2.6 * tw; g.fillStyle = '#fff'; g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r * 0.25, y - r * 0.25); g.lineTo(x + r, y); g.lineTo(x + r * 0.25, y + r * 0.25); g.lineTo(x, y + r); g.lineTo(x - r * 0.25, y + r * 0.25); g.lineTo(x - r, y); g.lineTo(x - r * 0.25, y - r * 0.25); g.closePath(); g.fill(); });
-  g.restore();
-  // 「？？？」が頭のまわりを回り、下に「宇宙ネコ」
-  g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
-  for (let i = 0; i < 3; i++) { const q = e * 1.8 + i * TAU / 3, x = cx + Math.cos(q) * 120, y = cy - 70 + Math.sin(q) * 40; g.font = `800 ${40 + 6 * Math.sin(tAnim * 8 + i)}px ${FONT}`; g.lineWidth = 7; g.strokeStyle = '#1a1446'; g.strokeText('？', x, y); g.fillStyle = '#fff6a8'; g.fillText('？', x, y); }
-  const ty = -OY + VH * 0.8, label = lt('宇宙ネコ', 'SPACE CAT'), jit = Math.sin(tAnim * 40) * 1.5;
-  g.font = `800 46px ${FONT}`; const gr = g.createLinearGradient(cx - 120, 0, cx + 120, 0);
-  for (let i = 0; i <= 6; i++) gr.addColorStop(i / 6, `hsl(${(i * 60 + e * 300) % 360},95%,65%)`);
-  g.lineWidth = 10; g.strokeStyle = '#1a1446'; g.strokeText(label, cx + jit, ty); g.fillStyle = gr; g.fillText(label, cx + jit, ty);
-  g.restore();
-  if (e < 0.12) { g.fillStyle = `rgba(255,255,255,${0.9 * (1 - e / 0.12)})`; g.fillRect(0, -OY, W, VH); }   // 入りの閃光
 }
 function drawCutscene() {
   // 見つかったときの演出：白い閃光 → 飼い主のアップ → ネコの知らん顔
@@ -3289,7 +3258,6 @@ function draw() {
   drawBark();
   drawLight();
   drawParts();
-  drawSpace();
   drawHints();
   drawNavMark();
   drawTut();
@@ -3378,7 +3346,6 @@ function draw() {
 function update(dt) {
   tAnim += dt; if (shake > 0) shake -= dt;
   if (lever) lever.tilt += ((cat && cat.plat === LEVP ? 0.6 : 0) - lever.tilt) * Math.min(1, dt * 6);   // 板の傾き：乗っている間は外の端が下がる
-  if (spaceT > 0) { spaceT -= dt; if (state === 'play') dt *= 0.25; }   // 宇宙猫の間はゆっくり
   if (slowT > 0 && state === 'play') { slowT -= dt; dt *= 0.3; }   // 高額品が割れたときのスロー
   if (state === 'play') {
     stageT += dt; if (introT > 0) introT -= dt; updCat(dt);

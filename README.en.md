@@ -67,7 +67,7 @@ Want to play one-handed? Turn on **One-hand** on the title screen. Tap a spot or
 </tr>
 </table>
 
-- **Cat-meme moments included.** Break something pricey and the cat hops for joy; a big chain sends it to space. Watch its face when it gets caught (six different reactions). Stand still for a bit and it starts vibing to the music
+- **Cat-meme moments included.** Break something pricey and the cat hops for joy; a big chain makes it stand up and dance. Watch its face when it gets caught (five different reactions). Stand still for a bit and it starts vibing to the music
 - **Grab the red charm if you spot one.** It turns up on a shelf now and then. Holding it lets you continue the stage once after you get caught
 - **Books, pencils, cans and teddy bears are free-for-all clutter.** Knock them to the floor for "Mess" damage. The owner crouches to tidy up, and only looks at their feet while doing it
 - **Mouse on the loose? Bop it.** Mice pop out of a hole now and then and dash around the floor. Bop one for extra time. Chase it toward the owner and they freeze with a scream (your chance!)
