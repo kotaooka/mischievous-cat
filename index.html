@@ -238,7 +238,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.4.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.5.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1151,7 +1151,8 @@ function setMode(m, t) {
   }
 }
 function ownerSees(x) {
-  const o = owner; if (o.mode === 'away') return false;
+  // 部屋の外（画面の外）にいる間は見えない
+  const o = owner; if (o.mode === 'away' || o.x < 6 || o.x > W - 6) return false;
   if (o.scareT > 0) return Math.abs(x - o.x) < 30;   // ネズミにびっくりしている間は、足もとしか見えない
   if (o.omni) return Math.abs(x - o.x) <= o.range;
   return (x - o.x) * o.face >= -14 && Math.abs(x - o.x) <= o.range;
@@ -1229,9 +1230,11 @@ function hearNoise(x, loud) {
   const o = owner;
   if (guest && loud >= 0.3) guestHear(x);
   if (room === 'kids' && loud >= 0.5 && o.mode !== 'away' && !talkQ.length && Math.random() < 0.5) talkQ = [{ who: 'owner', text: lt('ママー！', 'MOM!'), at: stageT + 0.6 }, { who: 'off', text: lt('なにー？ どうしたのー？', 'What is it, honey?'), at: stageT + 1.6 }];
-  if (o.mode === 'away') { sus += 14 * loud; o.t = Math.min(o.t, 0.8); o.hint = x; return; }
+  // 物音だけ（見られていない）では見つからない：部屋にいないときは 55%、いても見ていないときは 80% までしか上げない
+  const noise = (v, cap) => { sus = Math.max(sus, Math.min(sus + v, cap)); };
+  if (o.mode === 'away' || o.x < 6 || o.x > W - 6) { noise(12 * loud, 55); if (o.mode === 'away') { o.t = Math.min(o.t, 0.8); o.hint = x; } return; }
   if (ownerSees(x)) { sus += 40 * loud; if (loud >= 0.5 && o.mode !== 'search') { o.shock = 0.9; say(pick(LINES.seen), 1.2); } }
-  else { sus += 12 * loud; if (o.mode !== 'search') { o.face = Math.sign(x - o.x) || o.face; o.lureT = Math.max(o.lureT, 1.2); say(pick(LINES.unseen), 1.2); } }
+  else { noise(12 * loud, 80); if (o.mode !== 'search') { o.face = Math.sign(x - o.x) || o.face; o.lureT = Math.max(o.lureT, 1.2); say(pick(LINES.unseen), 1.2); } }
   if (dog && dog.cd <= 0 && Math.abs(x - dog.x) < 70 && loud >= 0.8) dogBark();
 }
 function placeBowl(x) {
@@ -2419,7 +2422,7 @@ function updBall(dt) {
 }
 function updSus(dt) {
   const o = owner;
-  let seen = false;
+  let seen = false, exSeen = false;
   if (o.mode !== 'away' && !cat.hidden && !cat.safe) seen = ownerSees(cat.x);
   let rate = o.rate; if (o.mode === 'up' && o.t > 0.5) rate = 8;
   // 怪しまれるのは「いたずら」だけ。床を歩く・跳ぶ・鳴く・食べるのはネコとして普通なので上がらない
@@ -2447,7 +2450,7 @@ function updSus(dt) {
       else if (cat.scratch) { gain += r * 0.9 * cat.type.sus; cat.mark = 0.4; }
       else if (cat.onFurn) { gain += r * 0.25 * cat.type.sus; cat.mark = 0.4; }
     }
-    if (ex.length) seen = true;
+    if (ex.length) { seen = true; exSeen = true; }
   }
   if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { gain += 24; it.mark = 0.4; it.spotted = true; break; } }
   if (o.mode === 'search') gain *= 1.15;
@@ -2461,6 +2464,8 @@ function updSus(dt) {
   if (cat.mark > 0) cat.mark -= dt; for (const it of items) if (it.mark > 0) it.mark -= dt; for (const p of prints) if (p.mark > 0) p.mark -= dt;
   if (sus >= 65 && susCd <= 0 && o.mode !== 'search' && sus < 100) startSearch();
   stageMaxSus = Math.max(stageMaxSus, sus);
+  // 飼い主が部屋の外にいるときは、100% になっても見つからない（戻ってくるまで 99% で待つ）。お客さん・カメラに見られているときは別
+  if (sus >= 100 && !exSeen && (o.mode === 'away' || o.x < 6 || o.x > W - 6)) sus = 99;
   if (sus >= 100) { sus = 100; if (!chaseUsed) startChase(); else caught(); }
 }
 // 見つかったら、1ステージに1回だけ追いかけっこ。3秒以内にダンボールかタワーへ逃げ込めば助かる
@@ -4550,7 +4555,7 @@ new MutationObserver(() => { navEl = null; if (navOn && menuActive()) navSet(nav
 ov.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || navOn) { navOn = false; if (navEl) navEl.classList.remove('navf'); } });
 function pauseGame() {
   if (state !== 'play' && state !== 'clear') return;
-  pausedFrom = state; state = 'pause'; keys.L = keys.R = false; punchUp(); setPulse(null); showPause();
+  pausedFrom = state; state = 'pause'; stick = null; keys.L = keys.R = false; punchUp(); setPulse(null); showPause();
 }
 function resumeGame() { if (state !== 'pause') return; ov.hidden = true; state = pausedFrom; }
 function showPause() {
@@ -4704,43 +4709,69 @@ hold('bM', () => { if (menuKey('M')) return; if (state === 'play') meow(); }, ()
 // 片手操作：ゲーム画面をタップ・スワイプで遊ぶ（ボタンは隠す）
 function setOneHand(on) { oneHand = on; tapTarget = null; if (cat) cat.autoScr = null; store.set('nekoOneHand', on ? '1' : '0'); try { document.body.classList.toggle('onehand', on); } catch (e) {} fit(); }
 try { document.body.classList.toggle('onehand', oneHand); } catch (e) {}
-let touch0 = null;
-// かたて操作が OFF のときは、画面のタップ・スワイプでは操作しない（下のボタンだけで遊ぶ）
-cv.addEventListener('pointerdown', e => { if (state !== 'play' || !oneHand) return; e.preventDefault(); audio(); touch0 = { x: e.clientX, y: e.clientY, t: performance.now() }; });
-cv.addEventListener('pointerup', e => {
-  if (!touch0 || state !== 'play' || !oneHand) { touch0 = null; return; }
-  const r = cv.getBoundingClientRect(), dx = e.clientX - touch0.x, dy = e.clientY - touch0.y, held = performance.now() - touch0.t; touch0 = null;
-  const sx = W / r.width, wx = (e.clientX - r.left) * sx, wy = (e.clientY - r.top) * sx - OY;
-  if (dy * sx < -36 && Math.abs(dy) > Math.abs(dx) * 0.7) { tapTarget = null; jumpPress(); return; }   // 上へスワイプでジャンプ
-  let it = null, best = 26;
-  for (const o of items) { if (o.state !== 'rest') continue; const d = Math.abs(o.x - wx); if (d < best && wy > o.plat.y - IT[o.t].h - 18 && wy < o.plat.y + 8) { best = d; it = o; } }
-  if (!it && Math.abs(wx - cat.x) < 24 && wy > cat.y - 52 && wy < cat.y + 6) { meow(); return; }   // ネコをタップで鳴く（ものの上でなければ）
-  if (!it) {
-    // いたずらの場所をタップ：そこまで歩いて、終わるまで続ける
-    const sp = spots.find(s => { const m = MISCHIEF[s.id], p = PL[m.plat]; return !s.done && wx >= m.x[0] - 8 && wx <= m.x[1] + 8 && wy > p.y - 60 && wy < p.y + 8; });
-    if (sp) { tapTarget = { spot: sp }; return; }
-  }
-  // ボス猫・ニワトリ・ネズミ：同じ段のすぐそばならその向きへパンチ、離れていればそばまで歩く。水槽はふたの上からパンチ
-  if (!it) {
-    const pk = [rival && rival.plat && (rival.mode === 'roam' || rival.mode === 'fight') ? rival : null, chick && chick.plat ? chick : null, mouse && mouse.mode === 'run' ? { x: mouse.x, y: FLOOR, plat: PL.floor } : null]
-      .find(b => b && Math.abs(wx - b.x) < 24 && wy > b.y - 50 && wy < b.y + 10);
-    if (pk) {
-      if (cat.plat === pk.plat && Math.abs(pk.x - cat.x) < 60) { tapTarget = null; cat.face = Math.sign(pk.x - cat.x) || cat.face; cat.punchReq = held >= 350; }
-      else { const p = pk.plat, s = Math.sign(pk.x - cat.x) || 1; tapTarget = { plat: p, x: clamp(pk.x - s * 24, Math.max(p.x0, 12) + 4, Math.min(p.x1, W - 12) - 4) }; }
-      return;
-    }
-    if (tank && wx >= PL.tank.x0 - 6 && wx <= PL.tank.x1 + 6 && wy > PL.tank.y - 40 && wy < PL.side.y) {
-      if (cat.plat === PL.tank) { tapTarget = null; cat.face = Math.sign(wx - cat.x) || cat.face; cat.punchReq = false; }
-      else tapTarget = { plat: PL.tank, x: clamp(wx, 32, 88) };
-      return;
-    }
-  }
-  if (it) { tapTarget = { item: it, strong: held >= 350 }; return; }   // ものをタップでパンチ（長押しで強パンチ）
-  const pl = platAt(wx, wy);
-  let tx = clamp(wx, Math.max(pl.x0, 12) + 4, Math.min(pl.x1, W - 12) - 4);
-  tapTarget = { plat: pl, x: tx };
+// 片手操作：浮かぶスティック。画面のどこでも、指を置いた所がスティックの中心になる
+// 左右にずらして歩く・上にはじいてジャンプ・動かさずに短くタップでパンチ（ネコの左右をタップすればそちらを向く）・
+// 動かさずに長押しで強パンチ（そのまま押し続ければ爪とぎ）・ネコをタップで鳴く
+const STK = { dead: 12, R: 46, jump: 34, hold: 0.22 };   // 画面上の px（CSS）、hold は秒
+let stick = null;
+function cl2w(x, y) { const r = cv.getBoundingClientRect(), sx = W / r.width; return { x: (x - r.left) * sx, y: (y - r.top) * sx - OY }; }
+function stickEnd(cancel) {
+  const k = stick; stick = null; keys.L = keys.R = false; if (!k) return;
+  if (k.pressed) { if (cancel || k.moved) { cat.pDown = false; cat.pHeld = 0; cat.scrHold = false; } else punchUp(); return; }
+  if (cancel || k.moved || k.jumped) return;
+  // 動かさずに短く離した：ネコの上なら鳴く、それ以外はパンチ（タップした側を向く）
+  const w = cl2w(k.x, k.y);
+  if (Math.abs(w.x - cat.x) < 22 && w.y > cat.y - 50 && w.y < cat.y + 6) { meow(); return; }
+  if (Math.abs(w.x - cat.x) > 16 && !cat.hang) cat.face = Math.sign(w.x - cat.x);
+  punchDown(); punchUp();
+}
+cv.addEventListener('pointerdown', e => {
+  if ((state !== 'play' && state !== 'clear') || !oneHand) return;
+  e.preventDefault(); audio();
+  if (stick) return;   // 2本目の指は使わない
+  try { cv.setPointerCapture(e.pointerId); } catch (x) {}
+  tapTarget = null; cat.autoScr = null;
+  stick = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, ay: e.clientY, t: 0, moved: false, jumped: false, pressed: false };
 });
-cv.addEventListener('pointercancel', () => { touch0 = null; });
+cv.addEventListener('pointermove', e => {
+  const k = stick; if (!k || e.pointerId !== k.id) return;
+  k.x = e.clientX; k.y = e.clientY;
+  let dx = k.x - k.x0;
+  // 中心は指についてくる（逆向きにすぐ切り替えられるように）
+  if (Math.abs(dx) > STK.R) { k.x0 = k.x - Math.sign(dx) * STK.R; dx = Math.sign(dx) * STK.R; }
+  if (Math.abs(dx) > STK.dead || Math.abs(k.y - k.y0) > STK.dead) k.moved = true;
+  keys.L = dx < -STK.dead; keys.R = dx > STK.dead;
+  if (keys.L || keys.R) learn('stick');
+  // 上へはじく：基準より STK.jump 上がったらジャンプ。基準は指の一番下の位置についていく（もう一度はじけば、またジャンプ）
+  if (k.y > k.ay) k.ay = k.y;
+  if (k.ay - k.y > STK.jump) { jumpPress(); k.jumped = true; k.ay = k.y; learn('stick'); }
+});
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => cv.addEventListener(ev, e => { if (stick && e.pointerId === stick.id) stickEnd(ev !== 'pointerup'); }));
+function updStick(dt) {
+  // 動かさずに押し続けたら、パンチボタンを押したのと同じにする（離すと強パンチ、押し続けると爪とぎ）
+  const k = stick; if (!k) return;
+  k.t += dt;
+  if (!k.pressed && !k.moved && k.t >= STK.hold && state === 'play') { k.pressed = true; punchDown(); cat.pHeld = k.t; }   // 押していた時間も強パンチのためためた時間に数える
+}
+function drawStick() {
+  if (!oneHand || (state !== 'play' && state !== 'clear')) return;
+  const k = stick;
+  if (!k) {
+    // まだ使ったことがなければ、遊び方を下に出す
+    if (learned.has('stick') || state !== 'play') return;
+    g.save(); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `800 14px ${FONT}`;
+    const ls = [lt('どこでも指を置いて、左右にずらすと歩く', 'Touch anywhere, slide left/right to walk'), lt('上にはじくとジャンプ・タップでパンチ', 'Flick up to jump · tap to punch')];
+    g.fillStyle = 'rgba(74,47,29,.78)'; rr(g, 30, BOT - 64, W - 60, 50, 14); g.fill();
+    g.fillStyle = '#fff'; ls.forEach((t, i) => g.fillText(t, W / 2, BOT - 51 + i * 23)); g.restore();
+    return;
+  }
+  const r = cv.getBoundingClientRect(), sx = W / r.width, c0 = cl2w(k.x0, k.y0), R = STK.R * sx;
+  const kx = c0.x + clamp((k.x - k.x0) * sx, -R, R), ky = c0.y + clamp((k.y - k.y0) * sx, -R, R);
+  g.save(); g.globalAlpha = 0.5; g.fillStyle = '#fff'; g.strokeStyle = '#4a2f1d'; g.lineWidth = 2;
+  g.beginPath(); g.arc(c0.x, c0.y, R, 0, TAU); g.fill(); g.stroke();
+  g.globalAlpha = 0.85; g.fillStyle = k.pressed ? '#ff5a5a' : '#ff8a3d';
+  g.beginPath(); g.arc(kx, ky, R * 0.45, 0, TAU); g.fill(); g.stroke(); g.restore();
+}
 const SND_ON = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const SND_OFF = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 function soundLabel() { const b = $('bSnd'); b.innerHTML = muted ? SND_OFF : SND_ON; b.setAttribute('aria-pressed', String(!muted)); }
@@ -4789,7 +4820,7 @@ function frame(ts) {
   pollPad();
   if (hitStop > 0 && state === 'play') { hitStop -= dt; tAnim += dt * 0.2; } else { hitStop = 0; update(dt); }
   if (zoomK > 0) zoomK = Math.max(0, zoomK - dt * 3.5);
-  draw(); hud();
+  updStick(dt); draw(); drawStick(); hud();
   requestAnimationFrame(frame);
 }
 fit();
