@@ -304,8 +304,13 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.23.4', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
-const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
+const APP_VER = '4.23.5', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
+// 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
+function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
+window.addEventListener('error', e => noteErr('error', e));
+window.addEventListener('unhandledrejection', e => noteErr('promise', e));
+function lastErrLine() { try { const j = JSON.parse(store.get('nekoLastErr', '') || 'null'); if (!j) return ''; return `<p class="ver lasterr" style="font-size:.62rem;color:#b35;cursor:pointer" title="${lt('押すと消える', 'Tap to clear')}">ERR v${j.v} ${j.state} ${j.kind}: ${esc(j.msg)}${j.stack ? '<br>' + esc(j.stack.split('\n').slice(0, 2).join(' / ')) : ''}</p>`; } catch (e) { return ''; } }
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const pick = a => a[(Math.random() * a.length) | 0];
@@ -5367,7 +5372,8 @@ function showSettings(back) {
   $('sLg').addEventListener('click', () => { setLang(lt('en', 'ja')); showSettings(back); });
   $('sBack').addEventListener('click', back);
   // 確認用の隠し操作：バージョン表示を2秒以内に5回押すと、エンディングだけを再生する（記録・称号には残さない）
-  const vEl = ov.querySelector('.ver');
+  const leEl = ov.querySelector('.lasterr'); if (leEl) leEl.addEventListener('click', () => { store.set('nekoLastErr', ''); showSettings(back); });
+  const vEl = ov.querySelector('.ver:not(.lasterr)');
   if (vEl) { let taps = []; vEl.addEventListener('click', e => {
     if (e.target.tagName === 'A') return;
     const now = performance.now(); taps = taps.filter(t => now - t < 2000); taps.push(now);
@@ -5854,7 +5860,7 @@ function frame(ts) {
     if (state === 'pause' && resumeT > 0) { const n0 = Math.ceil(resumeT); resumeT -= dt; if (resumeT <= 0) { resumeT = 0; state = pausedFrom; } else if (Math.ceil(resumeT) !== n0) sfx.tick(); }
     updStick(dt); if (state === 'play') updHideMark(); draw(); drawStick(); hud();
   } catch (e) {
-    frameErr++; try { console.error(e); } catch (e2) {}
+    frameErr++; try { console.error(e); } catch (e2) {} noteErr('frame', { message: e && e.message, error: e });
     try { g.setTransform(1, 0, 0, 1, 0, 0); for (let i = 0; i < 8; i++) g.restore(); } catch (e2) {}   // 途中で止まった描画の save を戻す
     if (frameErr === 1) { try { toast('ERROR ' + state + ': ' + (e && e.message ? e.message : e), 8000); } catch (e2) {} }
     // スタッフロールや締めの画面で止まったら、締めの画面を出し直す
