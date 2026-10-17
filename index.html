@@ -175,7 +175,7 @@
   .zukan { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 8px 0; text-align: left; }
   .zukan div { border: 2px solid var(--line); border-radius: 12px; padding: 6px 8px; font-weight: 800; font-size: .86rem; background: #fff; }
   .zukan div.off { color: #c9b39a; background: #fbf3e6; }
-  .cert { border: 2px dashed var(--line); border-radius: 14px; padding: 10px 12px; margin: 8px 0; background: #fffaf0; }
+  .cert { border: 2px dashed var(--line); border-radius: 14px; padding: 8px 12px; margin: 6px 0; background: #fffaf0; }
   .end-panel .big-logo { color: var(--org-d); }
   .online[hidden] { display: none; }
   /* 怪しまれ度の段階を、ゲーム画面の外枠の色と点滅でも見せる（上のバーと同じ段階） */
@@ -331,7 +331,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.30.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.31.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -3306,7 +3306,7 @@ function endingType(r) {
 let endingsSeen = new Set();
 try { endingsSeen = new Set(JSON.parse(store.get('nekoEndings', '[]'))); } catch (e) {}
 // スタッフロール：ENDING の種類、出演（ネコ・飼い主）、被害者一覧（割ったもの）、大技、3日間の写真。タップ・ボタンで飛ばせる
-let credT = 0, epiT = 0, CRED_LEN = 64 * (60 / 84 / 2);   // 曲のひとまわり（8 小節・84 BPM ＝ 約 22.9 秒）に合わせる。4.23.1
+let saveT = 0, credT = 0, epiT = 0, CRED_LEN = 64 * (60 / 84 / 2);   // 曲のひとまわり（8 小節・84 BPM ＝ 約 22.9 秒）に合わせる。4.23.1
 function creditLines() {
   const r = run, E = ENDINGS[r.endType], L = [], nd = r.endType === 'true' ? TRUE_DAY : END_DAY, tr = r.endType === 'true';
   L.push(['big', lt('こっそりネコ', 'Mischievous Cat')]); L.push(['sub', 'ENDING ' + String(E.n)]); L.push(['gap']);
@@ -3316,7 +3316,7 @@ function creditLines() {
   L.push(['gap']);
   // 飼い主の日記：3日目は 1〜3 日目、ほんとうのおしまいは 7 日ぶん
   L.push(['h', lt('飼い主の日記', "OWNER'S DIARY")]);
-  for (let d = 1; d <= nd; d++) { const t = diaryOf(d), parts = []; let cur = ''; for (const ch of t) { if (cur.length >= 22 && /[。、！？!? ]/.test(cur[cur.length - 1])) { parts.push(cur); cur = ''; } cur += ch; } if (cur) parts.push(cur); parts.forEach((pt, i) => L.push(['d', (i === 0 ? d + lt('日目：', ': ') : '') + pt])); }
+  for (let d = 1; d <= nd; d++) { const t = diaryOf(d), parts = []; let cur = ''; for (const ch of t) { if (cur.length >= 17 && /[。、！？!? ]/.test(cur[cur.length - 1]) || cur.length >= 21) { parts.push(cur); cur = ''; } cur += ch; } if (cur) parts.push(cur); parts.forEach((pt, i) => L.push(['d', (i === 0 ? d + lt('日目：', ': ') : '') + pt])); }
   L.push(['gap']);
   L.push(['h', lt('被害者のみなさん', 'THE VICTIMS')]);
   const bro = Object.entries(r.broke || {}).filter(([k]) => IT[k]).sort((a, b) => b[1] - a[1]).slice(0, 7);
@@ -3385,7 +3385,7 @@ function drawEpilogue() {
   if (e > 7.4) { g.fillStyle = `rgba(20,14,40,${clamp((e - 7.4) / 0.6, 0, 1)})`; g.fillRect(0, -OY, W, VH); }
 }
 function startEnding(isTrue) {
-  if (isTrue) run.trueEnded = true;
+  if (isTrue) run.trueEnded = true; endSnapped = false;
   run.endType = endingType(run); endFall = null; endLastPop = -1; endPopTxt = '';
   run.ended = true; run.days = dayOf(level); state = 'ending'; endT = 0; endShown = false; endCup = { x: 252, y: 474, vy: 0, vx: 0, rot: 0, broke: false };
   bgmStop(); endBgmStart(false); setPulse(null); setMode('away', 99); owner.say = ''; parts = []; pops = []; spaceT = 0; room = 'living'; spots = []; lamp = null; tv = null; weather = 'sun';   // 4.23.2：始まりの効果音（dayend）はやめ、BGM だけにする
@@ -3548,13 +3548,14 @@ function showEnding() {
     </div>
     <div class="badges">${newSiam ? `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ シャム猫', 'NEW CAT Siamese')}</span>` : ''}${firstEnd ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「金メダル」', 'Reward: Gold medal accessory')}</span>` : ''}${firstTrue ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「星のバッジ」', 'Reward: Star badge accessory')}</span>` : ''}${gotTitles.map(t => `<span class="badge new">NEW ${t}</span>`).join('')}</div>
     <button class="btn go" id="enCont" type="button">${lt((nd + 1) + '日目へつづける', 'On to Day ' + (nd + 1))}</button>
-    <p class="best" style="margin:2px 0 6px;font-weight:500;font-size:.78rem">${tr ? lt('ここから先は終わりのない日々。1日ごとに飼い主がきびしくなります', 'From here on, the endless days. The owner gets stricter every day.') : lt('4日目からは新しい相手と新しい夜。7日目の夜を越えると、もうひとつのおしまい', 'From Day 4: new foes and new nights. Get past the seventh night for another ending.')}</p>
     <div class="row"><button class="btn w" id="enRes" type="button">${lt('ここで終わって結果を見る', 'Finish and see results')}</button></div>
+    <div class="row"><button class="btn t sm" id="bShare" type="button">${lt('シェア', 'Share')}</button><a class="btn sm" id="bLine" href="${'https://line.me/R/share?text=' + encodeURIComponent(shareText() + '\n' + SITE)}" target="_blank" rel="noopener" style="background:#06c755;box-shadow:0 4px 0 #04963f">${lt('LINEで送る', 'Send on LINE')}</a><button class="btn w sm" id="bSave" type="button">${lt('画像を保存', 'Save image')}</button></div>
     <p class="best" style="margin:6px 0 0;font-weight:500;font-size:.72rem;color:var(--ink2)">${lt('こっそりネコ　制作：', 'Mischievous Cat — created by ')}${AUTHOR}</p></div>`;
   $('enCont').addEventListener('click', () => { endBgmStop(); ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
   $('enRes').addEventListener('click', () => { endBgmStop(); run.timeup = false; gameOver(); });
+  run.stage = level; run.comment = String(ENDINGS[et].oops); $('bShare').addEventListener('click', doShare); $('bSave').addEventListener('click', saveCard); buildCard(); foldBadges();
 }
-let endFx = 0, endFall = null, endLastPop = -1, endPopTxt = '';
+let endFx = 0, endFall = null, endLastPop = -1, endPopTxt = '', endSnapped = false;
 // ---------- お客さんと掛け合い ----------
 const BANTER = [
   ['guest', tx('このワインおいしいね', 'This wine is lovely'), 'owner', tx('でしょ？ 奮発したの', 'Right? I splurged')],
@@ -3832,11 +3833,11 @@ function updChase(dt) {
   if (chaseT <= 0) { chaseT = 0; caught(); }
 }
 let snapMode = false;
-function takeSnap() {
-  // 見つかった瞬間の画面（犯行現場写真）を写し取る。お題・時間・吹き出し・数字は描かずに描き直し、ネコのまわりを正方形で切り取る
+function takeSnap(cx, cy) {
+  // 見つかった瞬間の画面（犯行現場写真）を写し取る。お題・時間・吹き出し・数字は描かずに描き直し、ネコのまわりを正方形で切り取る（cx, cy を渡すとそこを中心に）
   try {
     snapMode = true; draw(); snapMode = false;
-    const S = 250, sx = clamp(cat.x - S / 2, 0, W - S), sy = clamp(cat.y - S * 0.62, 20, FLOOR + 30 - S);
+    const S = 250, sx = clamp((cx == null ? cat.x : cx) - S / 2, 0, W - S), sy = clamp((cy == null ? cat.y : cy) - S * 0.62, 20, FLOOR + 30 - S);
     const s = document.createElement('canvas'); s.width = s.height = 640; const c = s.getContext('2d');
     c.drawImage(cv, sx * DPR, (sy + OY) * DPR, S * DPR, S * DPR, 0, 0, 640, 640); return s;
   } catch (e) { snapMode = false; return null; }
@@ -5565,6 +5566,13 @@ function draw() {
     tag(dayName(level) + lt('・', ' · ') + phaseOf(level).name, 12, 'left');
     drawLeftItems();
   }
+  // セーブした合図（面の始まり、2 秒）：右上の のこりの下に小さな札
+  if (saveT > 0 && (state === 'play' || state === 'pause')) {
+    const a = clamp(Math.min(saveT / 0.3, (2.2 - saveT) / 0.3), 0, 1); g.save(); g.globalAlpha = a; g.font = `800 13px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const t = lt('セーブしました', 'Saved'), w = g.measureText(t).width + 30, x = W / 2, y = 150 - OY + 66;
+    g.fillStyle = '#2fb3a3'; g.strokeStyle = '#fff'; g.lineWidth = 2.5; rr(g, x - w / 2, y - 13, w, 26, 13); g.fill(); g.stroke();
+    g.fillStyle = '#fff'; g.fillRect(x - w / 2 + 10, y - 6, 11, 12); g.fillStyle = '#2fb3a3'; g.fillRect(x - w / 2 + 12.5, y - 6, 6, 4); g.fillStyle = '#fff'; g.fillText(t, x + 7, y + 0.5); g.restore();
+  }
   if (state === 'play' && introT > 0) {
     const ph = phaseOf(level), k = Math.min(1, (2 - introT) / 0.2, introT / 0.3);
     g.save(); g.globalAlpha = clamp(k, 0, 1); g.translate(W / 2, 150);
@@ -5642,7 +5650,7 @@ function update(dt) {
   if (lever) lever.tilt += ((cat && cat.plat === LEVP ? 0.6 : 0) - lever.tilt) * Math.min(1, dt * 6);   // 板の傾き：乗っている間は外の端が下がる
   if (slowT > 0 && state === 'play') { slowT -= dt; dt *= 0.3; }   // 高額品が割れたときのスロー
   if (state === 'play') {
-    stageT += dt; run.time = (run.time || 0) + dt; if (introT > 0) introT -= dt;
+    stageT += dt; run.time = (run.time || 0) + dt; if (introT > 0) introT -= dt; if (saveT > 0) saveT -= dt;
     cardCd -= dt; if (cardCd <= 0) { cardCd = 0.5; cardCheck(); }
     if (tripleCd > 0) tripleCd -= dt; if (meowDownAt && !meowLongDone && performance.now() - meowDownAt > 450) meowLong();
     if (bigEv.anim > 0) bigEv.anim -= dt; if (bigEv.wob > 0) bigEv.wob -= dt;
@@ -5666,7 +5674,9 @@ function update(dt) {
       } else { setupStage(level + 1); state = 'play'; }
     }
   } else if (state === 'ending') {
-    endT += dt; if (endT > 15.8) { state = 'credits'; credT = 0; endBgmStart(true); EB.full = true; if (EB.on && ac) { EB.step = 0; EB.next = ac.currentTime + 0.05; } }   // スタッフロールの始まりを曲の 1 小節目に合わせる
+    endT += dt;
+    if (endT > 9.3 && !endSnapped) { endSnapped = true; try { snap = takeSnap(214, FLOOR); } catch (e) {} }   // シェア用の写真：オチの場面
+    if (endT > 15.8) { state = 'credits'; credT = 0; endBgmStart(true); EB.full = true; if (EB.on && ac) { EB.step = 0; EB.next = ac.currentTime + 0.05; } }   // スタッフロールの始まりを曲の 1 小節目に合わせる
   } else if (state === 'credits') {
     credT += dt; if (credT > CRED_LEN && !endShown) { if (run.endType === 'true' && !run.preview) { state = 'epilogue'; epiT = 0; } else { endShown = true; showEnding(); } }
   } else if (state === 'epilogue') {
@@ -6232,7 +6242,7 @@ function saveGame(L, cont) {
   if (!run || run.test || run.preview || state === 'title' || L <= 1) return;
   try {
     const sv = { v: 1, level: L, cont: !!cont, carryT: Math.round(carryT || 0), cat: selCat, acc: selAcc, pk: packRun(run), ck: run.ck ? { level: run.ck.level, pk: run.ck.pk } : null, t: Date.now() };
-    store.set('nekoSave', JSON.stringify(sv));
+    store.set('nekoSave', JSON.stringify(sv)); saveT = 2.2;
   } catch (e) {}
 }
 function clearSave() { store.set('nekoSave', ''); }
@@ -6332,6 +6342,7 @@ function showPause() {
     <button class="btn go" id="pResume" type="button">${lt('つづける', 'Resume')}</button>
     <div class="row"><button class="btn w" id="pRetry" type="button">${lt('やりなおす', 'Restart')}</button><button class="btn w" id="pTop" type="button">${lt('トップへ', 'Title')}</button></div>
     <div class="row"><button class="btn w" id="pSnd" type="button">${muted ? lt('音をオンにする', 'Sound on') : lt('音をオフにする', 'Sound off')}</button><button class="btn w" id="pSet" type="button">${lt('設定', 'Settings')}</button></div>
+    ${loadSave() ? `<p class="best" style="margin:2px 0 0;font-weight:500;font-size:.76rem;color:var(--ink2)">${lt('この面の始まりまでセーブずみ。いつやめても、トップの「つづきから」で再開できます', 'Saved up to the start of this stage. Quit any time and pick "Continue" on the title')}</p>` : ''}
     ${keysBox()}
 </div>`;
   $('pResume').addEventListener('click', resumeGame);
@@ -6400,7 +6411,11 @@ async function showOver() {
   bindOnline();
   $('bShare').addEventListener('click', doShare);
   $('bSave').addEventListener('click', saveCard);
-  if (cardFor === run && cardLang === lang && cardUrl) { $('card').src = cardUrl; return; }
+  buildCard();
+}
+// シェア用の画像を作る（結果画面・完走画面）。同じ回・同じ言語なら作り直さない
+async function buildCard() {
+  if (cardFor === run && cardLang === lang && cardUrl) { const im = $('card'); if (im) im.src = cardUrl; return; }
   cardBlob = null; cardFor = run; cardLang = lang;
   try {
     const cn = await makeCard();
