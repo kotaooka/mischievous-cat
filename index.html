@@ -289,7 +289,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.17.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.17.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -3051,13 +3051,15 @@ function drawCat(c, x, y, o) {
   c.strokeStyle = pt; c.lineWidth = (T.big ? 9 : 6) * (tail === 'puff' ? 1.9 : 1);
   const tw = Math.sin(t * 3) * (pose === 'smug' || pose === 'stare' ? 10 : 6);
   c.beginPath(); c.moveTo(-17, -16 + crouch);
+  let tk = 0;
+  if (tail === 'up' || tail === 'puff') { tk = Math.sin(t * 4) * 2.5; }
   if (pose === 'loaf') c.bezierCurveTo(-28, -8, -18, 0, 2, -1);   // 香箱座り：体に巻きつける
   else if (pose === 'hunt' || pose === 'wiggle') { const k = Math.sin(t * 16) * 4; c.bezierCurveTo(-30, -12 + crouch, -40, -12 + k, -45, -16 + k); }   // 狙うときは先だけ小刻みに動く
-  else if (tail === 'up' || tail === 'puff') { const k = Math.sin(t * 4) * 2.5; c.bezierCurveTo(-26, -20, -27, -42, -20 + k, -54); }
+  else if (tail === 'up' || tail === 'puff') c.bezierCurveTo(-26, -20, -27, -42, -20 + tk, -54);
   else if (tail === 'low') c.bezierCurveTo(-30, -12, -36, -5, -43, -3);
   else c.bezierCurveTo(-34, -14, -36, -34 + tw, -27, -44 + tw * 0.6);
   c.stroke();
-  if (tail === 'up' && pose !== 'loaf') { c.lineWidth = T.big ? 9 : 6; c.beginPath(); c.moveTo(-20, -54); c.quadraticCurveTo(-17, -59, -13, -56); c.stroke(); }   // 先がくるっと曲がる
+  if (tail === 'up' && pose !== 'loaf' && pose !== 'hunt' && pose !== 'wiggle') { c.lineWidth = T.big ? 9 : 6; c.beginPath(); c.moveTo(-20 + tk, -54); c.quadraticCurveTo(-17 + tk, -59, -13 + tk, -56); c.stroke(); }   // 先がくるっと曲がる（揺れる先端に追従させる）
   // 奥の脚
   const ly = -10 + crouch;
   if (pose !== 'loaf') {
@@ -3882,7 +3884,7 @@ function drawFurniture() {
     g.fillStyle = '#a7adb5'; rr(g, 355, 310, 5, 36, 2); g.fill(); rr(g, 355, 375, 5, 60, 2); g.fill();
     g.fillStyle = '#ff8a3d'; g.beginPath(); g.arc(420, 400, 6, 0, TAU); g.fill(); g.fillStyle = '#2fb3a3'; g.fillRect(398, 330, 14, 10);   // マグネット
     g.fillStyle = '#dfe6ea'; rr(g, 345, 285, W - 345, 8, 3); g.fill();
-    if (snack && !snack.got) { g.fillStyle = '#2b8fd9'; rr(g, snack.x - 8, 268, 16, 17, 3); g.fill(); g.fillStyle = '#fff'; g.font = `800 7px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('にぼし', 'SNACK'), snack.x, 277); }
+    if (snack && !snack.got) { g.fillStyle = '#2b8fd9'; rr(g, snack.x - 15, 268, 30, 17, 3); g.fill(); g.fillStyle = '#fff'; g.font = `800 8px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('にぼし', 'SNACK'), snack.x, 277); }
   } else if (room === 'bed') {
     g.fillStyle = '#a5683a'; g.fillRect(345, 291, W - 345, FLOOR - 291);
     for (let r = 0; r < 5; r++) { g.strokeStyle = 'rgba(94,58,28,.5)'; g.lineWidth = 2; g.strokeRect(351, 298 + r * 40, W - 357, 34); g.fillStyle = '#ffc94a'; g.fillRect(392, 313 + r * 40, 12, 4); }
