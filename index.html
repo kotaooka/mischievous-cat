@@ -5046,7 +5046,7 @@ async function showOver() {
     ${canCont() ? `<div class="row"><button class="btn go" id="bCont" type="button">${lt(dayName(run.ck.level) + 'の朝からつづける', 'Continue from ' + dayName(run.ck.level) + ' morning')}</button></div><p class="best" style="margin:0 0 6px;font-weight:500;font-size:.78rem">${lt('被害額は朝の時点に戻ります。続けた回数はランキングに載ります', 'Damage goes back to that morning. Restarts are shown in the ranking')}</p>` : ''}
     <div class="row"><button class="btn ${canCont() || canPostEnd() ? 'w' : 'go'}" id="bAgain" type="button">${lt(canCont() || canPostEnd() ? '1日目からやりなおす' : 'もう一回', canCont() || canPostEnd() ? 'Restart from Day 1' : 'Play again')}</button></div>
     <img id="card" alt="${lt('犯行現場写真', 'Crime scene photo')}" width="1200" height="630">
-    <div class="row"><button class="btn t" id="bShare" type="button">${lt('シェア', 'Share')}</button><button class="btn w" id="bSave" type="button">${lt('保存', 'Save')}</button><button class="btn w" id="bX" type="button">${lt('Xに投稿', 'Post on X')}</button></div>
+    <div class="row"><button class="btn t" id="bShare" type="button">${lt('シェア', 'Share')}</button><button class="btn w" id="bSave" type="button">${lt('保存', 'Save')}</button></div>
     <div class="row"><a class="btn" id="bLine" href="${lineUrl}" target="_blank" rel="noopener" style="background:#06c755;box-shadow:0 4px 0 #04963f">${lt('LINEで送る', 'Send on LINE')}</a></div>
     <div class="row"><button class="btn w" id="bChange" type="button">${lt('トップへ', 'Title')}</button><button class="btn w" id="bRk" type="button">${lt('きろく', 'Records')}</button></div>
     <a class="coffee" href="https://buymeacoffee.com/kotaooka" target="_blank" rel="noopener">${lt('☕ 作者にコーヒーをおごる', '☕ Buy me a coffee')}</a></div>`;
@@ -5058,7 +5058,6 @@ async function showOver() {
   bindOnline();
   $('bShare').addEventListener('click', doShare);
   $('bSave').addEventListener('click', saveCard);
-  $('bX').addEventListener('click', postX);
   if (cardFor === run && cardLang === lang && cardUrl) { $('card').src = cardUrl; return; }
   cardBlob = null; cardFor = run; cardLang = lang;
   try {
@@ -5078,32 +5077,20 @@ async function doShare() {
     }
     if (navigator.share) { await navigator.share({ text, url: SITE }); return; }
   } catch (e) { if (e && e.name === 'AbortError') return; }
+  // 共有シートのない環境（主に PC）：X の投稿画面を開く。投稿 URL は文章とリンクしか受け取れないので、
+  // カード画像はクリップボードにコピーしておき、投稿欄に貼り付けてもらう
+  let copied = false;
+  if (cardBlob && navigator.clipboard && window.ClipboardItem) {
+    try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': cardBlob })]); copied = true; } catch (e) {}
+  }
   window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(SITE), '_blank', 'noopener');
+  if (copied) toast(lt('画像をコピーしました。投稿欄に貼り付け（Ctrl+V）', 'Image copied. Paste it into the post (Ctrl+V)'), 5000);
 }
 // 短い知らせを下に出す
 let toastT = 0;
 function toast(text, ms) {
   let el = $('toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
   el.textContent = text; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), ms || 3500);
-}
-// Xに投稿：X の投稿 URL（intent）は文章とリンクしか受け取れず、画像は付けられない。
-// そこで PC ではカード画像をクリップボードにコピーしてから投稿画面を開き、貼り付けてもらう。
-// スマホで画像つきの共有ができる環境では、共有シートから X を選べば画像つきで投稿できる。
-async function postX() {
-  const text = shareText(), url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(SITE);
-  const fine = (() => { try { return matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) { return false; } })();
-  if (cardBlob && !fine && navigator.canShare) {
-    try {
-      const file = new File([cardBlob], 'mischievous-cat.png', { type: 'image/png' });
-      if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: text + '\n' + SITE }); return; }
-    } catch (e) { if (e && e.name === 'AbortError') return; }
-  }
-  let copied = false;
-  if (cardBlob && navigator.clipboard && window.ClipboardItem) {
-    try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': cardBlob })]); copied = true; } catch (e) {}
-  }
-  window.open(url, '_blank', 'noopener');
-  if (copied) toast(lt('画像をコピーしました。投稿欄に貼り付け（Ctrl+V）', 'Image copied. Paste it into the post (Ctrl+V)'), 5000);
 }
 function saveCard() {
   if (!cardUrl) return;
