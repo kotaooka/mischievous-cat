@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.23.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.23.4', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2619,7 +2619,7 @@ function tvOn() {
 }
 function updTv(dt) { if (tv && tv.on > 0) tv.on -= dt; }
 function camSees(cm, x) { return stageT > 1.5 && Math.abs(x - cm.cx) < cm.w / 2; }
-function updCams(dt) { for (const cm of cams) { cm.cx = W / 2 + (W / 2 - 50) * Math.sin(stageT * TAU / cm.period + cm.ph); if (cm.rec > 0) cm.rec -= dt; } }
+function updCams(dt) { for (const cm of cams) { const c0 = cams.length > 1 ? clamp(cm.mx, 150, W - 150) : W / 2, sw = cams.length > 1 ? 130 : W / 2 - 50; cm.cx = c0 + sw * Math.sin(stageT * TAU / cm.period + cm.ph); if (cm.rec > 0) cm.rec -= dt; } }   // 4.23.3：カメラが2台のときは、それぞれ自分の側（取り付け位置 ±130px）だけを見る
 function burstStack(it, plat) {
   // 積み重なったものがくずれる：中身が飛び散って、それぞれ割れる（同じ連鎖として数える）
   const S = IT[it.t].stack, chain = it.chain || ++chainSeq, junk = !!IT[S.t].junk;
@@ -3159,7 +3159,7 @@ function updSus(dt) {
   if (!cat.hidden && !cat.safe && chaseT <= 0) {
     const ex = [];
     if (guestSees(cat.x)) { ex.push(guest.mode === 'chat' ? 30 : 15); exBy = exBy || 'guest'; }
-    for (const cm of cams) if (camSees(cm, cat.x)) { ex.push(28); cm.rec = 0.6; exBy = 'cam'; }
+    for (const cm of cams) if (camSees(cm, cat.x)) { ex.push(22); cm.rec = 0.6; exBy = 'cam'; }   // 4.23.3：28 → 22
     for (const r of ex) {
       if (cat.punchT > 0) { gain += r * cat.type.sus; cat.mark = 0.4; }
       else if (cat.scratch) { gain += r * 0.9 * cat.type.sus; cat.mark = 0.4; }
@@ -3167,7 +3167,7 @@ function updSus(dt) {
     }
     if (ex.length) { seen = true; exSeen = true; }
   }
-  if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { const ic = cams.some(cm => camSees(cm, it.x)); gain += 16; exBy = exBy || (ic ? 'cam' : 'guest'); it.mark = 0.4; it.spotted = true; break; } }
+  if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { const ic = cams.some(cm => camSees(cm, it.x)); gain += ic && !guestSees(it.x) ? 12 : 16; exBy = exBy || (ic ? 'cam' : 'guest'); it.mark = 0.4; it.spotted = true; break; } }
   if (o.mode === 'search') gain *= 1.15;
   // 隠れ場所（ダンボール・キャットタワーの上・高い所）でじっとしている間は、足跡や転がるもの・音があっても上げない。探している最中でも少しずつ下げる
   const hiding = inEscape() && !(cat.punchT > 0) && !cat.scratch;
@@ -5842,13 +5842,24 @@ window.addEventListener('pagehide', () => { pauseGame(); if (ac && ac.state === 
 
 // ---------- ループ ----------
 let last = 0;
+// 1 フレームの中で例外が起きても描画のループを止めない（止まると画面が固まり、画面の大きさが変わると真っ白になる）。
+// 起きた場所が分かるように、最初の 1 回だけ画面下に知らせる
+let frameErr = 0;
 function frame(ts) {
   const dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts;
-  pollPad();
-  if (hitStop > 0 && state === 'play') { hitStop -= dt; tAnim += dt * 0.2; } else { hitStop = 0; update(dt); }
-  if (zoomK > 0) zoomK = Math.max(0, zoomK - dt * 3.5);
-  if (state === 'pause' && resumeT > 0) { const n0 = Math.ceil(resumeT); resumeT -= dt; if (resumeT <= 0) { resumeT = 0; state = pausedFrom; } else if (Math.ceil(resumeT) !== n0) sfx.tick(); }
-  updStick(dt); if (state === 'play') updHideMark(); draw(); drawStick(); hud();
+  try {
+    pollPad();
+    if (hitStop > 0 && state === 'play') { hitStop -= dt; tAnim += dt * 0.2; } else { hitStop = 0; update(dt); }
+    if (zoomK > 0) zoomK = Math.max(0, zoomK - dt * 3.5);
+    if (state === 'pause' && resumeT > 0) { const n0 = Math.ceil(resumeT); resumeT -= dt; if (resumeT <= 0) { resumeT = 0; state = pausedFrom; } else if (Math.ceil(resumeT) !== n0) sfx.tick(); }
+    updStick(dt); if (state === 'play') updHideMark(); draw(); drawStick(); hud();
+  } catch (e) {
+    frameErr++; try { console.error(e); } catch (e2) {}
+    try { g.setTransform(1, 0, 0, 1, 0, 0); for (let i = 0; i < 8; i++) g.restore(); } catch (e2) {}   // 途中で止まった描画の save を戻す
+    if (frameErr === 1) { try { toast('ERROR ' + state + ': ' + (e && e.message ? e.message : e), 8000); } catch (e2) {} }
+    // スタッフロールや締めの画面で止まったら、締めの画面を出し直す
+    if ((state === 'credits' || state === 'endmenu') && frameErr <= 3) { try { endShown = true; state = 'endmenu'; showEnding(); } catch (e3) {} }
+  }
   requestAnimationFrame(frame);
 }
 fit();
