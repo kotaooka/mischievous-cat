@@ -130,7 +130,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 - **Big ones**: each room has one way to bring a whole piece of furniture down (bookshelf avalanche, fridge avalanche…). Everything on top falls and the owner freezes for a moment. The Cards tab tells you how
 - **Mischief cards**: 72 cards (some per run, some lifetime), each collected with a photo of the moment you first pulled it off. The Cards tab also shows how to get the ones you are missing
 - **This device**: your own top 10
-- **Accessories**: every accessory has an upside and a downside (the bell collar makes food last longer but your noises louder; the crown adds 10% damage but makes you more suspicious). "None" has no modifiers. Switching one on the title screen changes the stat pips and shows what it does
+- **Accessories**: unlocked by specific cards ("Meow Decoy" for the bell collar, "Boss Beaten" for the bandana, and so on — the locked pill shows the card). Each gives a small bonus (punch +15%, jump +10%…); switching one on the title screen updates the stat pips
 - **Titles**: the title on the result screen is decided by one run's damage (five ranks)
 - **Crime scene photo**: a close-up of the cat at the moment you're caught becomes a Polaroid (no HUD in the shot), with a one-line pitch and where to play. Share it with `#MischievousCat`
 - **Day restarts**: from Day 2 on, the result screen offers "Continue from Day N morning". Damage, stars and charms go back to that morning, and the ranking shows how many restarts you used

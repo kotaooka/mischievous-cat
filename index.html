@@ -308,7 +308,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.26.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.26.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1056,8 +1056,9 @@ const BUSY_ROOM = {
 const busyOf = () => BUSY_ROOM[room] || BUSY[phaseIx(level)];
 // きせかえ：称号をいくつ集めたかで増える
 const ACCS = [
-  { id: 'none', name: tx('なし', 'None'), need: 0 }, { id: 'bell', name: tx('鈴の首輪', 'Bell collar'), need: 4 }, { id: 'ribbon', name: tx('リボン', 'Ribbon'), need: 8 },
-  { id: 'scarf', name: tx('バンダナ', 'Bandana'), need: 14 }, { id: 'hat', name: tx('パーティ帽', 'Party hat'), need: 20 }, { id: 'glasses', name: tx('メガネ', 'Glasses'), need: 28 }, { id: 'crown', name: tx('王冠', 'Crown'), need: 40 },
+  // 4.26.1：きせかえは枚数ではなく、決まったカード（実績）で手に入る（card）。効き目は良い面だけ（ACC_FX）
+  { id: 'none', name: tx('なし', 'None'), need: 0 }, { id: 'bell', name: tx('鈴の首輪', 'Bell collar'), need: 1, card: 'lure' }, { id: 'ribbon', name: tx('リボン', 'Ribbon'), need: 1, card: 'rub' },
+  { id: 'scarf', name: tx('バンダナ', 'Bandana'), need: 1, card: 'boss' }, { id: 'hat', name: tx('パーティ帽', 'Party hat'), need: 1, card: 'festival' }, { id: 'glasses', name: tx('メガネ', 'Glasses'), need: 1, card: 'data' }, { id: 'crown', name: tx('王冠', 'Crown'), need: 1, card: 't_million' },
   { id: 'medal', name: tx('金メダル', 'Gold medal'), need: 999, ending: true },   // エンディングを見るともらえる
   { id: 'star', name: tx('星のバッジ', 'Star badge'), need: 999, trueEnd: true },   // 7日目の夜を越えるともらえる
   { id: 'shades', name: tx('サングラス', 'Shades'), need: 999, secret: true }   // 隠しコマンド（タイトルで にゃー を10回）
@@ -1065,19 +1066,20 @@ const ACCS = [
 // きせかえの効き目（4.26.0）：どれも良い面と悪い面がある。「なし」は補正なし。pip は選択画面の目盛りに出す差（speed/jump/punch/sus=かくれ/food）
 const ACC_FX = {
   none:    { note: tx('補正なし', 'No modifiers') },
-  bell:    { food: 1.3, noise: 1.25, pip: { food: 1 }, note: tx('ごはんが長持ち ／ 足音・物音が目立つ', 'Food lasts longer / louder noises') },
-  ribbon:  { sus: 0.9, punch: 0.9, pip: { sus: 1, punch: -1 }, note: tx('怪しまれにくい ／ パンチが弱い', 'Less suspicious / weaker punch') },
-  scarf:   { punch: 1.15, sus: 1.1, pip: { punch: 1, sus: -1 }, note: tx('パンチが強い ／ 怪しまれやすい', 'Stronger punch / more suspicious') },
-  hat:     { jump: 1.1, hide: 5, pip: { jump: 1 }, note: tx('ジャンプが高い ／ 隠れ場所で早くバレる（5秒）', 'Higher jump / found in hiding sooner (5s)') },
-  glasses: { sus: 0.85, speed: 0.92, pip: { sus: 1, speed: -1 }, note: tx('怪しまれにくい ／ 足が遅い', 'Less suspicious / slower') },
-  crown:   { yen: 1.1, sus: 1.2, pip: { sus: -1 }, note: tx('被害額 +10% ／ 怪しまれやすい', 'Damage +10% / more suspicious') },
-  medal:   { skill: 1.25, speed: 0.95, note: tx('腕前ボーナス +25% ／ 足が少し遅い', 'Skill bonus +25% / a bit slower') },
-  shades:  { stun: 0.5, food: 0.7, pip: { food: -1 }, note: tx('やられても半分の時間で立ち直る ／ ごはんが短い', 'Recover from hits twice as fast / food lasts less') },
-  star:    { carry: 25, sus: 1.05, note: tx('持ち越し時間の上限 +5秒 ／ 少し怪しまれやすい', 'Carry-over cap +5s / slightly more suspicious') }
+  bell:    { food: 1.3, pip: { food: 1 }, note: tx('ごはん・にぼしの回復 +30%', 'Food restores 30% more time') },
+  ribbon:  { sus: 0.9, pip: { sus: 1 }, note: tx('怪しまれ度の上がりが 1 割少ない', 'Suspicion rises 10% slower') },
+  scarf:   { punch: 1.15, pip: { punch: 1 }, note: tx('パンチが 15% 強い', 'Punch 15% stronger') },
+  hat:     { jump: 1.1, pip: { jump: 1 }, note: tx('ジャンプが 10% 高い', 'Jump 10% higher') },
+  glasses: { hide: 12, note: tx('隠れ場所で追い出されるまで 8 → 12 秒', 'Can stay hidden 12s instead of 8') },
+  crown:   { yen: 1.1, note: tx('落としたものの被害額 +10%', 'Damage from knocked items +10%') },
+  medal:   { skill: 1.25, note: tx('面クリアの腕前ボーナス +25%', 'Stage skill bonus +25%') },
+  shades:  { stun: 0.5, note: tx('相手にやられたときのよろけが半分', 'Recover from enemy hits twice as fast') },
+  star:    { carry: 25, note: tx('持ち越し時間の上限 20 → 25 秒', 'Carry-over cap 25s instead of 20') }
 };
 const accFx = () => ACC_FX[selAcc] || ACC_FX.none;
 const catStat = k => (cat && cat.type ? cat.type : CATS[selCat])[k] * (accFx()[k] || 1);
-const accOk = a => a.ending ? store.get('nekoEnded', '') === '1' : a.trueEnd ? store.get('nekoTrueEnd', '') === '1' : a.secret ? store.get('nekoShades', '') === '1' : cardsGot.size >= a.need;   // 4.26.0：称号の数 → カードの枚数
+const accOk = a => a.ending ? store.get('nekoEnded', '') === '1' : a.trueEnd ? store.get('nekoTrueEnd', '') === '1' : a.secret ? store.get('nekoShades', '') === '1' : a.card ? cardsGot.has(a.card) : true;   // 4.26.1：決まったカードで手に入る
+const accCardName = a => { const c = CARDS.find(x => x.id === a.card); return c ? String(c.name) : ''; };
 
 // ---------- 状態 ----------
 let state = 'title', level = 1, sus = 0, muted = store.get('nekoMute', '0') === '1';
@@ -1810,7 +1812,6 @@ function rush(x) {
 }
 function hearNoise(x, loud) {
   const o = owner;
-  loud *= accFx().noise || 1;   // 鈴の首輪：物音が目立つ
   if (ruleOf() === 'earphone' && o.mode !== 'away') loud *= 0.5;   // イヤホンの日：物音に鈍い
   if (fest) loud = Math.min(1, loud * (fest.show > 0 ? 0.5 : 1.4));   // お祭り：花火の間は音がまぎれ、合間は目立つ
   if (nap && nap.asleep) { sus = Math.max(sus, Math.min(sus + 10 * loud, 80)); nap.t -= loud * 2; return; }   // うたた寝：物音で目覚めが早まる
@@ -4022,8 +4023,8 @@ function gameOver() {
     if (t.tier == null) continue;   // 4.26.0：行動・通算の称号はカードになった
     if (run.yen >= t.tier && !unlocked.has(t.id)) { unlocked.add(t.id); newTitles.push(t.name); }
   }
-  const nc0 = cardsGot.size; cardCheckLife();
-  newAccs = ACCS.filter(a => a.need > 0 && a.need <= cardsGot.size && a.need > nc0 - (newCards.length - (cardsGot.size - nc0))).map(a => a.name);
+  cardCheckLife();
+  newAccs = ACCS.filter(a => a.card && newCards.some(n => String(n) === String(CARDS.find(x => x.id === a.card).name))).map(a => a.name);
   store.set('nekoTitles', JSON.stringify([...unlocked]));
   worldNow = null;
   showOver();
@@ -5726,7 +5727,7 @@ function showTitle() {
     <div class="big-logo">${lt('こっそり<span>ネコ</span>', 'Mischievous <span>Cat</span>')}</div><p class="sub">${lt('MISCHIEVOUS CAT', 'こっそりネコ')}</p>
     <div class="cats" role="group" aria-label="${lt('ネコをえらぶ', 'Choose a cat')}">${CATS.map((c, i) => { const ok = catsOpen.has(c.id); return `<button type="button" data-i="${i}" aria-pressed="${i === selCat}" ${ok ? '' : 'disabled'}><canvas width="144" height="108"></canvas><b>${ok ? c.name : '？？？'}</b><span>${ok ? c.note : CAT_LOCK[c.id]}</span></button>`; }).join('')}</div>
     <div class="stats" id="stats"></div>
-    <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : a.ending ? lt('エンディング', 'Ending') : a.trueEnd ? lt('7日目', 'Day 7') : a.secret ? '？？？' : a.need + lt('枚', ' cards')}</button>`; }).join('')}</div>
+    <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : a.ending ? lt('エンディング', 'Ending') : a.trueEnd ? lt('7日目', 'Day 7') : a.secret ? '？？？' : '🔒' + accCardName(a)}</button>`; }).join('')}</div>
     <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
     ${keysBox()}
     <div class="row"><button class="btn w" id="recBtn" type="button">${lt('きろく', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('せってい', 'Settings')}</button></div>
@@ -6189,9 +6190,9 @@ function nextGoal() {
   if (!newRec && bestYen > y) cands.push({ gap: bestYen - y, text: lt(`あと ${yen(bestYen - y)} でベスト更新`, `${yen(bestYen - y)} to your best`) });
   if (tt) cands.push({ gap: tt.tier - y, text: lt(`あと ${yen(tt.tier - y)} で「${tt.name}」`, `${yen(tt.tier - y)} to "${tt.name}"`) });
   cands.sort((a, b) => a.gap - b.gap); if (cands.length) rows.push(cands[0].text);
-  const acc = ACCS.filter(a => a.need > 0 && !a.ending && !a.trueEnd && !a.secret && a.need > cardsGot.size).sort((a, b) => a.need - b.need)[0];
+  const acc = ACCS.find(a => a.card && !cardsGot.has(a.card));
   const left = CARDS.length - cardsGot.size;
-  if (acc && acc.need - cardsGot.size <= 4) rows.push(lt(`カードあと ${acc.need - cardsGot.size} 枚で きせかえ「${acc.name}」`, `${acc.need - cardsGot.size} more card${acc.need - cardsGot.size > 1 ? 's' : ''} for "${acc.name}"`));
+  if (acc && Math.random() < 0.5) { const c = CARDS.find(x => x.id === acc.card); rows.push(lt(`きせかえ「${acc.name}」：カード「${c.name}」（${c.desc}）`, `Accessory "${acc.name}": card "${c.name}" (${c.desc})`)); }
   else if (left > 0 && cardsGot.size > 0) { const nb = Object.keys(BIG).find(k => !cardsGot.has('big_' + k)); rows.push(nb && cardsGot.size >= 5 ? lt(`大技「${BIG[nb].n}」：${BIG[nb].how}`, `Big one "${BIG[nb].n}": ${BIG[nb].how}`) : lt(`いたずらカード あと ${left} 枚`, `${left} mischief card${left > 1 ? 's' : ''} to go`)); }
   if (!rows.length) return '';
   return `<p class="goal">${rows.map(r => `<span>${r}</span>`).join('')}</p>`;
