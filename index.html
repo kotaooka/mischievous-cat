@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.8.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.8.3', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1419,6 +1419,15 @@ function updCat(dt) {
     }
   } else c.churuPull = false;
   // 片手操作：タップした先へ自動で移動する（足場の登り降りも自動）。ものなら横まで行って端の方へパンチ、いたずらの場所なら続ける
+  // 逃げ場所の手ごたえ：隠れている間は、左右を少し長めに押さないと出ない（誤って出ないように）。ジャンプはすぐできる
+  // 通り抜けるだけのときは止めない：手を離して 0.12 秒とどまったら「隠れた」とみなす
+  if (state === 'play' && c.plat && isHiding()) {
+    if (!dir) c.settle = (c.settle || 0) + dt;
+    if (dir && c.settle >= 0.12) { c.exitT = (c.exitT || 0) + dt; if (c.exitT < 0.25) { c.exitPush = dir; dir = 0; } else { c.exitPush = 0; c.settle = 0; } }
+    else { c.exitT = 0; c.exitPush = 0; }
+    // ダンボール：入ったら真ん中へ吸い込まれる
+    if (c.hidden && !dir && c.settle > 0 && Math.abs(c.x - BOX.x) > 1) { c.x += (BOX.x - c.x) * Math.min(1, dt * 12); c.vx = 0; }
+  } else { c.exitT = 0; c.exitPush = 0; c.settle = 0; }
   if (dir) { tapTarget = null; c.autoScr = null; }   // ボタン・キーで動かしたら、自動移動はやめる
   else if (tapTarget && c.eatT <= 0 && c.stun <= 0) dir = autoNav(c, dt);   // ロボにぶつかって目を回している間は待つ
   const riding = c.plat === VACP;
@@ -2544,7 +2553,7 @@ function updHideMark() {
 function drawHideMark() {
   // かくれ中の札：ダンボールの上か、ネコの頭の上
   if (state !== 'play' || !isHiding() || chaseT > 0) return;
-  const x = cat.hidden ? BOX.x : cat.x, y = cat.hidden ? FLOOR - BOX.h - 16 : cat.y - 52, a = owner.mode === 'away' ? 0.55 : 0.95;
+  const x = (cat.hidden ? BOX.x : cat.x) + (cat.exitPush ? cat.exitPush * Math.min(1, (cat.exitT || 0) / 0.25) * 6 : 0), y = cat.hidden ? FLOOR - BOX.h - 16 : cat.y - 52, a = owner.mode === 'away' ? 0.55 : 0.95;
   g.save(); g.globalAlpha = a; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
   const t = lt('かくれ中', 'Hidden'), w = g.measureText(t).width + 26;
   g.fillStyle = '#2fb3a3'; g.strokeStyle = '#fff'; g.lineWidth = 2; rr(g, x - w / 2, y - 10, w, 20, 10); g.fill(); g.stroke();
