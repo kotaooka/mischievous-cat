@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.8.4', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.8.5', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1078,7 +1078,8 @@ function setupStage(L) {
     if (cuke) { for (let k = 0; k < 20; k++) { cuke.x = rnd(40, W - 60); if (Math.abs(cuke.x - BOX.x) > 50 && Math.abs(cuke.x - 255) > 40 && (!mouse || Math.abs(cuke.x - mouse.hole) > 30)) break; } }
     creaks = [];
     if (d >= 2 && ph.tod >= 2 && room !== 'garden' && room !== 'bath') { const nc = 1 + (Math.random() < 0.5 ? 1 : 0); for (let k = 0; k < nc; k++) { const x = rnd(30, W - 70); if (!creaks.some(q => Math.abs(q.x - x) < 60)) creaks.push({ x, w: 38, t: 0 }); } }
-    lamp = d >= 2 && ['living', 'kitchen', 'study', 'kids', 'bed'].includes(room) ? { ax: 200, ay: 0, L: 235, th: 0, om: 0 } : null;
+    // 吊り照明：吊り棚とカーテンレールの間の天井から吊るす（4.8.5。どの角度に揺れても、台の上に立ったネコには当たらない。吊り棚・レールからジャンプで届く）
+    lamp = d >= 2 && ['living', 'kitchen', 'study', 'kids', 'bed'].includes(room) ? { ax: 133, ay: 0, L: 195, th: 0, om: 0 } : null;
     tv = room === 'living' ? { on: 0, used: 0 } : null;
     if (tv && !items.some(o => o.t === 'remote')) {
       // すき間がなければ、テーブルかサイドテーブルの小物をリモコンに置きかえる
