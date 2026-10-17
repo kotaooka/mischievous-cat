@@ -117,6 +117,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 | Black Cat | Hard to spot | Clear a stage while keeping suspicion under 50% |
 | Maine Coon | Strong & hungry (low jump) | Knock off 5 heavy items in total (mug, vase, game console) |
 | Calico | Lucky cat (pricey items show up more) | Over ¥100,000 damage in a single run |
+| Siamese | Light-footed (best jumper, quiet steps) | Reach the ending |
 
 ## 🏆 Rankings and titles
 

@@ -26,7 +26,7 @@ service cloud.firestore {
         && d.y is int && d.y >= 1 && d.y <= 100000 * d.s * d.s + 500000 * d.s
         // ★：1面につき最大3個
         && d.st is int && d.st >= 0 && d.st <= d.s * 3
-        && d.c in ['kuro', 'cha', 'saba', 'maine', 'mike']
+        && d.c in ['kuro', 'cha', 'saba', 'maine', 'mike', 'siam']
         && d.uid is string && d.uid.size() >= 8 && d.uid.size() <= 40
         && d.sk is int && d.sk >= 0 && d.sk <= d.y
         // 続けた回数：0〜999

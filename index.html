@@ -156,7 +156,10 @@
   #frame.l4 canvas#c { border-color: var(--teal-d); box-shadow: 0 0 0 3px rgba(47,179,163,.5); }
   @keyframes frmBlink { 0%, 100% { box-shadow: 0 0 0 2px rgba(255,59,48,.35); } 50% { box-shadow: 0 0 0 6px rgba(255,59,48,.85), 0 0 18px rgba(255,59,48,.6); } }
   body.calm #frame.l2 canvas#c, body.calm #frame.l3 canvas#c { animation: none; box-shadow: 0 0 0 4px rgba(255,59,48,.6); }
-  .pager { touch-action: pan-y; }
+  .pager { touch-action: pan-y; flex: 1; min-height: 0; overflow-y: auto; }
+  .panel.paged { display: flex; flex-direction: column; }
+  .panel.paged > * { flex: none; }
+  .panel.paged > .pager { flex: 1 1 auto; }
   .stat-list h4 { grid-column: 1 / -1; }
   .pg-title { margin: 4px 0 6px; text-align: center; color: var(--org-d); }
   .pager-nav { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
@@ -264,7 +267,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.15.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.16.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -360,11 +363,12 @@ const CATS = [
   { id: 'cha', name: tx('茶トラ', 'Orange Tabby'), note: tx('パンチ自慢', 'Big punch'), body: '#e8913f', belly: '#f7cf98', stripe: '#b8661e', eye: '#7bbf5a', sus: 1.05, punch: 1.5, jump: 1, speed: 1.1, food: 1, voice: 1, pip: [4, 3, 5, 2, 3], tag: tx('パンチが強くて足が速い', 'Strong punch, quick feet') },
   { id: 'saba', name: tx('サバトラ', 'Gray Tabby'), note: tx('バランス', 'All-rounder'), body: '#8e939c', belly: '#dfe2e6', stripe: '#4a4f58', eye: '#d6b84a', sus: 0.85, punch: 1.1, jump: 1.05, speed: 1.04, food: 1, voice: 1.1, pip: [3, 4, 3, 3, 3], tag: tx('苦手がない', 'No weak spots') },
   { id: 'maine', name: tx('メインクーン', 'Maine Coon'), note: tx('怪力・大食い', 'Strong & hungry'), body: '#a8794a', belly: '#e6d0ad', stripe: '#6d4a2a', eye: '#d6b84a', sus: 1.15, punch: 1.6, jump: 0.9, speed: 0.95, food: 1.5, big: 1.18, voice: 0.78, pip: [2, 2, 5, 1, 5], tag: tx('パンチ最強・ごはんで長持ち', 'Mightiest punch, food lasts longer') },
-  { id: 'mike', name: tx('三毛猫', 'Calico'), note: tx('招き猫', 'Lucky cat'), body: '#f7f2e9', belly: '#ffffff', patch: [[-9, -22, 8, '#e8913f'], [8, -14, 7, '#2b2b35'], [14, -30, 6, '#e8913f'], [-16, -12, 5, '#2b2b35']], eye: '#7bbf5a', sus: 1, punch: 0.95, jump: 1, speed: 1, food: 1, lucky: true, voice: 1.15, pip: [3, 3, 3, 3, 3], tag: tx('高いものが出やすい', 'Pricey items show up more') }
+  { id: 'mike', name: tx('三毛猫', 'Calico'), note: tx('招き猫', 'Lucky cat'), body: '#f7f2e9', belly: '#ffffff', patch: [[-9, -22, 8, '#e8913f'], [8, -14, 7, '#2b2b35'], [14, -30, 6, '#e8913f'], [-16, -12, 5, '#2b2b35']], eye: '#7bbf5a', sus: 1, punch: 0.95, jump: 1, speed: 1, food: 1, lucky: true, voice: 1.15, pip: [3, 3, 3, 3, 3], tag: tx('高いものが出やすい', 'Pricey items show up more') },
+  { id: 'siam', name: tx('シャム猫', 'Siamese'), note: tx('身軽', 'Light-footed'), body: '#f3e6cf', belly: '#fbf4e6', point: '#5a3a26', eye: '#4aa3e0', sus: 1, punch: 0.85, jump: 1.12, speed: 1.02, food: 1, quiet: true, voice: 1.2, pip: [3, 5, 2, 3, 3], tag: tx('ジャンプ最強・足音が静か', 'Best jumper, quiet steps') }
 ];
 const PIPS = [tx('はやさ', 'Speed'), tx('ジャンプ', 'Jump'), tx('パンチ', 'Punch'), tx('かくれ', 'Stealth'), tx('くいしんぼ', 'Appetite')];
 // 最初はサバトラと茶トラだけ。ほかは条件を満たすと解禁（lock は鍵がかかっている間の短い条件表示）
-const CAT_LOCK = { kuro: tx('こっそりクリア', 'Sneaky clear'), maine: tx('重いもの5個', '5 heavy items'), mike: tx('1回で¥10万', '¥100k in a run') };
+const CAT_LOCK = { siam: tx('エンディング', 'Reach the ending'), kuro: tx('こっそりクリア', 'Sneaky clear'), maine: tx('重いもの5個', '5 heavy items'), mike: tx('1回で¥10万', '¥100k in a run') };
 let catsOpen = new Set(['saba', 'cha']);
 try { JSON.parse(store.get('nekoCats', '[]')).forEach(id => catsOpen.add(id)); } catch (e) {}
 let heavyCount = +store.get('nekoHeavy', 0) || 0, newCats = [], stageMaxSus = 0, carryT = 0, lastCarry = 0;
@@ -1578,7 +1582,7 @@ function updCat(dt) {
   const tr = c.plat ? traps.find(t => t.plat === c.plat && Math.abs(c.x - t.x) < t.w / 2 + 4) : null;
   c.sticky = !!(tr && tr.type === 'tape');
   if (tr && tr !== c.onTrap && state === 'play') {
-    if (tr.type === 'foil') { sfx.foil(); hearNoise(c.x, 0.7); c.vy = -300; c.plat = null; c.scareT = 0.5; tr.t = 0.6; pops.push({ x: c.x, y: c.y - 56, text: lt('カシャカシャ!', 'CRINKLE!'), life: 1, col: '#5d7a9a', size: 16 }); }
+    if (tr.type === 'foil') { sfx.foil(); hearNoise(c.x, c.type.quiet ? 0.3 : 0.7); c.vy = -300; c.plat = null; c.scareT = 0.5; tr.t = 0.6; pops.push({ x: c.x, y: c.y - 56, text: lt('カシャカシャ!', 'CRINKLE!'), life: 1, col: '#5d7a9a', size: 16 }); }
     else { sfx.tape(); pops.push({ x: c.x, y: c.y - 50, text: lt('ペタッ', 'Sticky!'), life: 1, col: '#c95f17', size: 15 }); }
   }
   c.onTrap = tr || (c.plat ? null : c.onTrap);
@@ -1591,7 +1595,7 @@ function updCat(dt) {
   // 床のきしみ：走るとギシッ（パンチを押しながらのゆっくり歩きなら鳴らない）
   if (c.plat === PL.floor && Math.abs(c.vx) > 100 && c.creakCd <= 0 && state === 'play') {
     const q = creaks.find(q => c.x > q.x && c.x < q.x + q.w);
-    if (q) { c.creakCd = 0.9; q.t = 0.6; sfx.creak(); hearNoise(c.x, 0.4); pops.push({ x: c.x, y: FLOOR - 30, text: lt('ギシッ', 'Creak'), life: 0.9, col: '#8a6a4f', size: 14 }); }
+    if (q) { c.creakCd = 0.9; q.t = 0.6; sfx.creak(); hearNoise(c.x, c.type.quiet ? 0.15 : 0.4); pops.push({ x: c.x, y: FLOOR - 30, text: lt('ギシッ', 'Creak'), life: 0.9, col: '#8a6a4f', size: 14 }); }
   }
   // リモコンを踏むと、テレビがつく
   if (tv && c.plat && Math.abs(c.vx) > 20) { const rm = items.find(o => o.t === 'remote' && o.plat === c.plat && o.state === 'rest' && Math.abs(o.x - c.x) < 9); if (rm) tvOn(); }
@@ -2502,6 +2506,7 @@ function showEnding() {
   state = 'endmenu'; ov.hidden = false; endFx = 0;
   // ここで一度記録する：ランキングへ送る（自己ベストなら）・称号・ごほうびのきせかえ。4日目へつづけても、この記録は残る
   const firstEnd = store.get('nekoEnded', '') !== '1'; store.set('nekoEnded', '1');
+  const newSiam = !catsOpen.has('siam'); openCat('siam');
   const gotTitles = [];
   for (const t of TITLES) { const got = t.tier != null ? run.yen >= t.tier : t.test(run); if (got && !unlocked.has(t.id)) { unlocked.add(t.id); gotTitles.push(t.name); } }
   store.set('nekoTitles', JSON.stringify([...unlocked]));
@@ -2517,7 +2522,7 @@ function showEnding() {
       <p class="best" style="margin:2px 0 8px">${lt('称号', 'Title')}「${titleOf(run.yen)}」</p>
       <div class="stat-list">${row(lt('割ったもの', 'Things broken'), n(brokeN) + lt('個', ''))}${row(lt('最大の連鎖', 'Best chain'), n(run.maxChain))}${row(lt('お題の★', 'Task stars'), n(run.stars))}${row(lt('朝からつづけた', 'Day restarts'), n(run.conts) + lt('回', ''))}</div>
     </div>
-    <div class="badges">${firstEnd ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「金メダル」', 'Reward: Gold medal accessory')}</span>` : ''}${gotTitles.map(t => `<span class="badge new">NEW ${t}</span>`).join('')}</div>
+    <div class="badges">${newSiam ? `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ シャム猫', 'NEW CAT Siamese')}</span>` : ''}${firstEnd ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「金メダル」', 'Reward: Gold medal accessory')}</span>` : ''}${gotTitles.map(t => `<span class="badge new">NEW ${t}</span>`).join('')}</div>
     <button class="btn go" id="enCont" type="button">${lt((END_DAY + 1) + '日目へつづける', 'On to Day ' + (END_DAY + 1))}</button>
     <p class="best" style="margin:2px 0 6px;font-weight:500;font-size:.78rem">${lt('ここからは1日ごとに飼い主がきびしくなります。どこまで行けるか腕だめし', 'From here the owner gets stricter every day. How far can you go?')}</p>
     <div class="row"><button class="btn w" id="enRes" type="button">${lt('ここで終わって結果を見る', 'Finish and see results')}</button></div></div>`;
@@ -3016,10 +3021,10 @@ function drawCat(c, x, y, o) {
   if (pose === 'wiggle') { c.translate(16, 0); c.rotate(Math.sin(t * 22) * 0.06); c.translate(-16, 0); }
   // 伸び：前足を支点に前へ傾け、お尻を上げる
   if (pose === 'stretch') { c.translate(16, 0); c.rotate(0.16); c.translate(-16, 0); }
-  const body = T.body, dark = T.id === 'kuro' ? '#1f1f27' : 'rgba(0,0,0,.28)';
+  const body = T.body, dark = T.id === 'kuro' ? '#1f1f27' : T.point || 'rgba(0,0,0,.28)', pt = T.point || body;   // pt：シャム猫の顔・耳・足・しっぽの色
   // しっぽ：up ピンと立てる（ごきげん・歩く）、low 下げる（怪しまれている）、puff ふくらませる（追いかけっこ）
   const tail = o.tail || 'normal';
-  c.strokeStyle = body; c.lineWidth = (T.big ? 9 : 6) * (tail === 'puff' ? 1.9 : 1);
+  c.strokeStyle = pt; c.lineWidth = (T.big ? 9 : 6) * (tail === 'puff' ? 1.9 : 1);
   const tw = Math.sin(t * 3) * (pose === 'smug' || pose === 'stare' ? 10 : 6);
   c.beginPath(); c.moveTo(-17, -16 + crouch);
   if (pose === 'loaf') c.bezierCurveTo(-28, -8, -18, 0, 2, -1);   // 香箱座り：体に巻きつける
@@ -3048,9 +3053,9 @@ function drawCat(c, x, y, o) {
   c.fillStyle = T.belly; c.beginPath(); c.ellipse(2, -8, 17, 5, 0, 0, TAU); c.fill();
   c.restore(); c.restore();
   // 手前の脚
-  c.strokeStyle = body; c.lineWidth = 5;
+  c.strokeStyle = pt; c.lineWidth = 5;
   if (pose === 'loaf') {
-    c.fillStyle = body; c.beginPath(); c.ellipse(14, -2.5, 6, 2.6, 0, 0, TAU); c.fill();   // 前足をしまう
+    c.fillStyle = pt; c.beginPath(); c.ellipse(14, -2.5, 6, 2.6, 0, 0, TAU); c.fill();   // 前足をしまう
   } else {
     c.beginPath();
     if (air) { c.moveTo(-6, ly + 1); c.lineTo(-15, ly + 8); } else { c.moveTo(-6, ly + 1); c.lineTo(-6 + sw, 0); }
@@ -3083,6 +3088,8 @@ function drawCat(c, x, y, o) {
   else c.translate(0, -bob + (o.nod || 0) * 2.4);
   if (o.nod) { c.translate(20, -28); c.rotate((o.nod - 0.5) * 0.12); c.translate(-20, 28); }   // BGM に合わせて頭をふる
   c.fillStyle = body; c.beginPath(); c.arc(20, -28, 11, 0, TAU); c.fill();
+  if (T.point) { c.fillStyle = T.point; c.globalAlpha *= 0.85; c.beginPath(); c.ellipse(22.5, -25.5, 7.5, 6, 0, 0, TAU); c.fill(); c.globalAlpha /= 0.85; c.fillStyle = pt; }   // シャム猫：顔の真ん中が濃い
+  else c.fillStyle = body;
   // 耳：back は後ろへ倒す（見つかりそう・追いかけっこ）。ときどき片耳がぴくっと動く
   const ears = o.ears || (pose === 'caught' ? 'back' : null);
   if (ears === 'back') {
@@ -4757,7 +4764,7 @@ function showRank(tab) {
 function catLook(i) {
   // 鍵のかかったネコは黒いシルエットで描く
   const c = CATS[i]; if (catsOpen.has(c.id)) return c;
-  return Object.assign({}, c, { body: '#8a6a4f', belly: '#8a6a4f', eye: '#8a6a4f', stripe: null, patch: null });
+  return Object.assign({}, c, { body: '#8a6a4f', belly: '#8a6a4f', eye: '#8a6a4f', stripe: null, patch: null, point: null });
 }
 function showStats() {
   const T = CATS[selCat], el = $('stats'); if (!el) return;
@@ -4772,6 +4779,7 @@ function bindRecTabs() { ov.querySelectorAll('.rec-tabs button').forEach(bt => b
 const recBack = () => state === 'over' ? showOver : showTitle;
 // ページ送り：◀ ▶ と左右のスワイプでページを変える（称号図鑑・通算記録）
 let zkPage = 0, lfPage = 0;
+const pagedH = () => Math.max(380, Math.min(640, (ov.clientHeight || 600) - 28));   // ページ送りの画面の高さ（どのページでも同じ。ボタンの位置が動かない）
 function pagerNav(i, n) {
   return `<div class="pager-nav"><button type="button" class="btn w pg-prev" ${i <= 0 ? 'disabled' : ''} aria-label="${lt('前のページ', 'Previous page')}">◀</button><span class="pg-dots">${Array.from({ length: n }, (_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}<b>${i + 1} / ${n}</b></span><button type="button" class="btn w pg-next" ${i >= n - 1 ? 'disabled' : ''} aria-label="${lt('次のページ', 'Next page')}">▶</button></div>`;
 }
@@ -4788,7 +4796,7 @@ function showZukan(page) {
   const PER = ov.clientHeight && ov.clientHeight < 560 ? 6 : 8, n = Math.ceil(TITLES.length / PER); zkPage = clamp(page == null ? zkPage : page, 0, n - 1);
   const list = TITLES.slice(zkPage * PER, zkPage * PER + PER);
   ov.hidden = false;
-  ov.innerHTML = `<div class="panel">${recTabs('zukan')}
+  ov.innerHTML = `<div class="panel paged" style="height:${pagedH()}px">${recTabs('zukan')}
     <div class="big-logo" style="font-size:1.5rem">${lt('称号図鑑', 'Titles')}</div><p class="sub">${unlocked.size} / ${TITLES.length}</p>
     <div class="pager"><div class="zukan">${list.map(t => `<div class="${unlocked.has(t.id) ? '' : 'off'}">${unlocked.has(t.id) ? t.name : '？？？'}<small>${TDESC[t.id] ? String(TDESC[t.id]) : ''}</small></div>`).join('')}</div></div>
     ${pagerNav(zkPage, n)}
@@ -4853,7 +4861,7 @@ function showLife(page) {
   lfPage = clamp(page == null ? lfPage : page, 0, pages.length - 1);
   const [ttl, body] = pages[lfPage];
   ov.hidden = false;
-  ov.innerHTML = `<div class="panel">${recTabs('life')}<div class="big-logo" style="font-size:1.5rem">${lt('通算記録', 'Stats')}</div><p class="sub">${lt('この端末での記録', 'On this device')}</p>
+  ov.innerHTML = `<div class="panel paged" style="height:${pagedH()}px">${recTabs('life')}<div class="big-logo" style="font-size:1.5rem">${lt('通算記録', 'Stats')}</div><p class="sub">${lt('この端末での記録', 'On this device')}</p>
     <div class="pager"><h4 class="pg-title">${ttl}</h4><div class="stat-list">${body}</div></div>
     ${pagerNav(lfPage, pages.length)}
     <button class="btn go" id="lfBack" type="button">${lt('もどる', 'Back')}</button></div>`;
