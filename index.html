@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.22.4', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.22.5', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'kotaooka';   // AUTHOR：スタッフロールに出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2764,6 +2764,9 @@ function creditLines() {
   const bro = Object.entries(r.broke || {}).filter(([k]) => IT[k]).sort((a, b) => b[1] - a[1]).slice(0, 7);
   bro.forEach(([k, n]) => L.push(['t', IT[k].n + ' ×' + n])); if (!bro.length) L.push(['t', lt('（なし。本当に？）', '(none. really?)')]);
   if ((r.bigs || []).length) { L.push(['gap']); L.push(['h', lt('大技', 'BIG ONES')]); r.bigs.forEach(k => L.push(['t', BIG[k].n])); }
+  L.push(['gap']); L.push(['h', lt('スタッフ', 'STAFF')]);
+  L.push(['t', lt('企画・プログラム・絵・音：', 'Design, code, art & sound: ') + AUTHOR]); L.push(['t', lt('字体：M PLUS Rounded 1c', 'Typeface: M PLUS Rounded 1c')]);
+  L.push(['t', lt('スペシャルサンクス：ここまで遊んでくれたあなた', 'Special thanks: you, for playing this far')]);
   L.push(['gap']); L.push(['h', lt('3日間の被害額', '3-DAY DAMAGE')]); L.push(['big2', yen(r.yen)]); L.push(['t', lt('称号', 'Title') + '「' + titleOf(r.yen) + '」']);
   L.push(['gap']); L.push(['t', lt('飼い主は、まだ気づいていない', 'The owner still has no idea')]); L.push(['gap']); L.push(['sub', lt('そして、4日目へ……', 'And so, on to Day 4……')]);
   return L;
@@ -2934,7 +2937,8 @@ function showEnding() {
     <div class="badges">${newSiam ? `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ シャム猫', 'NEW CAT Siamese')}</span>` : ''}${firstEnd ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「金メダル」', 'Reward: Gold medal accessory')}</span>` : ''}${gotTitles.map(t => `<span class="badge new">NEW ${t}</span>`).join('')}</div>
     <button class="btn go" id="enCont" type="button">${lt((END_DAY + 1) + '日目へつづける', 'On to Day ' + (END_DAY + 1))}</button>
     <p class="best" style="margin:2px 0 6px;font-weight:500;font-size:.78rem">${lt('ここからは1日ごとに飼い主がきびしくなります。どこまで行けるか腕だめし', 'From here the owner gets stricter every day. How far can you go?')}</p>
-    <div class="row"><button class="btn w" id="enRes" type="button">${lt('ここで終わって結果を見る', 'Finish and see results')}</button></div></div>`;
+    <div class="row"><button class="btn w" id="enRes" type="button">${lt('ここで終わって結果を見る', 'Finish and see results')}</button></div>
+    <p class="best" style="margin:6px 0 0;font-weight:500;font-size:.72rem;color:var(--ink2)">${lt('こっそりネコ　制作：', 'Mischievous Cat by ')}${AUTHOR}</p></div>`;
   $('enCont').addEventListener('click', () => { ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
   $('enRes').addEventListener('click', () => { run.timeup = false; gameOver(); });
 }
