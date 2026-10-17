@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.12.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.12.3', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1221,7 +1221,7 @@ function pruneGimmicks(L, ph) {
 function newRun() {
   run = { yen: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '', touched: false, stars: 0, escapes: 0,
     mis: 0, launch: 0, ballHits: 0, top: false, streak: 0, maxStreak: 0, perfect: 0, skill: 0, space: 0, huh: false, huhStep: 0, fish: 0, mice: 0, boss: 0, chick: 0, bathFall: 0, scare: 0, cloth: 0, rubT: 0, cuke: 0, lamp: 0, churu: 0, tv: 0, ended: false };
-  sus = 0; snap = null; carryT = 0; newCats = []; setupStage(1);
+  sus = 0; snap = null; carryT = 0; newCats = []; dayEndNext = false; setupStage(1);
 }
 
 // ---------- 飼い主 ----------
@@ -2799,8 +2799,8 @@ function checkClear() {
   if (stageMaxSus < 50) openCat('kuro');
   if (level >= 2 && stageT < 15) run.fast = true;
   if (tut.on) { tutDone = true; tut.on = false; store.set('nekoTut', '1'); }
-  if (level % NPH === 0 && dayOf(level) === END_DAY && !run.ended) { startEnding(); return; }   // 3日目の夜を越えたらエンディング
-  if (level % NPH === 0) { run.days = dayOf(level); carryT = 0; state = 'dayend'; dayT = 4; sfx.dayend(); setPulse(null); setMode('away', 99); owner.warned = true; owner.lureT = 0; return; }
+  // 1日の最後の面：まずふつうのクリア画面を 1.6 秒見せてから、おしまいの画面（3日目の夜ならエンディング）へ
+  if (level % NPH === 0) { dayEndNext = true; lastCarry = carryT = 0; state = 'clear'; clearT = 1.6; sfx.clear(); setPulse(null); setMode('away', 99); owner.warned = true; owner.lureT = 0; return; }
   // 残り時間の半分を次のステージへ持ち越す（最大20秒）
   lastCarry = carryT = Math.min(20, Math.round(Math.max(0, timeLeft) * 0.5));
   state = 'clear'; clearT = 2.4; sfx.clear(); setPulse(null);
@@ -4370,11 +4370,11 @@ function draw() {
     const k = clamp((4 - dayT) / 0.6, 0, 1);
     g.fillStyle = `rgba(16,22,60,${0.88 * k})`; g.fillRect(0, -OY, W, VH);
     g.globalAlpha = k; g.fillStyle = '#fff'; for (let i = 0; i < 26; i++) { const sx = (i * 97) % W, sy = -OY + (i * 53) % (VH * 0.6); g.fillRect(sx, sy, 2, 2); }
-    g.fillStyle = '#fff6c8'; g.beginPath(); g.arc(340, 100, 26, 0, TAU); g.fill(); g.fillStyle = 'rgba(16,22,60,1)'; g.beginPath(); g.arc(328, 92, 24, 0, TAU); g.fill();
-    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.font = `800 34px ${FONT}`; const dcy = -OY + VH / 2; g.fillText(lt(dayOf(level) + '日目　おしまい', 'Day ' + dayOf(level) + ' complete'), W / 2, dcy - 90);
+    { const my = -OY + 46; g.fillStyle = '#fff6c8'; g.beginPath(); g.arc(360, my, 22, 0, TAU); g.fill(); g.fillStyle = 'rgba(16,22,60,1)'; g.beginPath(); g.arc(350, my - 7, 20, 0, TAU); g.fill(); }
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.font = `800 34px ${FONT}`; const dcy = -OY + VH / 2 - 30; g.fillText(lt(dayOf(level) + '日目　おしまい', 'Day ' + dayOf(level) + ' complete'), W / 2, dcy - 90);
     g.font = `800 17px ${FONT}`; g.fillStyle = '#ffe9a8'; g.fillText(lt('飼い主はねむった… Zzz', 'The owner fell asleep… Zzz'), W / 2, dcy - 48); g.fillText(lt('被害額 ', 'Damage ') + yen(run.yen), W / 2, dcy - 18);
     if (stageBonus && stageBonus.quick + stageBonus.sneaky > 0) g.fillText(lt('腕前ボーナス +', 'Skill bonus +') + yen(stageBonus.quick + stageBonus.sneaky), W / 2, dcy + 8);
-    drawCat(g, W / 2 + 20, Math.min(FLOOR - 20, dcy + 150), { type: cat.type, face: 1, scale: 2.4, pose: 'smug', t: tAnim, acc: selAcc, tail: 'up' });
+    drawCat(g, W / 2 + 20, Math.min(BOT - 12, dcy + 200), { type: cat.type, face: 1, scale: 2, pose: 'smug', t: tAnim, acc: selAcc, tail: 'up' });
     g.globalAlpha = 1;
   }
   if (state === 'clear') {
@@ -4429,7 +4429,12 @@ function update(dt) {
     }
   } else if (state === 'clear') {
     updCat(dt); updItems(dt); updBall(dt); updVac(dt); clearT -= dt;
-    if (clearT <= 0) { setupStage(level + 1); state = 'play'; }
+    if (clearT <= 0) {
+      if (dayEndNext) { dayEndNext = false;
+        if (dayOf(level) === END_DAY && !run.ended) startEnding();   // 3日目の夜を越えたらエンディング
+        else { run.days = dayOf(level); state = 'dayend'; dayT = 4; sfx.dayend(); }
+      } else { setupStage(level + 1); state = 'play'; }
+    }
   } else if (state === 'ending') {
     endT += dt; if (endT > 15.8 && !endShown) { endShown = true; showEnding(); }
   } else if (state === 'dayend') {
@@ -4465,7 +4470,7 @@ window.addEventListener('resize', fit);
 // 上段（被害額・怪しまれ度）の高さは字体を読み込むと変わる。ゲーム画面の置き場所の大きさが変わるたびに合わせ直す（下のボタンが押し出されないように）
 try { new ResizeObserver(() => fit()).observe($('stage')); } catch (e) {}
 try { document.fonts.ready.then(fit); } catch (e) {}
-let lastHud = '', updReady = false;
+let lastHud = '', updReady = false, dayEndNext = false;
 function hud() {
   const s = '', y = run ? yen(run.yen) : '¥0', b = Math.round(sus);
   bgmMix();
@@ -5004,7 +5009,7 @@ async function makeCard() {
 // ---------- 入力 ----------
 // ステージクリア・1日の終わりの画面：タップやボタンですぐ次へ（出てすぐ 0.4 秒は受け付けない。連打の勢いで飛ばさないように）
 function skipInterlude() {
-  if (state === 'clear' && clearT < 2.0) { clearT = 0; return true; }
+  if (state === 'clear' && clearT < (dayEndNext ? 1.2 : 2.0)) { clearT = 0; return true; }
   if (state === 'dayend' && dayT < 3.6) { dayT = 0; return true; }
   return false;
 }
