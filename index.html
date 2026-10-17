@@ -211,6 +211,21 @@
     box-shadow: 0 5px 0 var(--s); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: pointer;
   }
   #pad button svg { width: 28px; height: 28px; }
+  /* PC向けのキー表示：マウス環境（細かいポインタ＋ホバーあり）のときだけ、ボタンの隅とタイトル画面に出す */
+  #pad button { position: relative; }
+  #pad button .kb, .keys { display: none; }
+  @media (hover: hover) and (pointer: fine) {
+    #pad button .kb { display: block; position: absolute; top: 5px; right: 7px; font-size: .62rem; font-weight: 800; line-height: 1; padding: 3px 5px; border-radius: 6px; background: rgba(0,0,0,.28); color: #fff; letter-spacing: .02em; }
+    body.swap #pad button .kb { right: auto; left: 7px; }
+    .keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin: 8px 0 2px; font-size: .74rem; font-weight: 800; color: var(--ink2); }
+  }
+  .keys kbd { display: inline-block; min-width: 1.5em; padding: 1px 6px; margin-right: 3px; border: 2px solid var(--line); border-bottom-width: 3px; border-radius: 7px; background: #fff; color: var(--ink); font: inherit; font-size: .72rem; line-height: 1.5; text-align: center; }
+  /* 初回のタイトル画面（まだ1回も遊んでいない）：ネコ1匹と「あそぶ」だけ */
+  .first-cat { display: flex; flex-direction: column; align-items: center; margin: 10px 0 6px; }
+  .first-cat canvas { width: 180px; height: 135px; }
+  .first-cat b { font-size: 1.05rem; line-height: 1.3; }
+  .first-cat span { font-size: .78rem; color: var(--ink2); }
+  .panel.first .btn.go { margin-top: 12px; padding: 18px 0; font-size: 1.5rem; }
   #pad #bM { --c: var(--teal); --s: var(--teal-d); }
   #pad #bJ { --c: var(--org); --s: var(--org-d); }
   #pad #bP { --c: var(--red); --s: var(--red-d); }
@@ -248,11 +263,11 @@
     </div>
   </div>
   <div id="pad">
-    <button id="bL" type="button" aria-label="左へ"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <button id="bR" type="button" aria-label="右へ"><svg viewBox="0 0 24 24"><path d="M9 4l8 8-8 8" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <button id="bM" type="button" aria-label="鳴く"><svg viewBox="0 0 24 24"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-9l-5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" fill="currentColor"/><circle cx="8.5" cy="10" r="1.4" fill="#2fb3a3"/><circle cx="12" cy="10" r="1.4" fill="#2fb3a3"/><circle cx="15.5" cy="10" r="1.4" fill="#2fb3a3"/></svg><span class="lb">にゃー</span></button>
-    <button id="bJ" type="button" aria-label="ジャンプ"><svg viewBox="0 0 24 24"><path d="M5 13l7-7 7 7M5 20l7-7 7 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lb">ジャンプ</span></button>
-    <button id="bP" type="button" aria-label="パンチ"><svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.4"/><ellipse cx="5.2" cy="10.5" rx="2.2" ry="2.8"/><ellipse cx="9.3" cy="6.5" rx="2.2" ry="2.9"/><ellipse cx="14.7" cy="6.5" rx="2.2" ry="2.9"/><ellipse cx="18.8" cy="10.5" rx="2.2" ry="2.8"/></svg><span class="lb">パンチ</span></button>
+    <button id="bL" type="button" aria-label="左へ"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg><kbd class="kb" aria-hidden="true">←</kbd></button>
+    <button id="bR" type="button" aria-label="右へ"><svg viewBox="0 0 24 24"><path d="M9 4l8 8-8 8" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg><kbd class="kb" aria-hidden="true">→</kbd></button>
+    <button id="bM" type="button" aria-label="鳴く"><svg viewBox="0 0 24 24"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-9l-5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" fill="currentColor"/><circle cx="8.5" cy="10" r="1.4" fill="#2fb3a3"/><circle cx="12" cy="10" r="1.4" fill="#2fb3a3"/><circle cx="15.5" cy="10" r="1.4" fill="#2fb3a3"/></svg><span class="lb">にゃー</span><kbd class="kb" aria-hidden="true">X</kbd></button>
+    <button id="bJ" type="button" aria-label="ジャンプ"><svg viewBox="0 0 24 24"><path d="M5 13l7-7 7 7M5 20l7-7 7 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lb">ジャンプ</span><kbd class="kb" aria-hidden="true">↑</kbd></button>
+    <button id="bP" type="button" aria-label="パンチ"><svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="16" rx="5.2" ry="4.4"/><ellipse cx="5.2" cy="10.5" rx="2.2" ry="2.8"/><ellipse cx="9.3" cy="6.5" rx="2.2" ry="2.9"/><ellipse cx="14.7" cy="6.5" rx="2.2" ry="2.9"/><ellipse cx="18.8" cy="10.5" rx="2.2" ry="2.8"/></svg><span class="lb">パンチ</span><kbd class="kb" aria-hidden="true">Z</kbd></button>
   </div>
 </div>
 <script>
@@ -271,7 +286,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.16.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.17.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -4581,14 +4596,34 @@ function bindA2hs() {
   if (go) go.addEventListener('click', async () => { const e = instEvt; if (!e) return; instEvt = null; try { e.prompt(); const r = await e.userChoice; if (r && r.outcome === 'accepted') store.set('nekoA2hs', '1'); } catch (x) {} if (state === 'title') showTitle(); });
   if (no) no.addEventListener('click', () => { store.set('nekoA2hs', '1'); const b = ov.querySelector('.a2hs'); if (b) b.remove(); });
 }
+// PC向けのキー案内（マウス環境のときだけ CSS で表示する。タイトル画面とポーズ画面に出す）
+const keysBox = () => `<div class="keys" aria-label="${lt('キー操作', 'Keyboard')}">
+    <span><kbd>←</kbd><kbd>→</kbd>${lt('うごく', 'Move')}</span><span><kbd>↑</kbd>${lt('ジャンプ', 'Jump')}</span><span><kbd>Z</kbd>${lt('パンチ（長押しで強）', 'Punch (hold = strong)')}</span><span><kbd>X</kbd>${lt('にゃー', 'Meow')}</span><span><kbd>P</kbd>${lt('ポーズ', 'Pause')}</span></div>`;
+// 初回（まだ1回も遊び終えていない）は、ネコ1匹と「あそぶ」だけの軽いタイトルにする。ネコ・きせかえ・きろくは1回遊ぶと出る
+const firstTime = () => !(LIFE.plays || 0) && !bestYen;
 function showTitle() {
   state = 'title'; newRun(); ov.hidden = false; setPulse(null);
+  if (firstTime()) {
+    const T = CATS[selCat];
+    ov.innerHTML = `<div class="panel first">
+    <div class="big-logo">${lt('こっそり<span>ネコ</span>', 'Mischievous <span>Cat</span>')}</div><p class="sub">${lt('MISCHIEVOUS CAT', 'こっそりネコ')}</p>
+    <div class="first-cat"><canvas width="360" height="270"></canvas><b>${T.name}</b><span>${T.tag || T.note}</span></div>
+    <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
+    ${keysBox()}
+    <div class="row"><button class="btn w" id="seBtn" type="button">${lt('せってい', 'Settings')}</button></div></div>`;
+    const cn = ov.querySelector('.first-cat canvas'), c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 90, 125, { type: catLook(selCat), face: 1, scale: 2, t: 0, pose: 'walk', acc: 'none' });
+    cn.addEventListener('click', () => { audio(); bgmStart(); sfx.meow(T.voice, pickVoice()); });
+    $('goBtn').addEventListener('click', () => { audio(); startGame(); });
+    $('seBtn').addEventListener('click', () => showSettings(showTitle));
+    return;
+  }
   ov.innerHTML = `<div class="panel">
     <div class="big-logo">${lt('こっそり<span>ネコ</span>', 'Mischievous <span>Cat</span>')}</div><p class="sub">${lt('MISCHIEVOUS CAT', 'こっそりネコ')}</p>
     <div class="cats" role="group" aria-label="${lt('ネコをえらぶ', 'Choose a cat')}">${CATS.map((c, i) => { const ok = catsOpen.has(c.id); return `<button type="button" data-i="${i}" aria-pressed="${i === selCat}" ${ok ? '' : 'disabled'}><canvas width="144" height="108"></canvas><b>${ok ? c.name : '？？？'}</b><span>${ok ? c.note : CAT_LOCK[c.id]}</span></button>`; }).join('')}</div>
     <div class="stats" id="stats"></div>
     <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : a.ending ? lt('エンディング', 'Ending') : '★' + a.need}</button>`; }).join('')}</div>
     <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
+    ${keysBox()}
     <div class="row"><button class="btn w" id="recBtn" type="button">${lt('きろく', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('せってい', 'Settings')}</button></div>
     ${a2hsBox()}</div>`;
   ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
@@ -4978,6 +5013,7 @@ function showPause() {
     <button class="btn go" id="pResume" type="button">${lt('つづける', 'Resume')}</button>
     <div class="row"><button class="btn w" id="pRetry" type="button">${lt('やりなおす', 'Restart')}</button><button class="btn w" id="pTop" type="button">${lt('トップへ', 'Title')}</button></div>
     <div class="row"><button class="btn w" id="pSnd" type="button">${muted ? lt('音をオンにする', 'Sound on') : lt('音をオフにする', 'Sound off')}</button><button class="btn w" id="pSet" type="button">${lt('設定', 'Settings')}</button></div>
+    ${keysBox()}
 </div>`;
   $('pResume').addEventListener('click', resumeGame);
   $('pRetry').addEventListener('click', () => { audio(); startGame(); });
