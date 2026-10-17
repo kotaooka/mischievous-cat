@@ -238,7 +238,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.6.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.6.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -647,7 +647,7 @@ let snap = null, chains = {}, tut = { on: false, broke: false, arrow: null, stop
 let lever = null, ball = null, spots = [], stageYen0 = 0, stageBonus = null;
 let chick = null, mouse = null, tank = null, rival = null;
 let charm = null;
-let spot = [], spotT = 0;   // 初めて出た仕掛けの場所を順に光らせる（言葉は使わない）
+let spot = [], spotT = 0, escT = 0;   // escT：ステージの始めに逃げ場所を光らせる残り時間   // 初めて出た仕掛けの場所を順に光らせる（言葉は使わない）
 let guest = null, talkQ = [], offSay = null;   // お客さん（特別な夜）、掛け合いの順番待ち、画面の外からの声
 let weather = 'sun';   // その日の天気：sun 晴れ／cloud くもり／rain 雨（飼い主が早く戻る）／snow 雪
 let cams = [];          // ペットカメラ
@@ -1045,7 +1045,7 @@ function setupStage(L) {
   // 落とす以外のいたずらの場所（どの面にも2か所。クリアには関係ない寄り道）
   spots = ROOM_MIS[room].map(id => ({ id, t: 0, done: false }));
   stageYen0 = run ? run.yen : 0; stageBonus = null;
-  spot = []; spotT = 0;
+  spot = []; spotT = 0; escT = 2.2;
   // お守り：ステージ2から 12% の確率で、どこかの段にひとつ置かれる（持てるのは1つ）
   charm = null;
   weather = run ? weatherFor(L) : 'sun';
@@ -1601,7 +1601,7 @@ function platAt(wx, wy) {
 }
 function drawSpot() {
   // 初めて出た仕掛け：黄色い輪が広がり、上から矢印が指す（1か所 1.5 秒）
-  if (!spot.length || state !== 'play' || introT > 0) return;
+  if (!spot.length || state !== 'play' || introT > 0 || escT > 0) return;
   const s = spot[0], k = (spotT * 1.6) % 1, b = Math.abs(Math.sin(spotT * 6)) * 6, a = Math.min(1, spotT / 0.2, (1.5 - spotT) / 0.25);
   g.save(); g.globalAlpha = a;
   g.strokeStyle = '#ffc94a'; g.lineWidth = 4; g.beginPath(); g.arc(s.x, s.y, 14 + k * 22, 0, TAU); g.globalAlpha = a * (1 - k); g.stroke(); g.globalAlpha = a;
@@ -1609,6 +1609,18 @@ function drawSpot() {
   const y = s.y - 34 - b;
   g.fillStyle = '#ffc94a'; g.strokeStyle = '#fff'; g.lineWidth = 3; g.lineJoin = 'round';
   g.beginPath(); g.moveTo(s.x, y + 12); g.lineTo(s.x - 10, y); g.lineTo(s.x - 4, y); g.lineTo(s.x - 4, y - 12); g.lineTo(s.x + 4, y - 12); g.lineTo(s.x + 4, y); g.lineTo(s.x + 10, y); g.closePath(); g.stroke(); g.fill();
+  g.restore();
+}
+// 逃げ場所：ダンボール（中に入る）・キャットタワーの上・本棚の上（手が届かない高い所）
+function escSpots() { return [[BOX.x, FLOOR - BOX.h - 14], [(PL.tower.x0 + PL.tower.x1) / 2, PL.tower.y - 14], [(PL.book.x0 + PL.book.x1) / 2, PL.book.y - 14]]; }
+function drawEsc(a, label) {
+  const b = Math.abs(Math.sin(tAnim * 8)) * 8;
+  g.save(); g.globalAlpha = a; g.lineJoin = 'round';
+  for (const [x, y] of escSpots()) {
+    if (label) { const k = (tAnim * 1.4) % 1; g.strokeStyle = '#ffc94a'; g.lineWidth = 3; g.globalAlpha = a * (1 - k); g.beginPath(); g.arc(x, y + 14, 16 + k * 20, 0, TAU); g.stroke(); g.globalAlpha = a; }
+    g.fillStyle = '#ffc94a'; g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(x, y - b); g.lineTo(x - 10, y - 14 - b); g.lineTo(x + 10, y - 14 - b); g.closePath(); g.fill(); g.stroke();
+    if (label) { g.font = `800 13px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(label, x, y - 22 - b); g.fillStyle = '#c95f17'; g.fillText(label, x, y - 22 - b); }
+  }
   g.restore();
 }
 function drawNavMark() {
@@ -4055,11 +4067,14 @@ function draw() {
     const vg = g.createRadialGradient(W / 2, -OY + VH / 2, VH * 0.3, W / 2, -OY + VH / 2, VH * 0.75); vg.addColorStop(0, 'rgba(200,20,20,0)'); vg.addColorStop(1, `rgba(200,20,20,${k})`);
     g.fillStyle = vg; g.fillRect(0, -OY, W, VH);
   }
+  // 逃げ場所の案内：ステージの始め（2秒ほど、名前つき）と、飼い主が探し始めたとき（追いかけっこの前）
+  if (state === 'play' && chaseT <= 0 && introT <= 0 && escT > 0) drawEsc(Math.min(1, escT / 0.3, (2.2 - escT) / 0.2), lt('にげ場所', 'Hide'));
+  else if (state === 'play' && chaseT <= 0 && (owner.mode === 'search' || sus >= 65)) drawEsc(0.55 + 0.35 * Math.abs(Math.sin(tAnim * 5)), '');
   if (state === 'play' && chaseT > 0) {
     // 追いかけっこ：画面のふちを赤く、逃げ込める場所に矢印
     g.strokeStyle = `rgba(255,59,48,${SET.calm ? 0.6 : 0.5 + 0.3 * Math.sin(tAnim * 14)})`; g.lineWidth = 10; g.strokeRect(5, -OY + 5, W - 10, VH - 10);
     const b = Math.abs(Math.sin(tAnim * 8)) * 8;
-    [[BOX.x, FLOOR - BOX.h - 14], [(PL.tower.x0 + PL.tower.x1) / 2, 426], [400, PL.book.y - 14]].forEach(([x, y]) => { g.fillStyle = '#ffc94a'; g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(x, y - b); g.lineTo(x - 10, y - 14 - b); g.lineTo(x + 10, y - 14 - b); g.closePath(); g.fill(); g.stroke(); });
+    drawEsc(1, '');
     g.lineJoin = 'round'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `800 24px ${FONT}`;
     const rt = lt('にげろ! ', 'RUN! ') + Math.ceil(chaseT); g.lineWidth = 6; g.strokeStyle = '#fff'; g.strokeText(rt, W / 2, 210); g.fillStyle = '#ff3b30'; g.fillText(rt, W / 2, 210);
   }
@@ -4134,7 +4149,8 @@ function update(dt) {
   if (slowT > 0 && state === 'play') { slowT -= dt; dt *= 0.3; }   // 高額品が割れたときのスロー
   if (state === 'play') {
     stageT += dt; run.time = (run.time || 0) + dt; if (introT > 0) introT -= dt;
-    if (introT <= 0 && spot.length) { spotT += dt; if (spotT > 1.5) { learn('see_' + spot[0].k); spot.shift(); spotT = 0; } } updLamp(dt); updCat(dt); updTalk(dt);
+    if (introT <= 0 && escT > 0) escT -= dt;
+    else if (introT <= 0 && spot.length) { spotT += dt; if (spotT > 1.5) { learn('see_' + spot[0].k); spot.shift(); spotT = 0; } } updLamp(dt); updCat(dt); updTalk(dt);
     if (chaseT > 0) { updChase(dt); updItems(dt); updBall(dt); updVac(dt); }
     else { updOwner(dt); updItems(dt); updBall(dt); updDog(dt); updVac(dt); updChick(dt); updMouse(dt); updTank(dt); updRival(dt); updCams(dt); updShelf(dt); updTv(dt); updSus(dt); checkClear(); updTut(); }
     if (state === 'play' && chaseT <= 0) {
