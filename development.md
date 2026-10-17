@@ -94,6 +94,10 @@ HTML に直接書いた文字（下のボタン、読み上げ用のラベル、
 - ランキングの記録に `k`（続けた回数）を入れる（v6）。署名は `y|s|st|sk|k|uid|鍵`。`firestore.rules` を公開し直すまで、v6 の記録は送れない
 - 見つかった原因：`updSus` でいちばん多く怪しまれ度を上げた見張り（飼い主・子ども・おばあちゃん・お父さん・お客さん・ペットカメラ）を `run.lastBy` に覚え、`caught` で `run.cause` にする。時間切れは `time`。通算記録（`LIFE.cause`・`LIFE.where`）に足して「見つかった原因」「よく見つかった場所」に出す
 
+## 追いかけっこの 3 秒を丸ごと猶予に（4.27.1）
+
+`updChase` から「26px まで近づいたら捕まる」判定を外し、`chaseT` が切れたときだけ `caught()`。飼い主は 110px/秒で追うが 30px 手前で止まって向きだけ変える。逃げ切ったときの台詞は 5 割で `LINES.chaseEnd`（「次はないよ!!」など）。前は飼い主が 100px 離れていてもネコが動かなければ 0.6 秒で捕まっていて、「3・2・1」が名ばかりだった
+
 ## セーブ（4.27.0）
 
 `saveGame(L, cont)` を `setupStageCore` の先頭（`run.ck` を作ったあと）で呼び、`nekoSave` に `{ level, cont, carryT, cat, acc, pk: packRun(run), ck }` を保存する。`packRun` は `run` から `ck`・`res`・`album` を外して JSON にし、写真は 128px JPEG の dataURL（`album[].d`）。`unpackRun` で `Image` に戻す（`run.ck.pk` も同じ形。前は `JSON.stringify` で写真が壊れていた）。保存しないのは `run.test`・`run.preview`・`state === 'title'`（`showTitle` の `newRun`）・1 面目。`gameOver` では、エンディングで終えたら次の日、見つかって終えたら `run.ck` の朝（`cont: true`、再開時に `conts` と `LIFE.conts` を +1）、それ以外は消す。`startGame` で消す。タイトルは `loadSave()` があれば「つづきから」（`resumeSave`）を大きいボタンに、「はじめから」は 2 秒以内の 2 回押し。`resumeGame` はポーズの復帰に使われている名前なので、セーブの再開は `resumeSave`

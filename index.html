@@ -308,7 +308,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.27.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.27.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1032,6 +1032,7 @@ const TV_LINES = [
   [tx('かわいい!', 'So cute!'), tx('推しが映った!', 'My bias!'), tx('ダンスそろってる…', 'So in sync…')]
 ];
 const tvSay = () => pick(Math.random() < 0.7 && tv ? TV_LINES[tv.show || 0] : LINES.tv);
+LINES.chaseEnd = [tx('次はないよ!!', 'Next time you\'re done!!'), tx('今度やったら本気で怒るからね', 'Do that again and I mean it'), tx('……一回だけ、見逃してあげる', '……Just this once, I\'ll let it go'), tx('はぁ、はぁ……速い……', 'Huff… puff… too fast…'), tx('覚えてなさいよ', 'I won\'t forget this')];
 LINES.churu = [tx('チュールだよ〜', 'Churu time~'), tx('おいで〜', 'Come here~'), tx('ほらほら〜', 'Look, look~')];
 LINES.churuNo = [tx('あれ…いらないの？', "Huh… you don't want it?"), tx('めずらしいね…', "That's unusual…")];
 LINES.rub = [tx('あら、甘えんぼ', 'Aww, so clingy'), tx('かわいいねえ', "Aren't you cute"), tx('よしよし', 'There, there'), tx('すりすりしてる〜', "You're rubbing on me~")];
@@ -3791,12 +3792,12 @@ function updChase(dt) {
   const o = owner; chaseT -= dt;
   const high = isHigh();
   if (cat.hidden || cat.safe || high) {
-    chaseT = 0; sus = 60; susCd = 6; run.escapes++; setMode('leave'); say(high ? lt('…届かない', "…Can't reach") : lt('…あれ？ いない', '…Huh? Gone'), 1.8); sfx.clear();
+    chaseT = 0; sus = 60; susCd = 6; run.escapes++; setMode('leave'); say(Math.random() < 0.5 ? pick(LINES.chaseEnd) : high ? lt('…届かない', "…Can't reach") : lt('…あれ？ いない', '…Huh? Gone'), 2); sfx.clear();
     pops.push({ x: cat.x, y: cat.y - 60, text: lt('セーフ!', 'Safe!'), life: 1.6, col: '#1d8174', size: 26 }); return;
   }
-  const dx = cat.x - o.x; if (Math.abs(dx) > 4) { o.x += Math.sign(dx) * 130 * dt; o.face = Math.sign(dx); o.step += dt * 1.6; }
-  // 手が届くのは床・サイドテーブル・テーブル・壁の棚の高さまで。3秒たっても逃げ込めなければ捕まる
-  if ((Math.abs(cat.x - o.x) < 26 && cat.y > 330) || chaseT <= 0) { chaseT = 0; caught(); }
+  // 4.27.1：追いかけっこの 3 秒は丸ごと猶予。飼い主は追って走るが、近づいただけでは捕まえない（前は 26px で即アウトで、1 秒も持たないことが多かった）。3 秒たった時点で隠れていなければアウト
+  const dx = cat.x - o.x; if (Math.abs(dx) > 30) { o.x += Math.sign(dx) * 110 * dt; o.face = Math.sign(dx); o.step += dt * 1.6; } else o.face = Math.sign(dx) || o.face;
+  if (chaseT <= 0) { chaseT = 0; caught(); }
 }
 let snapMode = false;
 function takeSnap() {
