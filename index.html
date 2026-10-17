@@ -244,7 +244,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.13.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.13.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -336,10 +336,10 @@ function placeLamp() {
 // pip は選択画面の目盛り（はやさ・ジャンプ・パンチ・かくれ・くいしんぼ、1〜5）。数値の倍率と合わせてある
 // sus：見られたときの怪しまれやすさ、food：ごはんで増える時間の倍率
 const CATS = [
-  { id: 'kuro', name: tx('黒猫', 'Black Cat'), note: tx('かくれ上手', 'Stealthy'), body: '#2b2b35', belly: '#3b3b48', eye: '#f2c94c', sus: 0.75, punch: 0.9, jump: 1, speed: 1, food: 1, voice: 1.05, pip: [3, 3, 2, 5, 3] },
-  { id: 'cha', name: tx('茶トラ', 'Orange Tabby'), note: tx('パンチ自慢', 'Big punch'), body: '#e8913f', belly: '#f7cf98', stripe: '#b8661e', eye: '#7bbf5a', sus: 1.05, punch: 1.5, jump: 1, speed: 1.1, food: 1, voice: 1, pip: [4, 3, 5, 2, 3] },
-  { id: 'saba', name: tx('サバトラ', 'Gray Tabby'), note: tx('バランス', 'All-rounder'), body: '#8e939c', belly: '#dfe2e6', stripe: '#4a4f58', eye: '#d6b84a', sus: 0.85, punch: 1.1, jump: 1.05, speed: 1.04, food: 1, voice: 1.1, pip: [3, 4, 3, 3, 3] },
-  { id: 'maine', name: tx('メインクーン', 'Maine Coon'), note: tx('怪力・大食い', 'Strong & hungry'), body: '#a8794a', belly: '#e6d0ad', stripe: '#6d4a2a', eye: '#d6b84a', sus: 1.15, punch: 1.6, jump: 0.9, speed: 0.95, food: 1.5, big: 1.18, voice: 0.78, pip: [2, 2, 5, 1, 5] },
+  { id: 'kuro', name: tx('黒猫', 'Black Cat'), note: tx('かくれ上手', 'Stealthy'), body: '#2b2b35', belly: '#3b3b48', eye: '#f2c94c', sus: 0.75, punch: 0.9, jump: 1, speed: 1, food: 1, voice: 1.05, pip: [3, 3, 2, 5, 3], tag: tx('見つかりにくい', 'Hard to spot') },
+  { id: 'cha', name: tx('茶トラ', 'Orange Tabby'), note: tx('パンチ自慢', 'Big punch'), body: '#e8913f', belly: '#f7cf98', stripe: '#b8661e', eye: '#7bbf5a', sus: 1.05, punch: 1.5, jump: 1, speed: 1.1, food: 1, voice: 1, pip: [4, 3, 5, 2, 3], tag: tx('パンチが強くて足が速い', 'Strong punch, quick feet') },
+  { id: 'saba', name: tx('サバトラ', 'Gray Tabby'), note: tx('バランス', 'All-rounder'), body: '#8e939c', belly: '#dfe2e6', stripe: '#4a4f58', eye: '#d6b84a', sus: 0.85, punch: 1.1, jump: 1.05, speed: 1.04, food: 1, voice: 1.1, pip: [3, 4, 3, 3, 3], tag: tx('苦手がない', 'No weak spots') },
+  { id: 'maine', name: tx('メインクーン', 'Maine Coon'), note: tx('怪力・大食い', 'Strong & hungry'), body: '#a8794a', belly: '#e6d0ad', stripe: '#6d4a2a', eye: '#d6b84a', sus: 1.15, punch: 1.6, jump: 0.9, speed: 0.95, food: 1.5, big: 1.18, voice: 0.78, pip: [2, 2, 5, 1, 5], tag: tx('パンチ最強・ごはんで長持ち', 'Mightiest punch, food lasts longer') },
   { id: 'mike', name: tx('三毛猫', 'Calico'), note: tx('招き猫', 'Lucky cat'), body: '#f7f2e9', belly: '#ffffff', patch: [[-9, -22, 8, '#e8913f'], [8, -14, 7, '#2b2b35'], [14, -30, 6, '#e8913f'], [-16, -12, 5, '#2b2b35']], eye: '#7bbf5a', sus: 1, punch: 0.95, jump: 1, speed: 1, food: 1, lucky: true, voice: 1.15, pip: [3, 3, 3, 3, 3], tag: tx('高いものが出やすい', 'Pricey items show up more') }
 ];
 const PIPS = [tx('はやさ', 'Speed'), tx('ジャンプ', 'Jump'), tx('パンチ', 'Punch'), tx('かくれ', 'Stealth'), tx('くいしんぼ', 'Appetite')];
