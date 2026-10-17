@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.24.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.24.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -3303,7 +3303,6 @@ function drawEnding() {
       g.globalAlpha = dark; [[229, F - 33], [239, F - 33]].forEach(([x0, y0]) => { const x = zx(x0), y = zy(y0); g.fillStyle = `rgba(255,230,120,${0.25 * gl})`; g.beginPath(); g.ellipse(x, y, 8 * z, (6 * bl + 1) * z, 0, 0, TAU); g.fill(); g.fillStyle = '#ffe36b'; g.beginPath(); g.ellipse(x, y, 4 * z, 3.4 * bl * z, 0, 0, TAU); g.fill(); g.fillStyle = '#1a1200'; g.beginPath(); g.ellipse(x, y, 1.2 * z, 3 * bl * z, 0, 0, TAU); g.fill(); });
       if (e > 8.0) { g.strokeStyle = '#fff'; g.lineWidth = 2 * z; g.beginPath(); g.moveTo(zx(228), zy(F - 23)); g.quadraticCurveTo(zx(236), zy(F - 17), zx(244), zy(F - 24)); g.stroke(); }   // ニヤリの口
       g.globalAlpha = 1; }
-    if (e > 8.0 && e < 12.2) { g.font = `800 ${40 + Math.sin(tAnim * 8) * 2}px ${FONT}`; g.lineWidth = 8; g.strokeStyle = '#1a1430'; const t = lt('ニヤリ', 'Heh.'); g.strokeText(t, W / 2, 200); g.fillStyle = '#fff6c8'; g.fillText(t, W / 2, 200); }
     if (e > 9.5 && e < 10.7) offSay(String(EN.oops), F - 250);
     if (e > 10.9 && e < 12.2) offSay(lt('……気のせいか', '……Must be my imagination'), F - 250);
   } else if (ET === 'true') {
@@ -3322,7 +3321,6 @@ function drawEnding() {
     if (e > 11.5 && e < 12.2) offSay(lt('寝てるなら…しょうがないか', "Well… if it's asleep"), F - 250);
     if (e > 11.4 && e < 12.2) { const k = (tAnim * 2) % 1; g.fillStyle = '#fff6a8'; g.globalAlpha = Math.sin(k * Math.PI); g.beginPath(); g.arc(240, F - 34, 2 + 3 * Math.sin(k * Math.PI), 0, TAU); g.fill(); g.globalAlpha = 1; }   // 片目だけ、きらり
   } else {
-    if (e > 8.0 && e < 12.2) { g.font = `800 ${40 + Math.sin(tAnim * 8) * 2}px ${FONT}`; g.lineWidth = 8; g.strokeStyle = '#fff'; const t = lt('ニヤリ', 'Heh.'); g.strokeText(t, W / 2, 200); g.fillStyle = '#4a2f1d'; g.fillText(t, W / 2, 200); }
     if (ET === 'wrecker') {
       if (e > 9.5 && e < 10.3) offSay(String(EN.oops), F - 250);
       if (e > 9.4 && e < 11.4) { const t = pick([lt('ガシャン', 'CRASH'), lt('ドガーン', 'BOOM'), lt('パリーン', 'SMASH')]); if (Math.floor(e * 2) !== endLastPop) { endLastPop = Math.floor(e * 2); endPopTxt = t; } g.font = `800 ${22 + Math.sin(tAnim * 10) * 2}px ${FONT}`; g.lineWidth = 6; g.strokeStyle = '#fff'; g.strokeText(endPopTxt, 110 + (endLastPop % 3) * 110, F - 200); g.fillStyle = '#e0362c'; g.fillText(endPopTxt, 110 + (endLastPop % 3) * 110, F - 200); }
@@ -3330,7 +3328,7 @@ function drawEnding() {
     } else if (e > 9.5 && e < 11) offSay(String(EN.oops), F - 250);
   }
   // 終わりの札
-  const k2 = clamp((e - 12.2) / 0.6, 0, 1);   // 「ニヤリ」のあとに、終わりの札（約3秒見せてから締めの画面）
+  const k2 = clamp((e - 12.2) / 0.6, 0, 1);   // オチのあとに、終わりの札（4.24.2：大きな「ニヤリ」の文字はやめ、顔と目の光だけにした）（約3秒見せてから締めの画面）
   if (k2 > 0) { g.fillStyle = `rgba(20,14,40,${0.55 * k2})`; g.fillRect(0, -OY, W, VH); g.globalAlpha = k2; g.fillStyle = '#fff6c8'; g.font = `800 34px ${FONT}`; g.fillText(ET === 'true' ? lt('おしまい', 'The End') : lt('おしまい……？', 'The end…?'), W / 2, 220); g.font = `800 16px ${FONT}`; { const nd = ET === 'true' ? TRUE_DAY : END_DAY; g.fillText(lt(nd + '日間の被害額 ', nd + '-day damage ') + yen(run.yen), W / 2, 262); } g.globalAlpha = 1; }
   // 最初はふわっと明るく
   if (e < 0.8) { g.fillStyle = `rgba(20,14,40,${1 - e / 0.8})`; g.fillRect(0, -OY, W, VH); }

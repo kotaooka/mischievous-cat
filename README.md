@@ -136,7 +136,7 @@ PC はゲームパッドでも遊べます（十字キー／左スティック�
 </tr>
 <tr>
 <td align="center"><img src="docs/screenshots/19-lamp.png" width="200" alt="吊り照明でブランコ"><br>吊り照明でブランコ</td>
-<td align="center"><img src="docs/screenshots/20-ending.png" width="200" alt="エンディング：ニヤリ"><br>エンディング：ニヤリ</td>
+<td align="center"><img src="docs/screenshots/20-ending.png" width="200" alt="エンディング"><br>エンディング</td>
 <td></td>
 </tr>
 </table>

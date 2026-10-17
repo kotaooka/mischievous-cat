@@ -101,7 +101,7 @@ Each room has its own watcher: the owner, a kid (fast but short-sighted), grandm
 </tr>
 <tr>
 <td align="center"><img src="docs/screenshots/en/19-lamp.png" width="200" alt="Swinging on the lamp"><br>Swinging on the lamp</td>
-<td align="center"><img src="docs/screenshots/en/20-ending.png" width="200" alt="The ending: heh."><br>The ending: heh.</td>
+<td align="center"><img src="docs/screenshots/en/20-ending.png" width="200" alt="The ending"><br>The ending</td>
 <td></td>
 </tr>
 </table>
