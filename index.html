@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.8.6', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.8.7', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -612,7 +612,14 @@ Object.assign(LINES.enterRoom, {
   garden: [tx('よっこらしょ', 'Upsy-daisy'), tx('お花さん、元気かねえ', 'How are my flowers doing?'), tx('いいお天気だねえ', 'Lovely weather today'), tx('コッコちゃん、ごはんだよ', 'Breakfast, chickie'), tx('腰が痛いねえ…', 'Oh, my back…')],
   study: [tx('さて、仕事仕事', 'Right, back to work'), tx('ネクタイどこだっけ', "Where's my tie?"), tx('会議まであと少し', 'Meeting soon'), tx('コーヒーいれよう', 'Time for coffee'), tx('また書類が…', 'More paperwork…')]
 });
-LINES.tv = [tx('あ、この番組！', 'Oh, I love this show!'), tx('ちょっとだけ…', 'Just a little…'), tx('あはは！', 'Hahaha!'), tx('え、つけたの誰？', 'Who turned this on?')];
+LINES.tv = [tx('あ、この番組！', 'Oh, I love this show!'), tx('ちょっとだけ…', 'Just a little…'), tx('え、つけたの誰？', 'Who turned this on?')];
+// テレビの番組：0 動画配信者風（大げさなリアクション）、1 一発撮りの歌番組風、2 アイドルグループ風（どれもオリジナル）
+const TV_LINES = [
+  [tx('あはは！', 'Hahaha!'), tx('この人おもしろい', 'This guy is hilarious'), tx('やってみた系、好き', 'I love these challenge videos')],
+  [tx('いい声…', 'What a voice…'), tx('鳥肌たった', 'Goosebumps…'), tx('この曲すき', 'I love this song')],
+  [tx('かわいい!', 'So cute!'), tx('推しが映った!', 'My bias!'), tx('ダンスそろってる…', 'So in sync…')]
+];
+const tvSay = () => pick(Math.random() < 0.7 && tv ? TV_LINES[tv.show || 0] : LINES.tv);
 LINES.churu = [tx('チュールだよ〜', 'Churu time~'), tx('おいで〜', 'Come here~'), tx('ほらほら〜', 'Look, look~')];
 LINES.churuNo = [tx('あれ…いらないの？', "Huh… you don't want it?"), tx('めずらしいね…', "That's unusual…")];
 LINES.rub = [tx('あら、甘えんぼ', 'Aww, so clingy'), tx('かわいいねえ', "Aren't you cute"), tx('よしよし', 'There, there'), tx('すりすりしてる〜', "You're rubbing on me~")];
@@ -1231,7 +1238,7 @@ function goAway() { const r = awayRange(level); setMode('away', rnd(r[0], r[1]) 
 function arrive() {
   const s = owner.cur;
   if (s.kind === 'feed') { setMode('feed', 1.1); return; }
-  if (s.kind === 'tv') { if (tv && tv.on > 0) { owner.face = Math.sign(308 - owner.x) || 1; setMode('tv', tv.on); say(pick(LINES.tv), 1.6); } else nextStop(); return; }
+  if (s.kind === 'tv') { if (tv && tv.on > 0) { owner.face = Math.sign(308 - owner.x) || 1; setMode('tv', tv.on); say(tvSay(), 1.6); } else nextStop(); return; }
   if (s.kind === 'churu') { run.churuStage = level; owner.face = Math.sign(cat.x - owner.x) || owner.face; setMode('churu', 4.5); churuRes = 0; say(pick(LINES.churu), 2); sfx.churu(); return; }
   if (s.kind === 'tidy') {
     if (!items.includes(s.item) || s.item.plat !== PL.floor || s.item.state !== 'rest') { nextStop(); return; }
@@ -2146,11 +2153,11 @@ function clothPull() {
 function tvOn() {
   // テレビがつくと、飼い主（とお客さん）がしばらく見入る
   if (!tv || tv.on > 0 || tv.used >= 2 || state !== 'play') return;
-  tv.on = 8; tv.used++; run.tv++; sfx.tv(); learn('tv');
+  tv.on = 8; tv.used++; run.tv++; sfx.tv(); learn('tv'); tv.show = (Math.random() * 3) | 0;   // つけるたびに番組を選ぶ
   pops.push({ x: 308, y: 250, text: lt('ポチッ', 'Click'), life: 1, col: '#2b8fd9', size: 16 });
   const o = owner;
   if (o.mode === 'away') o.t = Math.min(o.t, 1.5);
-  else if (o.mode !== 'search' && o.mode !== 'chase' && o.mode !== 'churu') { o.face = Math.sign(308 - o.x) || 1; o.up = false; setMode('tv', tv.on); say(pick(LINES.tv), 1.6); }
+  else if (o.mode !== 'search' && o.mode !== 'chase' && o.mode !== 'churu') { o.face = Math.sign(308 - o.x) || 1; o.up = false; setMode('tv', tv.on); say(tvSay(), 1.6); }
   if (guest) { guest.mode = 'phone'; guest.t = tv.on; guest.warn = 0; }
 }
 function updTv(dt) { if (tv && tv.on > 0) tv.on -= dt; }
@@ -2241,18 +2248,65 @@ function drawCams() {
   }
 }
 function drawTv() {
-  // リビングの壁のテレビ（つくと画面が動き、音符が出る）
+  // リビングの壁のテレビ（4.8.7 で大きく：枠 80×52、画面 72×44）。つけるたびに3つの番組からひとつ
   if (!tv) return;
-  const TX = 276, TY = 262;   // 左上（エアコンの下）
-  g.save(); g.translate(TX - 258, TY - 56);
-  g.fillStyle = '#20252b'; rr(g, 258, 56, 64, 44, 5); g.fill();
+  const X = 262, Y = 264, w = 80, h = 52, sx = X + 4, sy = Y + 4, sw = w - 8, sh = h - 8;
+  g.save();
+  g.fillStyle = '#20252b'; rr(g, X, Y, w, h, 5); g.fill();
   if (tv.on > 0) {
-    const cols = ['#ff5a5a', '#ffc94a', '#2fb3a3', '#2b8fd9', '#9b7fc0'];
-    for (let i = 0; i < 5; i++) { g.fillStyle = cols[(i + Math.floor(tAnim * 4)) % 5]; g.fillRect(262 + i * 11.2, 60, 11.2, 36); }
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(290 + Math.sin(tAnim * 3) * 14, 78, 7, 0, TAU); g.fill();
-    const k = (tAnim * 1.2) % 1; g.globalAlpha = 1 - k; g.fillStyle = '#9b7fc0'; g.font = `800 14px ${FONT}`; g.textAlign = 'center'; g.fillText('♪', 330, 70 - k * 16); g.globalAlpha = 1;
-  } else { g.fillStyle = '#3a4a5a'; g.fillRect(262, 60, 56, 36); g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(266, 63, 18, 3); }
-  g.fillStyle = '#3a3f46'; g.fillRect(286, 100, 8, 4);
+    g.save(); g.beginPath(); g.rect(sx, sy, sw, sh); g.clip(); g.translate(sx, sy);
+    const t = tAnim, sh0 = tv.show || 0;
+    if (sh0 === 0) {
+      // 動画配信者風：部屋の背景、大げさなリアクションの人、大きな字幕
+      g.fillStyle = '#ffe9b8'; g.fillRect(0, 0, sw, sh); g.fillStyle = '#ffd27a'; g.fillRect(0, 0, sw, 8);
+      g.fillStyle = '#7fc1f0'; g.fillRect(52, 10, 14, 12); g.fillStyle = '#c96a3a'; g.fillRect(6, 12, 10, 16);   // 棚とポスター
+      const big = Math.sin(t * 5) > 0, bob = Math.abs(Math.sin(t * 5)) * 2;
+      g.fillStyle = '#3b6fd9'; rr(g, 25, 28 - bob, 22, 18, 6); g.fill();   // 体
+      g.strokeStyle = '#3b6fd9'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath();
+      if (big) { g.moveTo(27, 31 - bob); g.lineTo(19, 21 - bob); g.moveTo(45, 31 - bob); g.lineTo(53, 21 - bob); } else { g.moveTo(27, 32 - bob); g.lineTo(22, 38 - bob); g.moveTo(45, 32 - bob); g.lineTo(50, 38 - bob); }
+      g.stroke();
+      g.fillStyle = '#f0c8a0'; g.beginPath(); g.arc(36, 21 - bob, 8, 0, TAU); g.fill();   // 顔
+      g.fillStyle = '#2b1d14'; g.beginPath(); g.arc(36, 17 - bob, 8, Math.PI, 0); g.fill();   // 髪
+      g.fillStyle = '#222'; g.fillRect(32.5, 20 - bob, 1.6, big ? 2.6 : 1.6); g.fillRect(38, 20 - bob, 1.6, big ? 2.6 : 1.6);
+      g.fillStyle = '#c0392b'; g.beginPath(); g.ellipse(36, 25.5 - bob, big ? 2.6 : 2, big ? 2.4 : 1, 0, 0, TAU); g.fill();   // 口
+      const cap = ((t * 0.7) | 0) % 2 ? lt('まさかの結果!?', 'NO WAY!?') : lt('やってみた!', 'I TRIED IT!');
+      g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, sh - 11, sw, 11);
+      g.font = `800 9px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = '#000'; g.strokeText(cap, sw / 2, sh - 5.5); g.fillStyle = '#ffe14a'; g.fillText(cap, sw / 2, sh - 5.5);
+    } else if (sh0 === 1) {
+      // 一発撮りの歌番組風：無地のスタジオ、1本のマイク、目を閉じて歌う人
+      g.fillStyle = '#eef0f2'; g.fillRect(0, 0, sw, sh); g.fillStyle = 'rgba(0,0,0,.06)'; g.fillRect(0, 34, sw, 10);
+      const sway = Math.sin(t * 1.6) * 1.5;
+      g.fillStyle = '#2e3138'; rr(g, 34 + sway, 26, 20, 18, 6); g.fill();   // 体（黒い服）
+      g.fillStyle = '#4a2f1d'; g.beginPath(); g.arc(44 + sway, 18, 8.5, 0, TAU); g.fill(); g.fillRect(35.5 + sway, 18, 17, 9);   // 髪（後ろ）
+      g.fillStyle = '#f0c8a0'; g.beginPath(); g.arc(44.5 + sway, 20, 6.2, 0, TAU); g.fill();   // 顔
+      g.fillStyle = '#4a2f1d'; g.beginPath(); g.arc(44 + sway, 15.5, 6.5, Math.PI * 1.05, Math.PI * 1.95); g.fill();   // 前髪
+      g.strokeStyle = '#222'; g.lineWidth = 1; g.beginPath(); g.arc(42 + sway, 20, 1.3, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); g.beginPath(); g.arc(47 + sway, 20, 1.3, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();   // 閉じた目
+      g.fillStyle = '#c0392b'; g.beginPath(); g.ellipse(44.5 + sway, 23.6, 1.2, 0.9 + Math.abs(Math.sin(t * 4)) * 0.6, 0, 0, TAU); g.fill();   // 歌う口
+      g.strokeStyle = '#9aa0a8'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(26, 44); g.lineTo(26, 24); g.lineTo(34, 22); g.stroke();   // マイクスタンド
+      g.fillStyle = '#5a5f68'; rr(g, 32, 18, 6, 9, 3); g.fill(); g.fillStyle = '#b8bec6'; g.fillRect(33, 19, 4, 3);   // マイク
+    } else {
+      // アイドルグループ風：暗いステージ、動く照明、そろって踊る3人
+      g.fillStyle = '#1a1033'; g.fillRect(0, 0, sw, sh);
+      const bc = ['rgba(255,90,170,.35)', 'rgba(90,200,255,.35)', 'rgba(255,220,90,.35)'];
+      for (let i = 0; i < 3; i++) { const bx = sw / 2 + Math.sin(t * 1.3 + i * 2.1) * 30; g.fillStyle = bc[i]; g.beginPath(); g.moveTo(10 + i * 26, 0); g.lineTo(bx - 9, sh); g.lineTo(bx + 9, sh); g.closePath(); g.fill(); }
+      g.fillStyle = '#3a2a66'; g.fillRect(0, sh - 6, sw, 6);
+      const up = Math.sin(t * 6) > 0, step = Math.sin(t * 3) * 3, cl = ['#ff7ab8', '#7ad0ff', '#ffd25a'];
+      for (let i = 0; i < 3; i++) {
+        const x = 16 + i * 20 + step, y = sh - 8 - (up ? 2 : 0);
+        g.fillStyle = cl[i]; rr(g, x - 4, y - 14, 8, 12, 3); g.fill();   // 衣装
+        g.strokeStyle = cl[i]; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath();
+        if (up) { g.moveTo(x - 4, y - 12); g.lineTo(x - 8, y - 20); g.moveTo(x + 4, y - 12); g.lineTo(x + 8, y - 20); } else { g.moveTo(x - 4, y - 12); g.lineTo(x - 9, y - 8); g.moveTo(x + 4, y - 12); g.lineTo(x + 9, y - 8); }
+        g.stroke(); g.strokeStyle = '#2a2a40'; g.beginPath(); g.moveTo(x - 2, y - 2); g.lineTo(x - 3, y + 4); g.moveTo(x + 2, y - 2); g.lineTo(x + 3, y + 4); g.stroke();
+        g.fillStyle = '#f0c8a0'; g.beginPath(); g.arc(x, y - 18, 4, 0, TAU); g.fill(); g.fillStyle = i === 1 ? '#e8e0d0' : '#2b1d14'; g.beginPath(); g.arc(x, y - 19.5, 4.2, Math.PI, 0); g.fill();
+      }
+      for (let i = 0; i < 4; i++) { const k = (t * 0.9 + i * 0.25) % 1; g.globalAlpha = 1 - k; g.fillStyle = '#fff'; g.fillRect(8 + i * 17, 4 + k * 10, 2, 2); } g.globalAlpha = 1;   // きらきら
+    }
+    g.restore();
+    // 番組の音：音符（配信者は「ｗ」）
+    const k = (tAnim * 1.2) % 1; g.globalAlpha = 1 - k; g.fillStyle = (tv.show || 0) === 2 ? '#ff7ab8' : '#9b7fc0'; g.font = `800 14px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.fillText((tv.show || 0) === 0 ? lt('ｗ', 'lol') : '♪', X + w + 6, Y + 14 - k * 16); g.globalAlpha = 1;
+  } else { g.fillStyle = '#3a4a5a'; g.fillRect(sx, sy, sw, sh); g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(sx + 4, sy + 3, 22, 3); }
+  g.fillStyle = '#3a3f46'; g.fillRect(X + w / 2 - 5, Y + h, 10, 4);
   g.restore();
 }
 // ---------- エンディング ----------
