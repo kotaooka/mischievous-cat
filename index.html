@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.10.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.10.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2648,7 +2648,7 @@ function updSus(dt) {
   if (o.mode === 'search') gain *= 1.15;
   // 隠れ場所（ダンボール・キャットタワーの上・高い所）でじっとしている間は、足跡や転がるもの・音があっても上げない。探している最中でも少しずつ下げる
   const hiding = inEscape() && !(cat.punchT > 0) && !cat.scratch;
-  if (hiding) { gain = 0; if (o.mode === 'search') sus -= 6 * dt; }
+  if (hiding) { gain = 0; sus -= (o.mode === 'search' ? 12 : 8) * dt; }   // 隠れている間は早めに下がる（4.10.1：探している最中 6→12/秒、ふだんは +8/秒 上乗せ）
   if (gain > 0) { sus += gain * dt; run.lastBy = gain - g0 > g0 && exBy ? exBy : watcherOf(); }   // いちばん多く上げた見張りを、見つかった原因として覚える
   else if (o.mode !== 'search') sus -= (seen ? 6 : (o.mode === 'away' ? 24 : 14)) * dt;
   if (susCd > 0) susCd -= dt;
