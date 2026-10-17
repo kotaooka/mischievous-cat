@@ -11,6 +11,21 @@
 - ホーム画面に追加すると、アプリのように起動できます。一度開けばオフラインでも遊べます
 - 遊んだ記録は、みんなのランキングで競えます
 
+## 📸 こんなゲームです
+
+<table>
+<tr>
+<td align="center"><img src="docs/screenshots/02-play.png" width="250" alt="飼い主が電話中にスマホを落とす"><br>飼い主が電話に夢中なうちに……</td>
+<td align="center"><img src="docs/screenshots/03-caught.png" width="250" alt="見つかった瞬間"><br>見つかった！</td>
+<td align="center"><img src="docs/screenshots/09-result.png" width="250" alt="結果画面と犯行現場写真"><br>被害額と「犯行現場写真」</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/04-night.png" width="250" alt="夜の寝室"><br>夜の寝室。飼い主は歯みがき中</td>
+<td align="center"><img src="docs/screenshots/08-clear.png" width="250" alt="ステージクリア"><br>ばれずに片付けると腕前ボーナス</td>
+<td align="center"><img src="docs/screenshots/10-ranking.png" width="250" alt="みんなのランキング"><br>みんなのランキングで勝負</td>
+</tr>
+</table>
+
 ---
 
 ## 🐾 30 秒でわかる遊び方
@@ -42,6 +57,14 @@
 - **ばれずに落とし続けると「ノーマーク」ボーナス。** 落とすたびに上乗せが大きくなります
 - **見つかっても、あきらめない。** 1面に1回だけ、3秒以内にダンボールかキャットタワーへ逃げ込めばセーフ
 - **キラキラ、矢印、爪あとのマーク**が出たら、そこに何かがあります。言葉の説明はありません。触って確かめてみてください
+
+<table>
+<tr>
+<td align="center"><img src="docs/screenshots/05-lever-hint.png" width="200" alt="てこの合図"><br>点線と矢印……？</td>
+<td align="center"><img src="docs/screenshots/06-lever.png" width="200" alt="てこで飛ばす"><br>板に飛び乗ると、ビヨーン！</td>
+<td align="center"><img src="docs/screenshots/07-scratch.png" width="200" alt="爪とぎ"><br>爪あとマークの場所で長押し</td>
+</tr>
+</table>
 - **おなかがすいたら「にゃー」。** 飼い主のそばでかわいく鳴くと、ごはん（＝制限時間）がもらえることも
 
 ## 🏠 4 つの部屋
@@ -56,6 +79,8 @@
 面が進むと、壁の高いところ（吊り棚・カーテンレール・エアコン）にも、高いものが置かれ始めます。てこ、転がる毛糸玉、爪とぎスポットなど、落とす以外の遊び方も少しずつ増えていきます。
 
 ## 🐱 ネコたち
+
+<img src="docs/screenshots/01-title.png" width="220" alt="ネコを選ぶ画面">
 
 | ネコ | とくい | 仲間になる条件 |
 |---|---|---|

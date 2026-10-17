@@ -25,11 +25,12 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<!-- 字体は丸ゴシック（M PLUS Rounded 1c） -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
+<!-- 字体は丸ゴシック（M PLUS Rounded 1c、SIL Open Font License）。使う文字だけに絞ったものを同じサイトに置く（tools/subset-font.py で作る） -->
+<link rel="preload" href="fonts/mplus-rounded-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/mplus-rounded-800.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+  @font-face { font-family: "M PLUS Rounded 1c"; font-weight: 500; font-style: normal; font-display: swap; src: url("fonts/mplus-rounded-500.woff2") format("woff2"); }
+  @font-face { font-family: "M PLUS Rounded 1c"; font-weight: 800; font-style: normal; font-display: swap; src: url("fonts/mplus-rounded-800.woff2") format("woff2"); }
   :root {
     --bg: #fff3df;
     --ink: #4a2f1d;
@@ -41,7 +42,7 @@
     --red: #ff5a5a; --red-d: #c93636;
     --brn: #8a5a34; --brn-d: #5e3a1c;
     --yel: #ffc94a;
-    --f: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+    --f: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "BIZ UDPGothic", "Yu Gothic UI", "Meiryo", "Noto Sans JP", "Noto Sans CJK JP", sans-serif;
   }
   * { box-sizing: border-box; }
   /* 画面いっぱいに表示する（ページはスクロールしない） */
@@ -177,7 +178,7 @@
   </div>
   <div id="stage">
     <div id="frame">
-      <canvas id="c" width="450" height="540" aria-label="ゲーム画面"></canvas>
+      <canvas id="c" width="450" height="540" lang="ja" aria-label="ゲーム画面"></canvas>
       <div id="ov"></div>
     </div>
   </div>
@@ -199,10 +200,13 @@ const W = 450, H = 540, FLOOR = 500, GRAV = 1400, JUMP = 580, SPEED = 150;
 let DPR = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
 let VH = H, OY = 0;   // VH：表示する高さ（縦長の画面では壁を上に伸ばす）、OY：その伸ばした分
 cv.width = W * DPR; cv.height = H * DPR;
-const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Yu Gothic UI","Meiryo",system-ui,sans-serif';
+// 字体：日本語の字形で出るものだけを並べる（system-ui は端末によって中国語の字形になるので使わない）
+const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","BIZ UDPGothic","Yu Gothic UI","Meiryo","Noto Sans JP","Noto Sans CJK JP",sans-serif';
+// キャンバスの文字は、字体が読み込まれる前に描くと代わりの字体になる。読み込みを先に始めておく（毎フレーム描き直すので、届いたら切り替わる）
+try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '2.1.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '2.2.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
