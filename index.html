@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.23.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.23.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2833,7 +2833,7 @@ function drawCredits() {
 function startEnding() {
   run.endType = endingType(run); endFall = null; endLastPop = -1; endPopTxt = '';
   run.ended = true; run.days = dayOf(level); state = 'ending'; endT = 0; endShown = false; endCup = { x: 252, y: 474, vy: 0, vx: 0, rot: 0, broke: false };
-  bgmStop(); endBgmStart(false); setPulse(null); setMode('away', 99); owner.say = ''; parts = []; pops = []; spaceT = 0; room = 'living'; spots = []; lamp = null; tv = null; weather = 'sun'; sfx.dayend();
+  bgmStop(); endBgmStart(false); setPulse(null); setMode('away', 99); owner.say = ''; parts = []; pops = []; spaceT = 0; room = 'living'; spots = []; lamp = null; tv = null; weather = 'sun';   // 4.23.2：始まりの効果音（dayend）はやめ、BGM だけにする
 }
 function drawEnding() {
   const e = endT, F = FLOOR;
