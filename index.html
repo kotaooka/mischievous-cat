@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.24.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.25.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -865,6 +865,41 @@ const WEEK2 = {
 // その日のルール：earphone 飼い主がイヤホン（物音に鈍いが、振り向くまでが長い）、dogday 犬がどの部屋にもいる、bossday ボス猫がどの部屋にも来る、twocam ペットカメラが2台
 const RULE_NAME = { earphone: tx('イヤホンの日', 'Earphone Day'), dogday: tx('犬がいる日', 'Dog Day'), bossday: tx('ボス猫の日', 'Boss Cat Day'), twocam: tx('カメラ2台の日', 'Two-Camera Day') };
 const ruleOf = () => phaseOf(level).rule;
+// 飼い主の物語（4.25.0）：7日間で飼い主がじわじわ追い詰められていく。日記は「○日目 おしまい」の画面とスタッフロールに、独り言は入室・電話の台詞に
+// 日記（その日の終わりに書く。3日目と7日目はスタッフロールで読む）。関数のものはその回の出来事で変わる
+const DIARY = {
+  1: () => tx('コップが割れてた。ネコ？ まさか。', 'A cup broke. The cat? No way.'),
+  2: () => tx('停電の夜、暗闇で目が光った気がする。気のせい。', 'During the blackout I thought I saw eyes glowing. Imagination.'),
+  3: () => tx('ペットカメラに何も映っていなかった。映っていないのが、こわい。……見なかったことにしよう。', "Nothing on the pet cam. That's what scares me. …I'll pretend I saw nothing."),
+  4: () => run.ev.foe_vacbot ? tx('ネコよけ掃除機、初日で裏返った。保険屋さんに笑われた。', 'The anti-cat vacuum flipped on day one. The insurance guy laughed.') : tx('ネコよけ掃除機を買った。今日は静かだった。……静かすぎる。', 'Bought an anti-cat vacuum. Quiet day. …Too quiet.'),
+  5: () => run.ev.bone ? tx('ポチを起こしておいた。骨で買収されていた。', 'Kept the dog awake. He was bribed with a bone.') : tx('ポチを起こしておいた。吠えてばかりで、何も捕まえていない。', 'Kept the dog awake. All bark, nothing caught.'),
+  6: () => tx('犯人は隣のボスに違いない。うちの子は、いい子。……いい子のはず。', "It must be the boss cat next door. Mine is a good cat. …Should be."),
+  7: () => tx('……寝た。全部見てた。犬もカメラもドローンも、最初から無駄だった。もういい。好きにしなさい。', "…I fell asleep. I saw it all. The dog, the cams, the drone — pointless from the start. Fine. Do as you please."),
+  x: () => lt(dayOf(level) + '日目。もう数えるのをやめた。', 'Day ' + dayOf(level) + '. I stopped counting.')
+};
+const diaryOf = d => String((DIARY[d] || DIARY.x)());
+// 入室の独り言（第2週は 7 割でこちら）。子ども部屋のロボットの面は子どもの台詞
+const DAY_LINES = {
+  4: [tx('ネコよけ機能つきの掃除機、買っちゃった', 'Bought a vacuum with an anti-cat mode'), tx('3日間、何も起きなかった。気のせいだった', 'Three days, nothing happened. It was my imagination'), tx('音楽聴きながら家事〜♪', 'Chores with music~♪'), tx('イヤホン最高', 'Earphones are the best')],
+  5: [tx('ポチ、今日は寝ないで見張っててね', "Pochi, stay awake and keep watch today"), tx('気のせい、気のせい', 'Imagination, just imagination'), tx('昨日のロボ、保険きかないって', "Insurance won't cover yesterday's robot"), tx('カラスまで来るし…', 'Even the crows are here…')],
+  6: [tx('犯人はぜったい隣のボスだ', "It's that boss cat next door, I'm sure"), tx('うちの子はいい子だもん', 'My cat is a good cat'), tx('ボス、来たら追い返す', "If the boss comes, I'm shooing him"), tx('証拠は……ないけど', 'No proof… but still')],
+  7: [tx('カメラ2台とドローン。これで決まり', 'Two cams and a drone. Case closed'), tx('3日寝てない……', "Haven't slept in three days…"), tx('コーヒー5杯目', 'Coffee number five'), tx('今日こそ現場を押さえる', 'Today I catch it in the act')]
+};
+const KID_LINES = [tx('ぼくが作ったネコ撃退ロボ、見ててね', 'Watch my homemade anti-cat robot!'), tx('ロボ、ネコが来たら撃て！', 'Robot, fire when the cat comes!')];
+// 電話（保険屋さんと）：第2週は毎日これ
+const CALL_LINES = {
+  4: [tx('保険屋さん？ ロボが裏返って…', 'Insurance? The robot flipped over…'), tx('え、ネコは補償外？', 'What, cats aren\'t covered?'), tx('はい、はい…', 'Yes, yes…')],
+  5: [tx('はい、犬も起こしてます', 'Yes, the dog is awake too'), tx('免責って何ですか', 'What\'s a deductible?'), tx('カラスも補償外ですか', 'Crows aren\'t covered either?')],
+  6: [tx('隣の猫なんです、たぶん', "It's the neighbor's cat, probably"), tx('証拠？ ないですけど', 'Proof? None, but…'), tx('うちの子は違います', "It's not my cat")],
+  7: [tx('ドローン買いました', 'I bought a drone'), tx('はい、もう寝てません', "Yes, I don't sleep anymore"), tx('今夜で終わらせます', 'I end this tonight')]
+};
+// 見つかったときの台詞（第2週、6 割）
+const DAY_REACT = {
+  4: [tx('掃除機は何してたの!!', 'What was the vacuum doing?!'), tx('イヤホン外せばよかった!!', 'Should\'ve taken the earphones off!!')],
+  5: [tx('ポチ!! 寝てる場合か!!', 'Pochi!! Not the time to sleep!!'), tx('犬、仕事して!!', 'Dog, do your job!!')],
+  6: [tx('ボスじゃなかったの!?', 'It wasn\'t the boss?!'), tx('うちの子だった……', 'It was my own cat…')],
+  7: [tx('ドローン買ったのに!!', 'I bought a DRONE!!'), tx('カメラ2台の前で!?', 'In front of two cameras?!')]
+};
 const SLOT_ROOMS = [['living', 'garden'], ['kitchen', 'kids'], ['study', 'bath']];
 const ROOM_NAME = { living: tx('リビング', 'Living Room'), garden: tx('庭', 'Garden'), kitchen: tx('キッチン', 'Kitchen'), kids: tx('子ども部屋', "Kid's Room"), study: tx('書斎', 'Study'), bath: tx('お風呂場', 'Bathroom'), bed: tx('寝室', 'Bedroom') };
 const SLOT_TIME = [
@@ -1685,7 +1720,10 @@ function newPlan(hint) {
 function enter() {
   owner.x = -40; owner.face = 1; owner.spd = walkSpeed(level) * WT().spd; owner.up = false; owner.glanceT = 0;
   newPlan(owner.hint); owner.hint = null; nextStop();
-  if (Math.random() < 0.5) say(pick(LINES.enterRoom[room] || LINES.enter[phaseIx(level)]), 1.8);
+  const d = dayOf(level);
+  if (room === 'kids' && foe && foe.kind === 'toybot' && Math.random() < 0.8) say(pick(KID_LINES), 2);
+  else if (DAY_LINES[d] && Math.random() < 0.7) say(pick(DAY_LINES[d]), 2);
+  else if (Math.random() < 0.5) say(pick(LINES.enterRoom[room] || LINES.enter[phaseIx(level)]), 1.8);
   if (phaseOf(level).night) owner.spd *= 0.9;
 }
 function nextStop() {
@@ -1695,7 +1733,7 @@ function nextStop() {
 }
 function goAway() { if (nap) { napSleep(); return; } const r = awayRange(level); setMode('away', rnd(r[0], r[1]) * (weather === 'rain' ? 0.75 : 1)); owner.warned = false; }   // 雨の日は出かけないので、戻ってくるのが早い
 function arrive() {
-  const s = owner.cur;
+  const s = owner.cur; if (!s) { nextStop(); return; }
   if (s.kind === 'feed') { setMode('feed', 1.1); return; }
   if (s.kind === 'tv') { if (tv && tv.on > 0) { owner.face = Math.sign(308 - owner.x) || 1; setMode('tv', tv.on); say(tvSay(), 1.6); } else nextStop(); return; }
   if (s.kind === 'churu') { run.churuStage = level; owner.face = Math.sign(cat.x - owner.x) || owner.face; setMode('churu', 4.5); churuRes = 0; say(pick(LINES.churu), 2); sfx.churu(); return; }
@@ -1703,7 +1741,7 @@ function arrive() {
     if (!items.includes(s.item) || s.item.plat !== PL.floor || s.item.state !== 'rest') { nextStop(); return; }
     owner.face = Math.sign(s.item.x - owner.x) || owner.face; setMode('tidy', 1.5); say(pick(LINES.tidy), 1.4); return;
   }
-  if (s.kind === 'busy') { const b = busyOf(); owner.busy = b; owner.face = b.face; setMode('busy', rnd(b.dur[0], b.dur[1])); owner.range = b.range; owner.omni = b.omni; owner.talkT = 0; return; }
+  if (s.kind === 'busy') { let b = busyOf(); if (b.act === 'call' && CALL_LINES[dayOf(level)]) b = Object.assign({}, b, { text: CALL_LINES[dayOf(level)] }); owner.busy = b; owner.face = b.face; setMode('busy', rnd(b.dur[0], b.dur[1])); owner.range = b.range; owner.omni = b.omni; owner.talkT = 0; return; }
   if (s.kind === 'phone') {
     owner.face = Math.random() < 0.5 ? 1 : -1;
     owner.phoneLeft = rnd(3, 4.5); owner.upIn = rnd(1, 2); setMode('phone', owner.phoneLeft);
@@ -2313,6 +2351,7 @@ function breakItem(it, plat) {
   run.touched = true; run.yen += d.yen; run.broke[it.t] = (run.broke[it.t] || 0) + 1; run.lastBroke = it.t;
   if (!run.big || d.yen > run.big.y) run.big = { k: it.t, y: d.yen };
   run.stageDrops.push(d.yen); run.todYen[phaseOf(level).tod] += d.yen; if (d.yen >= 30000) run.bigN++; run.lastDropT = tAnim;
+  if (plat === PL.floor && !IT[it.t].junk) { run.tape = run.tape || {}; const tp = run.tape[room] = run.tape[room] || []; if (tp.length < 14 && !tp.some(q => Math.abs(q.x - it.x) < 22)) tp.push({ x: clamp(it.x, 14, W - 14), r: rnd(-0.3, 0.3), L: level }); }   // 養生テープの跡（次にこの部屋へ来たとき）
   if (it.t === 'alarm' && nap) { nap.asleep = false; sus = 100; susCd = 0; chaseUsed = true; run.lastBy = 'owner'; owner.face = Math.sign(it.x - owner.x) || 1; setMode('look', 9); say(lt('ジリリリリ!!', 'RIIIING!!'), 1.5); }   // 最後の夜：目覚まし時計で飛び起きる（即アウト）
   else if (it.t === 'alarm') rush(it.x);
   if (it.t === 'remote') tvOn();
@@ -2638,7 +2677,8 @@ function updRival(dt) {
   r.anim += dt; if (r.cd > 0) r.cd -= dt; if (r.stun > 0) r.stun -= dt; if (r.punchT > 0) r.punchT -= dt;
   if (r.mode === 'wait') {
     r.t -= dt;
-    if (r.t <= 0) { Object.assign(r, { mode: 'roam', x: 14, y: FLOOR, plat: PL.floor, vx: 0, vy: 0, hp: 3, rest: 1, target: null, airX: null }); sfx.yowl(); pops.push({ x: 50, y: FLOOR - 70, text: r.ally ? lt('ボス「手伝ってやるよ」', 'Boss: "I\'ll give you a paw"') : lt('ボス猫だ!', 'Boss cat!'), life: 1.6, col: '#5d7a9a', size: 18 }); }
+    if (r.t <= 0) { Object.assign(r, { mode: 'roam', x: 14, y: FLOOR, plat: PL.floor, vx: 0, vy: 0, hp: 3, rest: 1, target: null, airX: null }); sfx.yowl();
+      if (r.ally && !r.said) { r.said = true; setTimeout(() => { if (rival && rival.ally && state === 'play') pops.push({ x: 90, y: FLOOR - 96, text: lt('「どうせなら派手にやるぞ」', '"Might as well go big"'), life: 1.8, col: '#5d7a9a', size: 16 }); }, 1700); } pops.push({ x: 50, y: FLOOR - 70, text: r.ally ? lt('ボス「おまえのせいで俺が疑われてんだよ」', 'Boss: "They blame ME for your mess"') : lt('ボス猫だ!', 'Boss cat!'), life: 1.6, col: '#5d7a9a', size: 18 }); }
     return;
   }
   let dir = 0;
@@ -3178,7 +3218,8 @@ const ENDINGS = {
     say: [tx('今日もいろいろあったけど…', 'What a day it was…'), tx('はい、ごはん', "Here's dinner"), tx('やっぱり、いい子だね〜', "You're a good cat after all~")],
     oops: tx('あーっ!!', 'HEY!!'), punch: true },
   true: { n: tx('ほんとうのおしまい', 'The True End'), how: tx('7日目の夜を越える', 'Get through the seventh night'),
-    say: [tx('7日間、ぜんぶ見てたよ', 'I saw all seven days'), tx('はい、ごはん。いっぱい食べな', "Here's dinner. Eat up"), tx('……もう、好きにしなさい', '……Fine. Do as you please')],
+    say: [tx('7日間、ぜんぶ見てたよ', 'I saw all seven days'), tx('はい、ごはん。いっぱい食べな', "Here's dinner. Eat up"), tx('犬もカメラもドローンも、無駄だったね', 'The dog, the cams, the drone… all pointless')],
+    say4: tx('……もう、好きにしなさい', '……Fine. Do as you please'), sayAll: tx('全部壊したね。保険屋さん、来週も来るって', 'You broke it all. The insurance guy is back next week'),
     oops: tx('……明日かたづけるよ', '……I\'ll clean it up tomorrow'), punch: true }
 };
 function endingType(r) {
@@ -3191,12 +3232,18 @@ function endingType(r) {
 let endingsSeen = new Set();
 try { endingsSeen = new Set(JSON.parse(store.get('nekoEndings', '[]'))); } catch (e) {}
 // スタッフロール：ENDING の種類、出演（ネコ・飼い主）、被害者一覧（割ったもの）、大技、3日間の写真。タップ・ボタンで飛ばせる
-let credT = 0, CRED_LEN = 64 * (60 / 84 / 2);   // 曲のひとまわり（8 小節・84 BPM ＝ 約 22.9 秒）に合わせる。4.23.1
+let credT = 0, epiT = 0, CRED_LEN = 64 * (60 / 84 / 2);   // 曲のひとまわり（8 小節・84 BPM ＝ 約 22.9 秒）に合わせる。4.23.1
 function creditLines() {
   const r = run, E = ENDINGS[r.endType], L = [], nd = r.endType === 'true' ? TRUE_DAY : END_DAY, tr = r.endType === 'true';
   L.push(['big', lt('こっそりネコ', 'Mischievous Cat')]); L.push(['sub', 'ENDING ' + String(E.n)]); L.push(['gap']);
   L.push(['h', lt('出演', 'CAST')]); L.push(['t', lt('ネコ：', 'Cat: ') + CATS[selCat].name]); L.push(['t', lt('飼い主：', 'Owner: ') + lt('名前はまだない', 'Name unknown')]);
-  L.push(['t', lt('ときどき：子ども、おばあちゃん', 'Also: the kid, Grandma')]); L.push(['t', lt('お父さん、お客さん', 'Dad, the guest')]); L.push(['gap']);
+  L.push(['t', lt('ときどき：子ども、おばあちゃん', 'Also: the kid, Grandma')]); L.push(['t', lt('お父さん、お客さん', 'Dad, the guest')]); L.push(['t', lt('犬：ほぼ寝てた', 'The dog: mostly asleep')]);
+  if (tr) L.push(['t', lt('となりのボス猫：味方（1晩だけ）', 'Boss cat next door: ally (one night)')]);
+  L.push(['gap']);
+  // 飼い主の日記：3日目は 1〜3 日目、ほんとうのおしまいは 7 日ぶん
+  L.push(['h', lt('飼い主の日記', "OWNER'S DIARY")]);
+  for (let d = 1; d <= nd; d++) { const t = diaryOf(d), parts = []; let cur = ''; for (const ch of t) { if (cur.length >= 22 && /[。、！？!? ]/.test(cur[cur.length - 1])) { parts.push(cur); cur = ''; } cur += ch; } if (cur) parts.push(cur); parts.forEach((pt, i) => L.push(['d', (i === 0 ? d + lt('日目：', ': ') : '') + pt])); }
+  L.push(['gap']);
   L.push(['h', lt('被害者のみなさん', 'THE VICTIMS')]);
   const bro = Object.entries(r.broke || {}).filter(([k]) => IT[k]).sort((a, b) => b[1] - a[1]).slice(0, 7);
   bro.forEach(([k, n]) => L.push(['t', IT[k].n + ' ×' + n])); if (!bro.length) L.push(['t', lt('（なし。本当に？）', '(none. really?)')]);
@@ -3204,10 +3251,22 @@ function creditLines() {
   { const fs = Object.keys(FOES).filter(k => r.ev && r.ev['foe_' + k]); if (fs.length) { L.push(['gap']); L.push(['h', lt('たおした相手', 'DEFEATED')]); fs.forEach(k => L.push(['t', FOES[k].n])); } }
   L.push(['gap']); L.push(['h', lt('こっそりネコ', 'Mischievous Cat')]); L.push(['t', lt('制作：', 'Created by ') + AUTHOR]);
   L.push(['gap']); L.push(['h', lt(nd + '日間の被害額', nd + '-DAY DAMAGE')]); L.push(['big2', yen(r.yen)]); L.push(['t', lt('称号', 'Title') + '「' + titleOf(r.yen) + '」']);
-  L.push(['gap']); L.push(['t', tr ? lt('飼い主は、ぜんぶ知っていた', 'The owner knew all along') : lt('飼い主は、まだ気づいていない', 'The owner still has no idea')]); L.push(['gap']);
-  L.push(['sub', tr ? lt('あそんでくれて、ありがとう', 'Thank you for playing') : lt('そして、4日目へ……', 'And so, on to Day 4……')]);
+  L.push(['gap']); L.push(['t', tr ? lt('飼い主は、ぜんぶ知っていた', 'The owner knew all along') : lt('そして、4日目へ……', 'And so, on to Day 4……')]); L.push(['gap']);
+  L.push(['sub', tr ? lt('あそんでくれて、ありがとう', 'Thank you for playing') : lt('飼い主は、まだ気づいていない。……たぶん', 'The owner still has no idea. …Probably')]);
   if (tr) { L.push(['gap']); L.push(['t', lt('（8日目からは、終わりのない日々）', '(From Day 8: the endless days)')]); }
   return L;
+}
+// 日記の紙：横書きで折り返す。見出しは「飼い主の日記」
+function drawDiary(x, y, txt, a) {
+  g.save(); g.globalAlpha = a; g.font = `800 13px ${FONT}`; g.textAlign = 'left'; g.textBaseline = 'middle';
+  const maxW = 300, lines = []; let cur = '';
+  for (const ch of txt) { if (g.measureText(cur + ch).width > maxW) { lines.push(cur); cur = ch; } else cur += ch; } if (cur) lines.push(cur);
+  const h = 30 + lines.length * 19, w = maxW + 28;
+  g.translate(x, y); g.rotate(-0.02); g.fillStyle = '#fffaf0'; g.strokeStyle = '#c9b39a'; g.lineWidth = 1.5; rr(g, -w / 2, 0, w, h, 6); g.fill(); g.stroke();
+  g.strokeStyle = 'rgba(201,179,154,.5)'; g.lineWidth = 1; for (let i = 0; i < lines.length; i++) { g.beginPath(); g.moveTo(-w / 2 + 10, 34 + i * 19); g.lineTo(w / 2 - 10, 34 + i * 19); g.stroke(); }
+  g.fillStyle = '#c95f17'; g.font = `800 10px ${FONT}`; g.fillText(lt('飼い主の日記', "Owner's diary"), -w / 2 + 12, 12);
+  g.fillStyle = '#4a2f1d'; g.font = `800 13px ${FONT}`; lines.forEach((l, i) => g.fillText(l, -w / 2 + 14, 27 + i * 19));
+  g.restore();
 }
 function drawCredits() {
   const e = credT, L = creditLines();
@@ -3219,9 +3278,9 @@ function drawCredits() {
   // 文字：下から上へ
   g.textAlign = 'center'; g.textBaseline = 'middle'; let y = -OY + VH + 30 - e * (VH + 30 + L.length * 26 + 80) / CRED_LEN;
   for (const [k, t] of L) {
-    const h = k === 'gap' ? 18 : k === 'big' ? 46 : k === 'big2' ? 40 : 26;
+    const h = k === 'gap' ? 18 : k === 'big' ? 46 : k === 'big2' ? 40 : k === 'd' ? 20 : 26;
     if (k !== 'gap' && y > -OY - 40 && y < -OY + VH + 40) {
-      g.fillStyle = k === 'h' ? '#ffc94a' : k === 'sub' ? '#ff8a3d' : '#fff6c8'; g.font = `800 ${k === 'big' ? 34 : k === 'big2' ? 30 : k === 'h' ? 13 : k === 'sub' ? 18 : 15}px ${FONT}`;
+      g.fillStyle = k === 'h' ? '#ffc94a' : k === 'sub' ? '#ff8a3d' : k === 'd' ? '#d9d3ef' : '#fff6c8'; g.font = `800 ${k === 'big' ? 34 : k === 'big2' ? 30 : k === 'h' ? 13 : k === 'sub' ? 18 : k === 'd' ? 12 : 15}px ${FONT}`;
       g.fillText(String(t), W / 2, y);
     }
     y += h;
@@ -3230,6 +3289,26 @@ function drawCredits() {
   drawCat(g, (W + 60 - (e * 70) % (W + 120)), FLOOR + 4, { type: cat.type, face: -1, scale: 1, t: tAnim, move: true, pose: 'walk', acc: selAcc, tail: 'up' });
   if (e < 0.6) { g.fillStyle = `rgba(20,14,40,${1 - e / 0.6})`; g.fillRect(0, -OY, W, VH); }
   if (e > 1 && e < CRED_LEN - 1) { g.fillStyle = 'rgba(255,246,200,.5)'; g.font = `800 11px ${FONT}`; g.textAlign = 'right'; g.fillText(lt('タップで飛ばす', 'Tap to skip'), W - 10, -OY + 16); }
+}
+// 後日談（ほんとうのおしまいのあと）：8日目の朝。テーブルの上は空っぽで、ものは全部床に並べてある
+function drawEpilogue() {
+  const e = epiT, F = FLOOR, L0 = level; level = L0 + 1; try { drawRoom(); } finally { level = L0; }
+  drawFurniture();
+  const row = ['cup', 'mug', 'vase', 'phone', 'frame', 'wine', 'tablet']; row.forEach((t, i) => drawItem(g, t, 44 + i * 40, F, 0, false));
+  // 飼い主（立って腕組み）とネコ（床のものをじっと見る）
+  g.save(); g.translate(312, F); g.lineCap = 'round'; g.strokeStyle = '#3b4252'; g.lineWidth = 11; g.beginPath(); g.moveTo(-3, -58); g.lineTo(-3, -4); g.moveTo(5, -58); g.lineTo(5, -4); g.stroke();
+  g.fillStyle = '#5d8fd0'; rr(g, -15, -122, 32, 68, 10); g.fill(); g.strokeStyle = '#5d8fd0'; g.lineWidth = 8; g.beginPath(); g.moveTo(-12, -100); g.lineTo(12, -92); g.moveTo(14, -100); g.lineTo(-10, -92); g.stroke();
+  g.fillStyle = '#f0c8a0'; g.beginPath(); g.arc(2, -130, 16, 0, TAU); g.fill(); g.fillStyle = '#3a2a22'; g.beginPath(); g.arc(1, -134, 16, Math.PI, TAU); g.fill();
+  g.fillStyle = '#222'; g.beginPath(); g.arc(-6, -131, 1.9, 0, TAU); g.fill(); g.strokeStyle = '#222'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(-9, -121); g.quadraticCurveTo(-6, -119, -3, -121); g.stroke();
+  g.strokeStyle = 'rgba(80,60,120,.35)'; g.lineWidth = 2; g.beginPath(); g.arc(-6, -127, 4, 0.2, Math.PI - 0.2); g.stroke();   // クマ
+  g.restore();
+  drawCat(g, 250, F, { type: cat.type, face: -1, scale: 1, t: tAnim, pose: 'stare', acc: selAcc, tail: 'low' });
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (e > 1.2 && e < 4.2) bubble(312, F - 160, lt('最初から床に置けばよかった', 'Should have put it all on the floor from day one'));
+  if (e > 4.6 && e < 7.6) { g.font = `800 15px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(lt('……つまんない', '…boring'), 250, F - 62); g.fillStyle = '#4a2f1d'; g.fillText(lt('……つまんない', '…boring'), 250, F - 62); }
+  g.fillStyle = '#4a2f1d'; g.font = `800 15px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; const tt = lt('8日目の朝', 'Day 8, morning'); g.strokeText(tt, W / 2, -OY + 40); g.fillText(tt, W / 2, -OY + 40);
+  if (e < 0.8) { g.fillStyle = `rgba(20,14,40,${1 - e / 0.8})`; g.fillRect(0, -OY, W, VH); }
+  if (e > 7.4) { g.fillStyle = `rgba(20,14,40,${clamp((e - 7.4) / 0.6, 0, 1)})`; g.fillRect(0, -OY, W, VH); }
 }
 function startEnding(isTrue) {
   if (isTrue) run.trueEnded = true;
@@ -3291,7 +3370,8 @@ function drawEnding() {
   g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
   if (e > 0.6 && e < 2.6) bubble(150, F - 140, String(EN.say[0]));
   if (e > 2.8 && e < 4.4) bubble(150, F - 140, String(EN.say[1]));
-  if (e > 4.6 && e < 6.6) bubble(150, F - 140, String(EN.say[2]));
+  if (e > 4.6 && e < 6.6) bubble(150, F - 140, String(ET === 'true' && (run.foes || 0) >= 4 ? EN.sayAll : EN.say[2]));
+  if (ET === 'true' && e > 6.8 && e < 8.6) bubble(150, F - 140, String(EN.say4));
   if (e > 4.6 && e < (ET === 'true' ? 12.2 : 7.4)) { g.font = `800 14px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(lt('ゴロゴロ', 'Purr purr'), 250, F - 60); g.fillStyle = '#c95f17'; g.fillText(lt('ゴロゴロ', 'Purr purr'), 250, F - 60); }
   const offSay = (t, y) => { g.font = `800 15px ${FONT}`; const w = g.measureText(t).width + 18; g.fillStyle = '#fff'; g.strokeStyle = '#4a2f1d'; g.lineWidth = 2; rr(g, 6, y - 13, w, 26, 12); g.fill(); g.stroke(); g.fillStyle = '#e0362c'; g.fillText(t, 6 + w / 2, y); };   // 画面の外（左）の飼い主の声
   if (ET === 'perfect') {
@@ -3311,6 +3391,8 @@ function drawEnding() {
     if (e > 8.9 && e < 9.4) { g.font = `800 16px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(lt('ぱたん', 'flop'), 262, F - 46); g.fillStyle = '#c95f17'; g.fillText(lt('ぱたん', 'flop'), 262, F - 46); }
     if (e > 9.5 && e < 10.9) bubble(ox + 20, F - 150, String(EN.oops));
     if (e > 11.0 && e < 12.4) bubble(ox + 20, F - 150, lt('おやすみ', 'Good night'));
+    // 窓の外に、となりのボス猫の影
+    if (e > 10.0) { const kb = clamp((e - 10) / 0.8, 0, 1); g.save(); g.globalAlpha = kb; g.fillStyle = '#e8ecf2'; g.beginPath(); g.arc(70, 372 - 12 * kb, 9, 0, TAU); g.fill(); g.beginPath(); g.moveTo(63, 366 - 12 * kb); g.lineTo(61, 355 - 12 * kb); g.lineTo(68, 362 - 12 * kb); g.moveTo(77, 366 - 12 * kb); g.lineTo(79, 355 - 12 * kb); g.lineTo(72, 362 - 12 * kb); g.fill(); g.fillStyle = '#4ab0e0'; g.beginPath(); g.arc(67, 372 - 12 * kb, 1.4, 0, TAU); g.arc(73, 372 - 12 * kb, 1.4, 0, TAU); g.fill(); g.restore(); }
     if (e > 10.0 && e < 12.4) { const k = (tAnim * 0.8) % 1; g.font = `800 ${16 + 8 * k}px ${FONT}`; g.lineWidth = 5; g.strokeStyle = '#fff'; g.fillStyle = '#5d7a9a'; g.globalAlpha = 1 - k; g.strokeText('Zzz', ox + 30 + 14 * k, F - 150 - 26 * k); g.fillText('Zzz', ox + 30 + 14 * k, F - 150 - 26 * k); g.strokeText('Zzz', 250 + 14 * k, F - 70 - 26 * k); g.fillText('Zzz', 250 + 14 * k, F - 70 - 26 * k); g.globalAlpha = 1; }
   } else if (ET === 'good') {
     // いい子（自称）：寝たまま。しっぽがコップに当たって割れるが、ネコは寝ている（ことになっている）
@@ -3367,7 +3449,7 @@ function showEnding() {
     $('enBack').addEventListener('click', () => { endBgmStop(); showTitle(); });
     return;
   }
-  state = 'endmenu'; ov.hidden = false; endFx = 0;
+  state = 'endmenu'; ov.hidden = false; endFx = 0; parts = [];
   // ここで一度記録する：ランキングへ送る（自己ベストなら）・称号・ごほうびのきせかえ。4日目へつづけても、この記録は残る
   const firstEnd = store.get('nekoEnded', '') !== '1'; store.set('nekoEnded', '1');
   const et = run.endType || 'normal', newEnd = !endingsSeen.has(et), tr = et === 'true', nd = tr ? TRUE_DAY : END_DAY;
@@ -3712,6 +3794,7 @@ function caught(timeup) {
   snap = takeSnap();
   state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.face = timeup ? 'deadpan' : pickW(CAUGHT_FACES, f => f.w).id; if (run.blame) run.face = 'innocent'; run.huh = run.face === 'huh'; run.huhStep = 0; spaceT = 0; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME[phaseOf(level).tod] || REACT_TIME[3]) : room === 'kids' && Math.random() < 0.6 ? pick(LINES.kid) : room === 'garden' && Math.random() < 0.7 ? pick(LINES.granny) : room === 'study' && Math.random() < 0.7 ? pick(LINES.dad) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35; slowT = 0;
   { const sp = specialReact(!!timeup); if (sp) run.react = sp; }
+  if (!timeup && DAY_REACT[dayOf(level)] && Math.random() < 0.6) run.react = pick(DAY_REACT[dayOf(level)]);
   if (nap && !timeup && Math.random() < 0.7) run.react = pick(LINES.napCaught);
   bgmStop(); if (timeup) sfx.timeup(); else { sfx.watch(); sfx.caught(); } buzz(timeup ? 80 : [60, 40, 120]); setPulse(null);
   if (owner.mode === 'away') { owner.x = clamp(cat.x - 70, 20, 330); owner.face = 1; }
@@ -4362,6 +4445,7 @@ function drawRoom() {
   g.strokeStyle = 'rgba(94,58,28,.15)'; g.lineWidth = 2;
   for (let x = 20; x < W; x += 60) { g.beginPath(); g.moveTo(x, FLOOR + 6); g.lineTo(x - 20 - (BOT - H) * 0.5, BOT); g.stroke(); }
   if (room === 'bed') { g.fillStyle = '#ffb3c6'; rr(g, 150, FLOOR + 8, 150, 22, 10); g.fill(); }   // ラグ
+  drawTape();
   if (room === 'kids') { g.fillStyle = '#7fc1f0'; rr(g, 140, FLOOR + 8, 170, 22, 10); g.fill(); g.fillStyle = '#fff'; for (let x = 150; x < 300; x += 16) g.fillRect(x, FLOOR + 18, 8, 2); }   // 道路のラグ
   // 窓（時間帯で空の色が変わる）。カーテンレール（足場）の下に置くので、元の位置から 226px 下げて描く
   g.save(); g.translate(0, 226);
@@ -4389,6 +4473,21 @@ function drawRoom() {
   const hh = parseInt(ph.clock, 10) % 12, ha = hh / 12 * TAU - Math.PI / 2, ckx = 120;
   g.fillStyle = '#fff'; g.beginPath(); g.arc(ckx, 90, 22, 0, TAU); g.fill(); g.strokeStyle = '#ff8a3d'; g.lineWidth = 5; g.stroke();
   g.strokeStyle = '#4a2f1d'; g.lineWidth = 2.5; g.lineCap = 'round'; g.beginPath(); g.moveTo(ckx, 90); g.lineTo(ckx + Math.cos(ha) * 10, 90 + Math.sin(ha) * 10); g.moveTo(ckx, 90); g.lineTo(ckx, 74); g.stroke();
+  // 第2週の痕跡：5日目から「ネコ注意」の貼り紙、6日目から書斎に犯人ボード（ボス猫の写真に赤い×）、7日目から「監視中」の札
+  { const d = dayOf(level);
+    if (d >= 5) { g.save(); g.translate(120, 134); g.rotate(0.04); g.fillStyle = '#fff6c8'; g.fillRect(-22, -14, 44, 28); g.fillStyle = '#e0362c'; g.fillRect(-22, -14, 44, 5); g.fillStyle = '#4a2f1d'; g.font = `800 9px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('ネコ注意', 'CAT ALERT'), 0, 2); g.fillText(lt('ネコ注意', 'CAT ALERT'), 0, 2); g.fillStyle = '#9aa0a6'; g.beginPath(); g.arc(0, -11, 1.6, 0, TAU); g.fill(); g.restore(); }
+    if (d >= 7) { g.save(); g.translate(300, 136); g.fillStyle = '#e0362c'; rr(g, -26, -9, 52, 18, 4); g.fill(); g.fillStyle = '#fff'; g.font = `800 9px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('監視中', 'WATCHING'), 0, 1); g.fillStyle = (tAnim * 2) % 1 < 0.5 ? '#fff' : '#ffc94a'; g.beginPath(); g.arc(-20, 0, 2, 0, TAU); g.fill(); g.restore(); }
+    if (d >= 6 && room === 'study') {
+      // 犯人ボード：コルクボードにボス猫の写真、赤い×、「犯人」のメモ、糸
+      g.fillStyle = '#c99a62'; rr(g, 180, 56, 70, 58, 3); g.fill(); g.strokeStyle = '#8a5a34'; g.lineWidth = 3; g.strokeRect(180, 56, 70, 58);
+      g.fillStyle = '#fff'; g.fillRect(190, 64, 26, 30); g.fillStyle = '#e8ecf2'; g.beginPath(); g.arc(203, 78, 8, 0, TAU); g.fill(); g.beginPath(); g.moveTo(197, 73); g.lineTo(195, 64); g.lineTo(201, 70); g.moveTo(209, 73); g.lineTo(211, 64); g.lineTo(205, 70); g.fill(); g.fillStyle = '#4ab0e0'; g.fillRect(199, 77, 2, 2); g.fillRect(205, 77, 2, 2);
+      g.strokeStyle = '#e0362c'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(191, 66); g.lineTo(215, 92); g.moveTo(215, 66); g.lineTo(191, 92); g.stroke();
+      g.fillStyle = '#fff6c8'; g.fillRect(222, 66, 22, 14); g.fillStyle = '#e0362c'; g.font = `800 8px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('犯人', 'HIM'), 233, 73);
+      g.fillStyle = '#fff'; g.fillRect(222, 86, 22, 20); g.fillStyle = '#4a2f1d'; g.font = `800 6px ${FONT}`; g.fillText(lt('うちの子', 'mine'), 233, 92); g.fillText(lt('＝いい子', '=good'), 233, 100);
+      g.strokeStyle = '#e0362c'; g.lineWidth = 1; g.beginPath(); g.moveTo(203, 80); g.lineTo(233, 73); g.moveTo(203, 80); g.lineTo(233, 96); g.stroke();
+      g.fillStyle = '#ff5a5a'; [[203, 65], [233, 67], [233, 87]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 2, 0, TAU); g.fill(); });
+    }
+  }
   // 部屋ごとの壁の飾り
   if (room === 'living') {
     drawTv();   // リビングは絵の代わりにテレビ
@@ -4400,6 +4499,14 @@ function drawRoom() {
     // カレンダー
     g.fillStyle = '#fff'; rr(g, 262, 58, 50, 58, 4); g.fill(); g.fillStyle = '#ff5a5a'; g.fillRect(262, 58, 50, 12);
     g.fillStyle = '#c9b39a'; for (let r = 0; r < 4; r++) for (let k = 0; k < 5; k++) g.fillRect(266 + k * 9, 76 + r * 9, 6, 5);
+  } else if (room === 'kids' && run && run.ev && run.ev.foe_toybot && !(foe && foe.kind === 'toybot')) {
+    // ロボットを壊されたあと：子どもの絵「ネコのしわざ」（クレヨン）
+    g.fillStyle = '#fff'; rr(g, 262, 56, 56, 62, 4); g.fill();
+    g.strokeStyle = '#8a8f96'; g.lineWidth = 2.5; g.lineCap = 'round'; g.beginPath(); g.arc(290, 86, 12, 0, TAU); g.stroke(); g.beginPath(); g.moveTo(281, 78); g.lineTo(279, 68); g.lineTo(286, 75); g.moveTo(299, 78); g.lineTo(301, 68); g.lineTo(294, 75); g.stroke();   // ネコの顔
+    g.strokeStyle = '#2fb3a3'; g.lineWidth = 2; g.beginPath(); g.moveTo(286, 84); g.lineTo(288, 86); g.moveTo(294, 84); g.lineTo(292, 86); g.stroke();
+    g.strokeStyle = '#e0362c'; g.lineWidth = 3; g.beginPath(); g.moveTo(272, 66); g.lineTo(308, 108); g.moveTo(308, 66); g.lineTo(272, 108); g.stroke();   // 大きな×
+    g.fillStyle = '#e0362c'; g.font = `800 8px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('ネコのしわざ', 'THE CAT DID IT'), 290, 111);
+    g.fillStyle = '#2b8fd9'; g.fillRect(266, 60, 10, 4); g.fillStyle = '#ffc94a'; g.fillRect(304, 60, 10, 4);   // テープ
   } else if (room === 'kids') {
     // ロケットのポスター
     g.fillStyle = '#fff'; rr(g, 262, 56, 56, 62, 4); g.fill(); g.fillStyle = '#20285a'; g.fillRect(266, 60, 48, 54);
@@ -4422,6 +4529,11 @@ function drawRoom() {
 }
 
 // 庭：空・遠くの家・木・板塀・芝生・花だん（掘るいたずらの場所）
+// 養生テープの跡：前にこの部屋で割った場所（run.tape[room]）。その面で割った分は次に来たときから見える
+function drawTape() {
+  const tp = run && run.tape && run.tape[room]; if (!tp) return;
+  for (const t of tp) { if (t.L === level) continue; g.save(); g.translate(t.x, FLOOR + 14); g.rotate(t.r); g.fillStyle = 'rgba(255,214,130,.85)'; g.fillRect(-9, -2.5, 18, 5); g.rotate(Math.PI / 2); g.fillRect(-9, -2.5, 18, 5); g.restore(); }
+}
 function drawGardenBg() {
   const ph = phaseOf(level);
   const sk = skyCols(ph), sky = g.createLinearGradient(0, -OY, 0, FLOOR); sky.addColorStop(0, sk[0]); sky.addColorStop(1, sk[1]);
@@ -4435,7 +4547,7 @@ function drawGardenBg() {
   g.fillStyle = '#c99a62'; g.fillRect(0, 380, W, FLOOR - 380);
   g.strokeStyle = 'rgba(94,58,28,.25)'; g.lineWidth = 2; for (let x = 0; x < W; x += 22) { g.beginPath(); g.moveTo(x, 380); g.lineTo(x, FLOOR); g.stroke(); }
   g.fillStyle = '#b07d45'; g.fillRect(0, 374, W, 8);
-  g.fillStyle = '#7cc25a'; g.fillRect(0, FLOOR, W, BOT - FLOOR); g.fillStyle = '#5aa64a'; g.fillRect(0, FLOOR, W, 5);
+  g.fillStyle = '#7cc25a'; g.fillRect(0, FLOOR, W, BOT - FLOOR); g.fillStyle = '#5aa64a'; g.fillRect(0, FLOOR, W, 5); drawTape();
   g.strokeStyle = '#5aa64a'; g.lineWidth = 1.5; for (let y = FLOOR + 14, r = 0; y < BOT; y += 22, r++) for (let x = 6 + (r % 2) * 6; x < W; x += 13) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + 3, y - 6); g.stroke(); }
   const ds = spots.find(s => s.id === 'dig'), m = MISCHIEF.dig, k = ds ? clamp(ds.t / m.need, 0, 1) : 0, nf = ds && ds.done ? 0 : 5 - Math.floor(k * 5);
   g.fillStyle = '#7a5530'; rr(g, m.x[0] - 4, FLOOR - 7, m.x[1] - m.x[0] + 8, 9, 4); g.fill();
@@ -4900,6 +5012,8 @@ function drawOwner() {
   g.fillStyle = hairC; g.beginPath(); g.arc(-1, -4, 16, Math.PI, TAU); g.fill();
   if (wt === 'grandma') { g.beginPath(); g.arc(-15, -11, 6, 0, TAU); g.fill(); g.strokeStyle = '#2a2f36'; g.lineWidth = 1.2; g.beginPath(); g.arc(8, -1, 3.5, 0, TAU); g.stroke(); }   // おだんごとメガネ
   if (wt === 'dad') { g.fillStyle = '#3a2a22'; rr(g, 8, 3, 9, 2.6, 1.2); g.fill(); }   // ひげ
+  if (!kid && wt === 'owner' && dayOf(level) >= 7) { g.fillStyle = hairC; [[-14, -12, -20, -22], [-6, -17, -8, -27], [4, -17, 8, -27], [12, -12, 19, -20]].forEach(([x0, y0, x1, y1]) => { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.lineTo(x0 + 4, y0 + 1); g.fill(); }); }   // 7日目：寝不足で髪がはねる
+  if (!kid && wt === 'owner' && dayOf(level) >= 6) { g.strokeStyle = 'rgba(80,60,120,.4)'; g.lineWidth = 2; g.beginPath(); g.arc(8, 2, 4, 0.2, Math.PI - 0.2); g.stroke(); }   // 6日目から目の下にクマ
   if (kid) { g.fillStyle = '#e4413a'; g.beginPath(); g.arc(-1, -5, 16.5, Math.PI, TAU); g.fill(); g.fillRect(6, -8, 18, 4); }   // 帽子
   else if (room === 'garden') { g.fillStyle = '#e6c38f'; g.beginPath(); g.ellipse(-1, -11, 25, 4.5, 0, 0, TAU); g.fill(); g.beginPath(); g.arc(-1, -12, 12, Math.PI, TAU); g.fill(); g.fillStyle = '#e0362c'; g.fillRect(-13, -15, 24, 2.5); }   // 麦わら帽子
   else if (room === 'kitchen') { g.fillStyle = '#ff9fb2'; g.beginPath(); g.arc(-1, -5, 16.5, Math.PI * 1.05, Math.PI * 1.95); g.closePath(); g.fill(); g.beginPath(); g.moveTo(-15, -10); g.lineTo(-23, -14); g.lineTo(-20, -5); g.closePath(); g.fill(); }   // 三角巾
@@ -5255,6 +5369,7 @@ function draw() {
   if (shake > 0 && !SET.calm) g.translate(rnd(-3, 3) * Math.min(1, shake * 4), rnd(-3, 3) * Math.min(1, shake * 4));
   if (zoomK > 0 && state === 'play' && !SET.calm) { const z = 1 + 0.045 * zoomK * zoomK; g.translate(zoomX, zoomY); g.scale(z, z); g.translate(-zoomX, -zoomY); }
   if (state === 'credits') { drawCredits(); g.restore(); return; }
+  if (state === 'epilogue') { drawEpilogue(); g.restore(); return; }
   if (state === 'ending' || state === 'endmenu') { drawEnding(); if (state === 'endmenu') drawParts(); g.restore(); return; }
   drawRoom();
   drawFest();
@@ -5363,14 +5478,16 @@ function draw() {
     g.restore();
   }
   if (state === 'dayend') {
-    const k = clamp((4 - dayT) / 0.6, 0, 1);
+    const k = clamp((6 - dayT) / 0.6, 0, 1);
     g.fillStyle = `rgba(16,22,60,${0.88 * k})`; g.fillRect(0, -OY, W, VH);
     g.globalAlpha = k; g.fillStyle = '#fff'; for (let i = 0; i < 26; i++) { const sx = (i * 97) % W, sy = -OY + (i * 53) % (VH * 0.6); g.fillRect(sx, sy, 2, 2); }
     { const my = -OY + 46; g.fillStyle = '#fff6c8'; g.beginPath(); g.arc(360, my, 22, 0, TAU); g.fill(); g.fillStyle = 'rgba(16,22,60,1)'; g.beginPath(); g.arc(350, my - 7, 20, 0, TAU); g.fill(); }
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.font = `800 34px ${FONT}`; const dcy = -OY + VH / 2 - 30; g.fillText(lt(dayOf(level) + '日目　おしまい', 'Day ' + dayOf(level) + ' complete'), W / 2, dcy - 90);
     g.font = `800 17px ${FONT}`; g.fillStyle = '#ffe9a8'; g.fillText(lt('飼い主はねむった… Zzz', 'The owner fell asleep… Zzz'), W / 2, dcy - 48); g.fillText(lt('被害額 ', 'Damage ') + yen(run.yen), W / 2, dcy - 18);
     if (stageBonus && stageBonus.quick + stageBonus.sneaky > 0) g.fillText(lt('腕前ボーナス +', 'Skill bonus +') + yen(stageBonus.quick + stageBonus.sneaky), W / 2, dcy + 8);
-    drawCat(g, W / 2 + 20, Math.min(BOT - 12, dcy + 200), { type: cat.type, face: 1, scale: 2, pose: 'smug', t: tAnim, acc: selAcc, tail: 'up' });
+    // 飼い主の日記（1.2 秒後に、1 文字ずつ）
+    drawCat(g, W / 2 + 20, Math.min(BOT - 12, dcy + 230), { type: cat.type, face: 1, scale: 2, pose: 'smug', t: tAnim, acc: selAcc, tail: 'up' });
+    { const k3 = clamp((6 - dayT - 1.2) / 0.5, 0, 1); if (k3 > 0) { const txt = diaryOf(dayOf(level)), n = Math.min(txt.length, Math.floor((6 - dayT - 1.2) * 14)); drawDiary(W / 2, dcy + 32, txt.slice(0, n), k3); } }
     g.globalAlpha = 1;
   }
   if (state === 'clear') {
@@ -5439,13 +5556,15 @@ function update(dt) {
       if (dayEndNext) { dayEndNext = false;
         if (dayOf(level) === END_DAY && !run.ended) startEnding();   // 3日目の夜を越えたらエンディング
         else if (dayOf(level) === TRUE_DAY && !run.trueEnded) startEnding(true);   // 7日目の夜を越えたら「ほんとうのおしまい」
-        else { run.days = dayOf(level); state = 'dayend'; dayT = 4; sfx.dayend(); }
+        else { run.days = dayOf(level); state = 'dayend'; dayT = 6; sfx.dayend(); }   // 4.25.0：4 → 6 秒（日記を読む時間）
       } else { setupStage(level + 1); state = 'play'; }
     }
   } else if (state === 'ending') {
     endT += dt; if (endT > 15.8) { state = 'credits'; credT = 0; endBgmStart(true); EB.full = true; if (EB.on && ac) { EB.step = 0; EB.next = ac.currentTime + 0.05; } }   // スタッフロールの始まりを曲の 1 小節目に合わせる
   } else if (state === 'credits') {
-    credT += dt; if (credT > CRED_LEN && !endShown) { endShown = true; showEnding(); }
+    credT += dt; if (credT > CRED_LEN && !endShown) { if (run.endType === 'true' && !run.preview) { state = 'epilogue'; epiT = 0; } else { endShown = true; showEnding(); } }
+  } else if (state === 'epilogue') {
+    epiT += dt; if (epiT > 8 && !endShown) { endShown = true; showEnding(); }
   } else if (state === 'endmenu') {
     endFx += dt; if (Math.random() < dt * 30) addPart({ k: 'paper', x: rnd(0, W), y: -OY - 10, vx: rnd(-30, 30), vy: rnd(40, 90), life: 6, gy: BOT + 20, c: pick(['#ff5a5a', '#ffc94a', '#2fb3a3', '#2b8fd9', '#9b7fc0', '#ff8a3d']), s: rnd(3, 6), rot: rnd(0, 6), vr: rnd(-6, 6) }); updParts(dt);
   } else if (state === 'dayend') {
@@ -5841,7 +5960,7 @@ function showTestMenu(back) {
   ov.hidden = false;
   const rows = []; for (let L = 1; L <= TRUE_DAY * DAY_LEN; L++) rows.push(`<button type="button" data-l="${L}" style="width:100%;text-align:left;border-radius:10px">${stageLabel(L)}</button>`);
   ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.4rem">${lt('テスト', 'TEST')}</div><p class="sub">${lt('ステージをえらんで始める（記録には残らない）', 'Pick a stage (nothing is recorded)')}</p>
-    <div class="accs" style="max-height:38vh;overflow:auto;flex-direction:column;flex-wrap:nowrap;gap:3px">${rows.join('')}</div>
+    <div class="accs" style="max-height:38vh;overflow:auto;flex-direction:column;flex-wrap:nowrap;justify-content:flex-start;gap:3px">${rows.join('')}</div>
     <div class="row"><input id="tsL" class="nm" type="number" min="1" max="999" value="${level || 1}" style="width:5em" aria-label="stage"><button class="btn w" id="tsGo" type="button">${lt('この番号から', 'Start at #')}</button></div>
     <div class="row"><button class="btn w" id="tsEnd" type="button">${lt('エンディングの再生', 'Play endings')}</button></div>
     <button class="btn go" id="tsBack" type="button">${lt('もどる', 'Back')}</button></div>`;
@@ -6176,8 +6295,9 @@ async function makeCard() {
 // ステージクリア・1日の終わりの画面：タップやボタンですぐ次へ（出てすぐ 0.4 秒は受け付けない。連打の勢いで飛ばさないように）
 function skipInterlude() {
   if (state === 'clear' && clearT < (dayEndNext ? 1.2 : 2.0)) { clearT = 0; return true; }
-  if (state === 'dayend' && dayT < 3.6) { dayT = 0; return true; }
+  if (state === 'dayend' && dayT < 5.6) { dayT = 0; return true; }
   if (state === 'credits' && credT > 1 && credT < CRED_LEN - 0.3) { credT = CRED_LEN - 0.3; return true; }
+  if (state === 'epilogue' && epiT > 1 && epiT < 7.7) { epiT = 7.7; return true; }
   return false;
 }
 function churuMash() { if (owner.mode === 'churu' && cat && cat.churuPull) { churuRes = Math.min(1.4, churuRes + 0.24); } }
