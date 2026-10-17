@@ -326,7 +326,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.32.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.32.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -5596,7 +5596,7 @@ function draw() {
     const b = Math.abs(Math.sin(tAnim * 8)) * 8;
     drawEsc(1, '');
     g.lineJoin = 'round'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `800 24px ${FONT}`;
-    const rt = (chaseN >= 2 ? lt('最後! ', 'LAST! ') : lt('にげろ! ', 'RUN! ')) + Math.ceil(chaseT); g.lineWidth = 6; g.strokeStyle = '#fff'; g.strokeText(rt, W / 2, 210); g.fillStyle = '#ff3b30'; g.fillText(rt, W / 2, 210);
+    const rt = (chaseN >= 2 ? lt('すぐにげろ! ', 'RUN NOW! ') : lt('にげろ! ', 'RUN! ')) + Math.ceil(chaseT); g.lineWidth = 6; g.strokeStyle = '#fff'; g.strokeText(rt, W / 2, 210); g.fillStyle = '#ff3b30'; g.fillText(rt, W / 2, 210);
   }
   if (state !== 'title') {
     tag(dayName(level) + lt('・', ' · ') + phaseOf(level).name, 12, 'left');
