@@ -212,7 +212,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.2.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.2.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1017,6 +1017,15 @@ function setupStage(L) {
     if (d >= 2 && room !== 'garden' && room !== 'bath') { const nc = 1 + (Math.random() < 0.5 ? 1 : 0); for (let k = 0; k < nc; k++) { const x = rnd(30, W - 70); if (!creaks.some(q => Math.abs(q.x - x) < 60)) creaks.push({ x, w: 38, t: 0 }); } }
     lamp = d >= 2 && ['living', 'kitchen', 'study', 'kids', 'bed'].includes(room) ? { ax: 200, ay: 0, L: 235, th: 0, om: 0 } : null;
     tv = room === 'living' ? { on: 0, used: 0 } : null;
+    if (tv && !items.some(o => o.t === 'remote')) {
+      // すき間がなければ、テーブルかサイドテーブルの小物をリモコンに置きかえる
+      const jk = items.find(o => o.extra && (o.plat === PL.table || o.plat === PL.side));
+      if (jk) Object.assign(jk, { t: 'remote', extra: false, scored: false });
+      else for (let k = 0; k < 30; k++) {
+        const s = pick(['side', 'table'].filter(q => avail.includes(q))), r = spotOf(s), x = rnd(r[0], r[1]);
+        if (!items.some(o => o.plat === PL[s] && Math.abs(o.x - x) < 18)) { items.push({ t: 'remote', x, y: PL[s].y, vx: 0, vy: 0, plat: PL[s], home: s, state: 'rest', rot: 0, vr: 0, y0: 0, chain: 0, kaku: false, water: false }); break; }
+      }
+    }
     Object.assign(shelfTilt, { a: 0, dir: 0, t: 0, cd: 2, wob: 0 }); churuRes = 0;
   }
   guest = phaseOf(L).special === 'guest' ? { x: 405, face: -1, mode: 'chat', t: 4, say: '', sayT: 0, warn: 0 } : null; talkQ = []; offSay = null;
@@ -1054,7 +1063,7 @@ function setupStage(L) {
     if (creaks.length) add('creak', creaks[0].x + creaks[0].w / 2, FLOOR + 4);
     if (traps.length) add('trap', traps[0].x, traps[0].plat.y - 4);
     if (cams.length) add('cam', cams[0].mx, 130);
-    if (tv) add('tv', 308, 284);
+    if (tv) { const rm = items.find(o => o.t === 'remote'); if (rm) add('tv', rm.x, rm.plat.y - 6); }
     if (spots.some(s => s.id === 'cloth')) add('cloth', PL.table.x1 + 4, PL.table.y + 18);
     if (mouse) add('mouse', mouse.hole, FLOOR - 8);
     if (chick) add('chick', chick.x, FLOOR - 16);
@@ -2531,6 +2540,13 @@ function drawHints() {
     g.globalAlpha = pulse; g.strokeStyle = BALL[room].c; g.lineWidth = 2;
     // 「＞＞＞」が転がる向きへ流れていく
     for (let i = 0; i < 3; i++) { const k = (tAnim * 1.5 + i / 3) % 1, cx = x + d * (k * 18); g.globalAlpha = pulse * (1 - k); g.beginPath(); g.moveTo(cx - d * 3, y - 5); g.lineTo(cx + d * 2, y); g.lineTo(cx - d * 3, y + 5); g.stroke(); }
+  }
+  if (tv && !learned.has('tv') && tv.on <= 0) for (const it of items) {
+    if (it.t !== 'remote' || it.state !== 'rest' || Math.abs(cat.x - it.x) > 140) continue;
+    const x = it.x, y = it.plat.y - 24 - b;
+    g.globalAlpha = pulse; g.fillStyle = '#20252b'; rr(g, x - 9, y - 7, 18, 13, 2); g.fill();
+    g.fillStyle = (tAnim * 3) % 1 < 0.5 ? '#9cc8ef' : '#ffc94a'; g.fillRect(x - 7, y - 5, 14, 9); g.fillStyle = '#20252b'; g.fillRect(x - 2, y + 6, 4, 2);
+    g.globalAlpha = 1;
   }
   // 壁の高い足場：まだ乗ったことがなければ、そこに置かれたものがきらきら光る
   if (!learned.has('high')) for (const it of items) {
