@@ -145,6 +145,8 @@
   .zukan { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 8px 0; text-align: left; }
   .zukan div { border: 2px solid var(--line); border-radius: 12px; padding: 6px 8px; font-weight: 800; font-size: .86rem; background: #fff; }
   .zukan div.off { color: #c9b39a; background: #fbf3e6; }
+  .cert { border: 2px dashed var(--line); border-radius: 14px; padding: 10px 12px; margin: 8px 0; background: #fffaf0; }
+  .end-panel .big-logo { color: var(--org-d); }
   .zukan small { display: block; font-weight: 500; font-size: .7rem; color: var(--ink2); margin-top: 2px; line-height: 1.35; }
   .zukan div.off small { color: #b39a80; }
   .a2hs { border: 2px dashed var(--line); border-radius: 12px; padding: 8px 10px; margin: 8px 0; font-size: .82rem; text-align: left; background: #fff; line-height: 1.5; }
@@ -242,7 +244,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.12.3', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.13.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -683,8 +685,10 @@ const busyOf = () => BUSY_ROOM[room] || BUSY[phaseIx(level)];
 // きせかえ：称号をいくつ集めたかで増える
 const ACCS = [
   { id: 'none', name: tx('なし', 'None'), need: 0 }, { id: 'bell', name: tx('鈴の首輪', 'Bell collar'), need: 2 }, { id: 'ribbon', name: tx('リボン', 'Ribbon'), need: 4 },
-  { id: 'scarf', name: tx('バンダナ', 'Bandana'), need: 6 }, { id: 'hat', name: tx('パーティ帽', 'Party hat'), need: 8 }, { id: 'glasses', name: tx('メガネ', 'Glasses'), need: 11 }, { id: 'crown', name: tx('王冠', 'Crown'), need: 15 }
+  { id: 'scarf', name: tx('バンダナ', 'Bandana'), need: 6 }, { id: 'hat', name: tx('パーティ帽', 'Party hat'), need: 8 }, { id: 'glasses', name: tx('メガネ', 'Glasses'), need: 11 }, { id: 'crown', name: tx('王冠', 'Crown'), need: 15 },
+  { id: 'medal', name: tx('金メダル', 'Gold medal'), need: 999, ending: true }   // エンディングを見るともらえる
 ];
+const accOk = a => a.ending ? store.get('nekoEnded', '') === '1' : unlocked.size >= a.need;
 
 // ---------- 状態 ----------
 let state = 'title', level = 1, sus = 0, muted = store.get('nekoMute', '0') === '1';
@@ -2475,15 +2479,32 @@ function showEnding() {
     $('enBack').addEventListener('click', () => { run.preview = false; showTitle(); });
     return;
   }
-  state = 'endmenu'; ov.hidden = false;
-  ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.6rem">${lt('エンディング', 'THE END')}</div>
-    <p class="sub">${lt(END_DAY + '日間、いたずらしきった！', 'You survived ' + END_DAY + ' days of mischief!')}</p>
-    <p class="res-yen">${lt('ここまでの被害額', 'Damage so far')}<b>${yen(run.yen)}</b></p>
-    <button class="btn go" id="enCont" type="button">${lt((END_DAY + 1) + '日目へ（つづける）', 'On to Day ' + (END_DAY + 1))}</button>
+  state = 'endmenu'; ov.hidden = false; endFx = 0;
+  // ここで一度記録する：ランキングへ送る（自己ベストなら）・称号・ごほうびのきせかえ。4日目へつづけても、この記録は残る
+  const firstEnd = store.get('nekoEnded', '') !== '1'; store.set('nekoEnded', '1');
+  const gotTitles = [];
+  for (const t of TITLES) { const got = t.tier != null ? run.yen >= t.tier : t.test(run); if (got && !unlocked.has(t.id)) { unlocked.add(t.id); gotTitles.push(t.name); } }
+  store.set('nekoTitles', JSON.stringify([...unlocked]));
+  run.stage = level; if (onlineOn() && myName && run.yen > 0) { run.sent = false; sendScore().then(() => { run.sent = false; }); }
+  sfx.combo(6); setTimeout(() => sfx.kaching(), 250); buzz([60, 40, 60, 40, 120]);
+  const n = v => (v || 0).toLocaleString('ja-JP'), brokeN = Object.values(run.broke || {}).reduce((x, y) => x + y, 0);
+  const row = (k, v) => `<span>${k}</span><span>${v}</span>`;
+  ov.innerHTML = `<div class="panel end-panel">
+    <div class="big-logo" style="font-size:1.7rem">${lt('いたずら完走！', 'Mischief Complete!')}</div>
+    <p class="sub">${lt(END_DAY + '日間、だれにも止められなかった', END_DAY + ' days. Nobody could stop you.')}</p>
+    <div class="cert">
+      <p class="res-yen" style="margin:0">${lt(END_DAY + '日間の被害額', END_DAY + '-day damage')}<b>${yen(run.yen)}</b></p>
+      <p class="best" style="margin:2px 0 8px">${lt('称号', 'Title')}「${titleOf(run.yen)}」</p>
+      <div class="stat-list">${row(lt('割ったもの', 'Things broken'), n(brokeN) + lt('個', ''))}${row(lt('最大の連鎖', 'Best chain'), n(run.maxChain))}${row(lt('お題の★', 'Task stars'), n(run.stars))}${row(lt('朝からつづけた', 'Day restarts'), n(run.conts) + lt('回', ''))}</div>
+    </div>
+    <div class="badges">${firstEnd ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「金メダル」', 'Reward: Gold medal accessory')}</span>` : ''}${gotTitles.map(t => `<span class="badge new">NEW ${t}</span>`).join('')}</div>
+    <button class="btn go" id="enCont" type="button">${lt((END_DAY + 1) + '日目へつづける', 'On to Day ' + (END_DAY + 1))}</button>
+    <p class="best" style="margin:2px 0 6px;font-weight:500;font-size:.78rem">${lt('ここからは1日ごとに飼い主がきびしくなります。どこまで行けるか腕だめし', 'From here the owner gets stricter every day. How far can you go?')}</p>
     <div class="row"><button class="btn w" id="enRes" type="button">${lt('ここで終わって結果を見る', 'Finish and see results')}</button></div></div>`;
   $('enCont').addEventListener('click', () => { ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
   $('enRes').addEventListener('click', () => { run.timeup = false; gameOver(); });
 }
+let endFx = 0;
 // ---------- お客さんと掛け合い ----------
 const BANTER = [
   ['guest', tx('このワインおいしいね', 'This wine is lovely'), 'owner', tx('でしょ？ 奮発したの', 'Right? I splurged')],
@@ -3154,7 +3175,12 @@ function drawAcc(c, id) {
   // きせかえ（頭の座標系：頭の中心は 20, -28）
   if (!id || id === 'none') return;
   c.lineCap = 'round'; c.lineJoin = 'round';
-  if (id === 'bell') {
+  if (id === 'medal') {
+    // 金メダル：首から下げる
+    c.strokeStyle = '#2b8fd9'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(12, -26); c.lineTo(17, -12); c.lineTo(22, -26); c.stroke();
+    c.fillStyle = '#ffc94a'; c.strokeStyle = '#c98a00'; c.lineWidth = 1; c.beginPath(); c.arc(17, -9, 4.2, 0, TAU); c.fill(); c.stroke();
+    c.fillStyle = '#fff3b0'; c.beginPath(); c.arc(16, -10, 1.4, 0, TAU); c.fill();
+  } else if (id === 'bell') {
     c.strokeStyle = '#e0362c'; c.lineWidth = 3; c.beginPath(); c.arc(17, -20, 7, 0.5, 2.4); c.stroke();
     c.fillStyle = '#ffc94a'; c.beginPath(); c.arc(18, -12.5, 2.6, 0, TAU); c.fill(); c.fillStyle = '#8a5a00'; c.fillRect(17.5, -12, 1, 2);
   } else if (id === 'ribbon') {
@@ -4268,7 +4294,7 @@ function draw() {
   g.save();
   if (shake > 0 && !SET.calm) g.translate(rnd(-3, 3) * Math.min(1, shake * 4), rnd(-3, 3) * Math.min(1, shake * 4));
   if (zoomK > 0 && state === 'play' && !SET.calm) { const z = 1 + 0.045 * zoomK * zoomK; g.translate(zoomX, zoomY); g.scale(z, z); g.translate(-zoomX, -zoomY); }
-  if (state === 'ending' || state === 'endmenu') { drawEnding(); g.restore(); return; }
+  if (state === 'ending' || state === 'endmenu') { drawEnding(); if (state === 'endmenu') drawParts(); g.restore(); return; }
   drawRoom();
   drawSeason();
   if (BOT > H) { const fg = g.createLinearGradient(0, FLOOR + 10, 0, BOT); fg.addColorStop(0, 'rgba(60,35,15,0)'); fg.addColorStop(1, 'rgba(60,35,15,.16)'); g.fillStyle = fg; g.fillRect(0, FLOOR + 10, W, BOT - FLOOR - 10); }   // 手前の床に奥行きの影
@@ -4437,6 +4463,8 @@ function update(dt) {
     }
   } else if (state === 'ending') {
     endT += dt; if (endT > 15.8 && !endShown) { endShown = true; showEnding(); }
+  } else if (state === 'endmenu') {
+    endFx += dt; if (Math.random() < dt * 30) addPart({ k: 'paper', x: rnd(0, W), y: -OY - 10, vx: rnd(-30, 30), vy: rnd(40, 90), life: 6, gy: BOT + 20, c: pick(['#ff5a5a', '#ffc94a', '#2fb3a3', '#2b8fd9', '#9b7fc0', '#ff8a3d']), s: rnd(3, 6), rot: rnd(0, 6), vr: rnd(-6, 6) }); updParts(dt);
   } else if (state === 'dayend') {
     dayT -= dt; if (dayT <= 0) { setupStage(level + 1); state = 'play'; }
   } else if (state === 'caught') {
@@ -4521,7 +4549,7 @@ function showTitle() {
     <div class="big-logo">${lt('こっそり<span>ネコ</span>', 'Mischievous <span>Cat</span>')}</div><p class="sub">${lt('MISCHIEVOUS CAT', 'こっそりネコ')}</p>
     <div class="cats" role="group" aria-label="${lt('ネコをえらぶ', 'Choose a cat')}">${CATS.map((c, i) => { const ok = catsOpen.has(c.id); return `<button type="button" data-i="${i}" aria-pressed="${i === selCat}" ${ok ? '' : 'disabled'}><canvas width="144" height="108"></canvas><b>${ok ? c.name : '？？？'}</b><span>${ok ? c.note : CAT_LOCK[c.id]}</span></button>`; }).join('')}</div>
     <div class="stats" id="stats"></div>
-    <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = unlocked.size >= a.need; return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : '★' + a.need}</button>`; }).join('')}</div>
+    <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : a.ending ? lt('エンディング', 'Ending') : '★' + a.need}</button>`; }).join('')}</div>
     <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
     <div class="row"><button class="btn w" id="stBtn" type="button">${lt('通算記録', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('設定', 'Settings')}</button></div>
     <div class="row"><button class="btn w" id="rkBtn" type="button">${lt('ランキング', 'Ranking')}</button><button class="btn w" id="zkBtn" type="button">${lt('称号図鑑', 'Titles')} ${unlocked.size}/${TITLES.length}</button></div>
@@ -4896,6 +4924,7 @@ function showPause() {
 }
 let cardBlob = null, cardUrl = null, cardFor = null, cardLang = null;
 const canCont = () => !!(run && run.caughtOver && run.ck && run.ck.level > 1);
+const canPostEnd = () => !!(run && run.ended && !run.caughtOver && run.stage % NPH === 0 && run.stage >= END_DAY * NPH);   // エンディングで終わった → 次の日からつづけられる
 function shareText() {
   return lt(`本日の被害額 ${yen(run.yen)}\nステージ${run.stage}（${dayName(run.stage)}・${phaseOf(run.stage).name}）／★${run.stars}／称号「${titleOf(run.yen)}」\n飼い主「${run.comment}」\n#MischievousCat #こっそりネコ`,
     `Today's damage: ${yen(run.yen)}\nStage ${run.stage} (${dayName(run.stage)} · ${phaseOf(run.stage).name}) / ★${run.stars} / Title: ${titleOf(run.yen)}\nOwner: "${run.comment}"\n#MischievousCat #こっそりネコ`);
@@ -4913,14 +4942,16 @@ async function showOver() {
     ${onlineBox()}
     <div class="badges">${newTitles.includes(titleOf(run.yen)) ? '' : `<span class="badge">${titleOf(run.yen)}</span>`}${newTitles.map(n => `<span class="badge new">NEW ${n}</span>`).join('')}${newAccs.map(n => `<span class="badge new" style="background:var(--teal)">${lt('きせかえ', 'NEW')} ${n}</span>`).join('')}${newCats.map(n => `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ', 'NEW CAT')} ${n}</span>`).join('')}</div>
     ${newRec ? `<p class="best" style="color:var(--red-d)">${lt('ベスト更新!', 'New best!')}</p>` : ''}
+    ${canPostEnd() ? `<div class="row"><button class="btn go" id="bNext" type="button">${lt(dayName(run.stage + 1) + 'からつづける', 'Continue to ' + dayName(run.stage + 1))}</button></div>` : ''}
     ${canCont() ? `<div class="row"><button class="btn go" id="bCont" type="button">${lt(dayName(run.ck.level) + 'の朝からつづける', 'Continue from ' + dayName(run.ck.level) + ' morning')}</button></div><p class="best" style="margin:0 0 6px;font-weight:500;font-size:.78rem">${lt('被害額は朝の時点に戻ります。続けた回数はランキングに載ります', 'Damage goes back to that morning. Restarts are shown in the ranking')}</p>` : ''}
-    <div class="row"><button class="btn ${canCont() ? 'w' : 'go'}" id="bAgain" type="button">${lt(canCont() ? '1日目からやりなおす' : 'もう一回', canCont() ? 'Restart from Day 1' : 'Play again')}</button></div>
+    <div class="row"><button class="btn ${canCont() || canPostEnd() ? 'w' : 'go'}" id="bAgain" type="button">${lt(canCont() || canPostEnd() ? '1日目からやりなおす' : 'もう一回', canCont() || canPostEnd() ? 'Restart from Day 1' : 'Play again')}</button></div>
     <img id="card" alt="${lt('犯行現場写真', 'Crime scene photo')}" width="1200" height="630">
     <div class="row"><button class="btn t" id="bShare" type="button">${lt('シェア', 'Share')}</button><button class="btn w" id="bSave" type="button">${lt('保存', 'Save')}</button><a class="btn w" id="bX" href="${xUrl}" target="_blank" rel="noopener">${lt('Xに投稿', 'Post on X')}</a></div>
     <div class="row"><a class="btn" id="bLine" href="${lineUrl}" target="_blank" rel="noopener" style="background:#06c755;box-shadow:0 4px 0 #04963f">${lt('LINEで送る（文章とリンク）', 'Send on LINE (text + link)')}</a></div>
     <div class="row"><button class="btn w" id="bChange" type="button">${lt('トップへ', 'Title')}</button><button class="btn w" id="bRk" type="button">${lt('ランキング', 'Ranking')}</button><button class="btn w" id="bZk" type="button">${lt('称号図鑑', 'Titles')}</button></div></div>`;
   $('bAgain').addEventListener('click', () => { audio(); startGame(); });
   if ($('bCont')) $('bCont').addEventListener('click', () => { audio(); continueDay(); });
+  if ($('bNext')) $('bNext').addEventListener('click', () => { audio(); ov.hidden = true; run.sent = false; carryT = 0; setupStage(run.stage + 1); state = 'play'; bgmStart(); });
   $('bChange').addEventListener('click', showTitle);
   $('bZk').addEventListener('click', showZukan);
   $('bRk').addEventListener('click', () => showRank());
