@@ -44,9 +44,9 @@ Walking, jumping, meowing and eating are all "normal cat things", so you won't g
 | Action | Phone | PC |
 |---|---|---|
 | Walk | ＜ ＞ at the bottom | ← → / A D |
-| Jump | Jump | ↑ / W |
-| Punch (hold for a power punch) | Punch | Space / Z |
-| Meow | Meow | X |
+| Jump | Jump | Space / ↑ / W |
+| Punch (hold for a power punch) | Punch | Left click / Z |
+| Meow | Meow | Right click / X |
 | Pause | ⏸ top right | Esc / P |
 
 Gamepads work on PC too (D-pad/stick move, A jump, X or B punch, Y meow, START pause). Volume, vibration, mirrored buttons and reduced effects (no screen shake, zoom or flashing) are under **Settings**.

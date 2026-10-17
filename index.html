@@ -238,7 +238,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.7.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.7.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1743,14 +1743,14 @@ function breakItem(it, plat) {
   hitStop = Math.max(hitStop, big ? 0.09 : 0.045); zoomK = Math.max(zoomK, big ? 1 : 0.5); zoomX = it.x; zoomY = plat.y - 20;
   const lab = it.sunk ? (d.snd === 'elec' ? lt('水没 +', 'Drowned +') : lt('ぽちゃん +', 'Plop +')) : '+';
   pops.push({ x: it.x, y: plat.y - 30, text: lab + yen(d.yen), life: big ? 1.8 : 1.4, col: it.sunk ? '#1d6fa8' : '#e0362c', size: big ? 28 : 16 });
-  if (big) { slowT = 0.7; sfx.kaching(); happyHop(); addPart({ k: 'crack', x: it.x, y: plat.y - 10, life: 0.7, gy: 9999, c: '#fff', s: 26, rot: rnd(0, 6), vr: 0, vx: 0, vy: 0, landed: true }); }
+  if (big) { sfx.kaching(); happyHop(); addPart({ k: 'crack', x: it.x, y: plat.y - 10, life: 0.7, gy: 9999, c: '#fff', s: 26, rot: rnd(0, 6), vr: 0, vx: 0, vy: 0, landed: true }); }
   // 連鎖の数え上げ。上乗せのボーナス（連鎖・精神的ダメージ・ノーマーク・ストライク）は、1つの札にまとめて縦に並べる
   const bon = [];
   if (it.chain) {
     const n = chains[it.chain] = (chains[it.chain] || 0) + 1;
     if (n >= 2) happyHop();
     if (n >= 3) spaceCat();
-    if (n >= 2) { pops.push({ x: it.x + rnd(-10, 10), y: plat.y - 40, text: n + '!', life: 1.2, col: n >= 4 ? '#e0362c' : '#ff8a3d', size: 26 + Math.min(n, 6) * 4 }); hitStop = Math.max(hitStop, 0.04 + 0.02 * Math.min(n, 5)); }
+    if (n >= 2) hitStop = Math.max(hitStop, 0.04 + 0.02 * Math.min(n, 5));   // 連鎖の数はボーナスの札に書く（大きな「n!」は 4.7.1 でやめた）
     if (n >= 2) { const b = Math.round(d.yen * 0.2); run.yen += b; run.maxChain = Math.max(run.maxChain, n); bon.push([lt(n + '連鎖 巻き添え +', n + 'x chain +') + yen(b), '#ff8a3d']); sfx.combo(n); }
   }
   // 確信犯：目が合ってから落とされた飼い主の、精神的ダメージ
@@ -1831,7 +1831,7 @@ function damage(y, key, x, py, loud) {
   run.touched = true; run.yen += y; if (run.yen >= 100000) openCat('mike'); run.broke[key] = (run.broke[key] || 0) + 1; run.lastBroke = key;
   if ((IT[key] || MISCHIEF[key]) && (!run.big || y > run.big.y)) run.big = { k: key, y };
   pops.push({ x, y: py - 40, text: '+' + yen(y), life: 1.8, col: '#e0362c', size: y >= 10000 ? 28 : 20 });
-  if (y >= 10000) { slowT = 0.6; shake = 0.25; } sfx.kaching(); buzz(y >= 10000 ? [80, 50, 120] : 40); hearNoise(x, loud == null ? 0.9 : loud);
+  if (y >= 10000) { shake = 0.25; } sfx.kaching(); buzz(y >= 10000 ? [80, 50, 120] : 40); hearNoise(x, loud == null ? 0.9 : loud);
 }
 function finishMischief(sp) {
   learn('mis');
@@ -4756,6 +4756,14 @@ hold('bM', () => { if (menuKey('M')) return; if (state === 'play') meow(); }, ()
 // スティック操作（旧「かたて操作」）：ゲーム画面に浮かぶスティックで遊ぶ（ボタンは隠す）
 function setOneHand(on) { oneHand = on; tapTarget = null; if (cat) cat.autoScr = null; store.set('nekoOneHand', on ? '1' : '0'); try { document.body.classList.toggle('onehand', on); } catch (e) {} fit(); }
 try { document.body.classList.toggle('onehand', oneHand); } catch (e) {}
+// PC のマウス：左クリックでパンチ（押しっぱなしで強パンチ・爪とぎ）、右クリックで鳴く（ゲーム画面の上だけ。スティック操作のときは使わない）
+cv.addEventListener('mousedown', e => {
+  if (oneHand || (state !== 'play' && state !== 'clear')) return;
+  e.preventDefault(); audio();
+  if (e.button === 0) punchDown(); else if (e.button === 2) { if (state === 'play') meow(); }
+});
+window.addEventListener('mouseup', e => { if (!oneHand && e.button === 0) punchUp(); });
+cv.addEventListener('contextmenu', e => e.preventDefault());
 // スティック操作：浮かぶスティック。画面のどこでも、指を置いた所がスティックの中心になる
 // 左右にずらして歩く・上にはじいてジャンプ・動かさずに短くタップでパンチ（ネコの左右をタップすればそちらを向く）・
 // 動かさずに長押しで強パンチ（そのまま押し続ければ爪とぎ）・ネコをタップで鳴く
@@ -4836,8 +4844,8 @@ window.addEventListener('keydown', e => {
   }
   if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.L = true;
   else if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.R = true;
-  else if (k === 'ArrowUp' || k === 'w' || k === 'W') { if (!e.repeat) jumpPress(); }
-  else if (k === ' ' || k === 'z' || k === 'Z') { if (state === 'play') { if (!e.repeat) { audio(); punchDown(); } } else return; }
+  else if (k === 'ArrowUp' || k === 'w' || k === 'W' || k === ' ') { if (k === ' ' && state !== 'play' && state !== 'clear') return; if (!e.repeat) { audio(); jumpPress(); } }
+  else if (k === 'z' || k === 'Z') { if (state === 'play') { if (!e.repeat) { audio(); punchDown(); } } else return; }
   else if (k === 'x' || k === 'X') { if (!e.repeat && state === 'play') meow(); }
   else if (k === 'm' || k === 'M') { toggleSound(); }
   else if (k === 'Escape' || k === 'p' || k === 'P') { if (state === 'pause') resumeGame(); else pauseGame(); return; }
@@ -4848,7 +4856,7 @@ window.addEventListener('keyup', e => {
   const k = e.key;
   if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.L = false;
   else if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.R = false;
-  else if (k === ' ' || k === 'z' || k === 'Z') punchUp();
+  else if (k === 'z' || k === 'Z') punchUp();
 });
 // 別のアプリやタブに切り替えたら、自動でポーズする
 window.addEventListener('blur', () => { keys.L = keys.R = false; punchUp(); pauseGame(); });
