@@ -238,7 +238,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.7.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.7.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -496,7 +496,13 @@ const MODE = {
   chase:  { range: 0, rate: 0 }
 };
 const REACT = [tx('こらーっ!!', 'HEY!!'), tx('見〜た〜ぞ〜', 'I saw that!'), tx('またお前か!!', 'You again?!'), tx('ちょっと!?', 'Excuse me?!'), tx('何してんの!!', 'What are you doing?!'), tx('現行犯!!', 'Caught red-pawed!'), tx('ストップ!!', 'STOP!!'), tx('つかまえた!', 'Got you!')];
-const REACT_TIME = [tx('もう寝るよ〜', 'Bedtime~'), tx('はい、おしまい', "Okay, that's it"), tx('そろそろ寝なさい', 'Time to sleep'), tx('今日はここまで', "That's enough for today"), tx('おやすみ〜', 'Good night~')];
+// 時間切れのひとこと：時間帯ごと（朝・昼・夕方・夜）。寝る話は夜だけ
+const REACT_TIME = [
+  [tx('もう出かける時間!', 'Time to head out!'), tx('遅刻しちゃう、おしまい', "I'll be late — that's it"), tx('はい、朝の運動おわり', 'Morning workout over'), tx('いってきまーす', "I'm off!")],
+  [tx('はい、お昼休みおわり', "Lunch break's over"), tx('はい、おしまい', "Okay, that's it"), tx('お昼寝の時間だよ', 'Nap time'), tx('そろそろ落ち着こうね', "Let's settle down now")],
+  [tx('ごはんの時間だよ〜', 'Dinner time~'), tx('はい、おしまい', "Okay, that's it"), tx('夕方は静かにしてて', 'Quiet down, it\'s evening'), tx('もう暗くなるよ', "It's getting dark")],
+  [tx('もう寝るよ〜', 'Bedtime~'), tx('そろそろ寝なさい', 'Time to sleep'), tx('今日はここまで', "That's enough for today"), tx('おやすみ〜', 'Good night~')]
+];
 const CAUGHT_DUR = 2.9;
 // 見つかったときのネコの顔（演出の後半）。w は出やすさ、cap は横に出す字、bg は背景の色
 const CAUGHT_FACES = [
@@ -2518,7 +2524,7 @@ function caught(timeup) {
   run.revive = !timeup && run.charm > 0;
   run.cause = timeup ? 'time' : (run.lastBy || watcherOf()); run.where = level; if (!run.revive) run.caughtOver = true;   // お守りを持っていれば、演出のあとで続きから
   snap = takeSnap();
-  state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.face = timeup ? 'deadpan' : pickW(CAUGHT_FACES, f => f.w).id; run.huh = run.face === 'huh'; run.huhStep = 0; spaceT = 0; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME) : room === 'kids' && Math.random() < 0.6 ? pick(LINES.kid) : room === 'garden' && Math.random() < 0.7 ? pick(LINES.granny) : room === 'study' && Math.random() < 0.7 ? pick(LINES.dad) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35; slowT = 0;
+  state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.face = timeup ? 'deadpan' : pickW(CAUGHT_FACES, f => f.w).id; run.huh = run.face === 'huh'; run.huhStep = 0; spaceT = 0; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME[phaseOf(level).tod] || REACT_TIME[3]) : room === 'kids' && Math.random() < 0.6 ? pick(LINES.kid) : room === 'garden' && Math.random() < 0.7 ? pick(LINES.granny) : room === 'study' && Math.random() < 0.7 ? pick(LINES.dad) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35; slowT = 0;
   bgmStop(); if (timeup) sfx.timeup(); else { sfx.watch(); sfx.caught(); } buzz(timeup ? 80 : [60, 40, 120]); setPulse(null);
   if (owner.mode === 'away') { owner.x = clamp(cat.x - 70, 20, 330); owner.face = 1; }
   setMode('look', 9); owner.lureT = 0; owner.face = Math.sign(cat.x - owner.x) || 1; owner.up = false; chaseT = 0;
@@ -2659,7 +2665,7 @@ function commentOf() {
   if (run.kakushin >= 1) c.push(tx('目が合ってから落とすのやめて', "Stop staring at me while you do it"));
   if (run.maxChain >= 2) c.push(tx('なんでまとめて落ちるの', "How did they all fall at once?"));
   if (run.fed >= 2) c.push(tx('ごはんあげたのに…', "And I even fed you…"));
-  if (run.timeup) c.push(tx('今日はこのへんにしておこうね', "Let's call it a day"));
+  if (run.timeup) c.push(phaseOf(level).night ? tx('今日はこのへんにしておこうね', "Let's call it a day") : tx('時間切れだね、またあとで', "Time's up — later, kitty"));
   if (run.broke.data) c.push(tx('あの資料、保存してなかったのに', "I hadn't saved that file…"));
   if (run.broke.alarm) c.push(tx('朝じゃないのに鳴らさないで', "It's not even morning"));
   if (b.wall) c.push(tx('敷金が返ってこない…', "There goes my deposit…"));
