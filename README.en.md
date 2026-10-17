@@ -46,8 +46,10 @@ Walking, jumping, meowing and eating are all "normal cat things", so you won't g
 | Walk | ＜ ＞ at the bottom | ← → / A D |
 | Jump | Jump | Space / ↑ / W |
 | Punch (hold for a power punch) | Punch | Left click / Z |
-| Meow | Meow | Right click / X |
+| Meow (hold for a long one, tap 3 times for "mew mew mew!") | Meow | Right click / X |
 | Pause | ⏸ top right | Esc / P |
+
+On PC, Enter (or A on a gamepad) presses PLAY on the title and Play again on the result screen. Resuming from pause counts down 3-2-1 first.
 
 Gamepads work on PC too (D-pad/stick move, A jump, X or B punch, Y meow, START pause). Volume, vibration, mirrored buttons and reduced effects (no screen shake, zoom or flashing) are under **Settings**.
 
@@ -71,7 +73,7 @@ Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. 
 
 ## 🏠 A day in the house
 
-A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. Clear the third night to see the ending, then keep going into day 4 and beyond.
+A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. Clear the third night to see the ending. There are 4 endings depending on how you played (never caught, big damage, well-behaved, or the usual), followed by a credits roll with the photos taken at each stage clear. Then keep going into day 4 and beyond.
 
 | Day | Morning | Noon | Evening | Special night |
 |---|---|---|---|---|
@@ -123,7 +125,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 
 - **World ranking (All-time)**: register a nickname on the result screen to join the top 50 of all players (one entry per device). A record is sent only when you beat your personal best, and a new nickname appears the next time you do
 - **Today's ranking**: a ranking for today only (Japan time). Each run is sent to both All-time and Today whenever it beats your best there
-- **Send on LINE**: sends the text and the link (the image share sends only the picture on LINE)
+- **Send on LINE**: sends the text and the link (the image share sends only the picture on LINE). On PC, Share copies the image to the clipboard and opens the X post window, so paste it into the post
 - **Records**: one screen from the title with tabs for Ranking, Titles, Cards and Stats
 - **Big ones**: each room has one way to bring a whole piece of furniture down (bookshelf avalanche, fridge avalanche…). Everything on top falls and the owner freezes for a moment. The Cards tab tells you how
 - **Mischief cards**: 37 kinds of mischief, each collected as a card with a photo of the moment you first pulled it off. The Cards tab also shows how to get the ones you are missing
