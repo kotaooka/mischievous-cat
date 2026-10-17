@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.22.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.22.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2836,13 +2836,13 @@ function drawEnding() {
   else if (e < 9.2) { pose = 'punch'; face = 1; }
   else { pose = 'smug'; face = 1; }
   drawCat(g, 214, F, { type: cat.type, face, scale: 1, t: tAnim, pose, eyes, tail, acc: selAcc });
-  if (ET === 'wrecker') {
-    // 上から次々に降ってくる（連鎖の続き）。落ちきったら破片と音
-    endFall = endFall || [{ t: 'plate', x: 120, at: 9.4 }, { t: 'vase', x: 330, at: 9.9 }, { t: 'mug', x: 60, at: 10.4 }, { t: 'console', x: 390, at: 10.9 }];
-    for (const f of endFall) { if (e < f.at) continue; const k = e - f.at, y = F - 320 + 900 * k * k; if (y >= F) { if (!f.done) { f.done = true; shake = 0.35; sfx.cera(1); for (let q = 0; q < 10; q++) addPart({ k: 'shard', x: f.x, y: F - 6, vx: rnd(-150, 150), vy: rnd(-300, -80), life: 8, gy: F, c: '#ffffff', s: rnd(3, 6), rot: rnd(0, 6), vr: rnd(-9, 9) }); } continue; } drawItem(g, f.t, f.x, y, k * 6, false); }
-  }
   if (e > 7.9 && e < 12.2 && ET !== 'good' && ET !== 'perfect') { const k = (tAnim * 2) % 1; g.fillStyle = '#fff6a8'; g.globalAlpha = Math.sin(k * Math.PI); g.beginPath(); g.arc(214 + 26, F - 34, 2 + 3 * Math.sin(k * Math.PI), 0, TAU); g.fill(); g.globalAlpha = 1; }   // 目がきらり
   g.restore();
+  if (ET === 'wrecker') {
+    // 上から次々に降ってくる（連鎖の続き。寄りの変換の外で描く）。落ちきったら破片と音
+    endFall = endFall || [{ t: 'plate', x: 120, at: 9.2 }, { t: 'vase', x: 330, at: 9.6 }, { t: 'mug', x: 60, at: 10.0 }, { t: 'console', x: 390, at: 10.4 }];
+    for (const f of endFall) { if (e < f.at) continue; const k = e - f.at, y = F - 320 + 320 * k * k; if (y >= F) { if (!f.done) { f.done = true; shake = 0.35; sfx.cera(1); for (let q = 0; q < 14; q++) addPart({ k: 'shard', x: f.x, y: F - 6, vx: rnd(-180, 180), vy: rnd(-340, -80), life: 8, gy: F, c: pick(['#ffffff', '#ffc94a', '#9fd3ef']), s: rnd(4, 8), rot: rnd(0, 6), vr: rnd(-9, 9) }); pops.push({ x: f.x, y: F - 60, text: '+' + yen(IT[f.t].yen), life: 0.8, col: '#e0362c', size: 22 }); } continue; } drawItem(g, f.t, f.x, y, k * 6, false); }
+  }
   if (e > 2 && e < 7.6 && Math.random() < 0.08) addPart({ k: 'drop', x: 214 + rnd(-12, 12), y: F - 50, vx: rnd(-20, 20), vy: rnd(-90, -40), life: 0.9, gy: F - 300, c: '#ff7a95', s: 3, rot: 0, vr: 0 });
   drawParts();
   // ことば
