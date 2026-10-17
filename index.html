@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.8.3', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.8.4', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -657,7 +657,7 @@ let snap = null, chains = {}, tut = { on: false, broke: false, arrow: null, stop
 let lever = null, ball = null, spots = [], stageYen0 = 0, stageBonus = null;
 let chick = null, mouse = null, tank = null, rival = null;
 let charm = null;
-let spot = [], spotT = 0, escT = 0;   // escT：ステージの始めに逃げ場所を光らせる残り時間   // 初めて出た仕掛けの場所を順に光らせる（言葉は使わない）
+let spot = [], spotT = 0, escT = 0;   // escT：ステージの始めに隠れ場所を光らせる残り時間   // 初めて出た仕掛けの場所を順に光らせる（言葉は使わない）
 let guest = null, talkQ = [], offSay = null;   // お客さん（特別な夜）、掛け合いの順番待ち、画面の外からの声
 let weather = 'sun';   // その日の天気：sun 晴れ／cloud くもり／rain 雨（飼い主が早く戻る）／snow 雪
 let cams = [];          // ペットカメラ
@@ -1419,15 +1419,11 @@ function updCat(dt) {
     }
   } else c.churuPull = false;
   // 片手操作：タップした先へ自動で移動する（足場の登り降りも自動）。ものなら横まで行って端の方へパンチ、いたずらの場所なら続ける
-  // 逃げ場所の手ごたえ：隠れている間は、左右を少し長めに押さないと出ない（誤って出ないように）。ジャンプはすぐできる
-  // 通り抜けるだけのときは止めない：手を離して 0.12 秒とどまったら「隠れた」とみなす
-  if (state === 'play' && c.plat && isHiding()) {
-    if (!dir) c.settle = (c.settle || 0) + dt;
-    if (dir && c.settle >= 0.12) { c.exitT = (c.exitT || 0) + dt; if (c.exitT < 0.25) { c.exitPush = dir; dir = 0; } else { c.exitPush = 0; c.settle = 0; } }
-    else { c.exitT = 0; c.exitPush = 0; }
-    // ダンボール：入ったら真ん中へ吸い込まれる
-    if (c.hidden && !dir && c.settle > 0 && Math.abs(c.x - BOX.x) > 1) { c.x += (BOX.x - c.x) * Math.min(1, dt * 12); c.vx = 0; }
-  } else { c.exitT = 0; c.exitPush = 0; c.settle = 0; }
+  // ダンボールとキャットタワーの上：手を離して止まったら、真ん中へスッと寄る（出入りは自由）
+  if (state === 'play' && c.plat && !dir && (c.hidden || c.safe)) {
+    const cx = c.hidden ? BOX.x : (PL.tower.x0 + PL.tower.x1) / 2;
+    if (Math.abs(c.x - cx) > 1 && Math.abs(c.vx) < 40) { c.x += (cx - c.x) * Math.min(1, dt * 12); c.vx = 0; }
+  }
   if (dir) { tapTarget = null; c.autoScr = null; }   // ボタン・キーで動かしたら、自動移動はやめる
   else if (tapTarget && c.eatT <= 0 && c.stun <= 0) dir = autoNav(c, dt);   // ロボにぶつかって目を回している間は待つ
   const riding = c.plat === VACP;
@@ -1656,8 +1652,8 @@ function drawSpot() {
   g.beginPath(); g.moveTo(s.x, y + 12); g.lineTo(s.x - 10, y); g.lineTo(s.x - 4, y); g.lineTo(s.x - 4, y - 12); g.lineTo(s.x + 4, y - 12); g.lineTo(s.x + 4, y); g.lineTo(s.x + 10, y); g.closePath(); g.stroke(); g.fill();
   g.restore();
 }
-// 逃げ場所：ダンボール（中に入る）・キャットタワーの上・本棚の上（手が届かない高い所）
-function escSpots() { return [[BOX.x, FLOOR - BOX.h - 14], [(PL.tower.x0 + PL.tower.x1) / 2, PL.tower.y - 14], [(PL.book.x0 + PL.book.x1) / 2, PL.book.y - 14]]; }
+// 隠れ場所：ダンボール（中に入る）・キャットタワーの上・本棚の上・カーテンレールの上・吊り棚の上（手が届かない高い所。エアコンの上も隠れ場所だが、矢印は出さない）
+function escSpots() { return [[BOX.x, FLOOR - BOX.h - 14], [(PL.tower.x0 + PL.tower.x1) / 2, PL.tower.y - 14], [(PL.book.x0 + PL.book.x1) / 2, PL.book.y - 14], [(PL.rail.x0 + PL.rail.x1) / 2, PL.rail.y - 14], [(PL.hang.x0 + PL.hang.x1) / 2, PL.hang.y - 14]]; }
 function drawEsc(a, label) {
   const b = Math.abs(Math.sin(tAnim * 8)) * 8;
   g.save(); g.globalAlpha = a; g.lineJoin = 'round';
@@ -2490,7 +2486,7 @@ function updSus(dt) {
   if (seen) {
     if (cat.punchT > 0) { gain += rate * cat.type.sus; cat.mark = 0.4; }   // パンチの現行犯
     else if (cat.scratch) { gain += rate * 0.9 * cat.type.sus; cat.mark = 0.4; }   // 爪とぎ・ゴミ箱あさりの現行犯（床の上でも）
-    else if (cat.onFurn && !isHigh()) { gain += rate * (Math.abs(cat.vx) > 6 ? 0.35 : 0.2) * cat.type.sus; cat.mark = 0.4; }   // 乗ってはいけない所にいる（逃げ場所の高い所でじっとしているのは別）
+    else if (cat.onFurn && !isHigh()) { gain += rate * (Math.abs(cat.vx) > 6 ? 0.35 : 0.2) * cat.type.sus; cat.mark = 0.4; }   // 乗ってはいけない所にいる（隠れ場所の高い所でじっとしているのは別）
     if (cat.mark > 0) run.streak = 0;   // 現行犯で見られたら、ノーマークの連続は切れる
     if (cat.onFurn && !isHigh() && !cat.punchT && !(o.sayT > 0) && o.mode !== 'search' && Math.random() < dt * 0.6) say(pick(LINES.down), 1.5);
   }
@@ -2515,7 +2511,7 @@ function updSus(dt) {
   }
   if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { const ic = cams.some(cm => camSees(cm, it.x)); gain += ic ? 24 : 16; exBy = exBy || (ic ? 'cam' : 'guest'); it.mark = 0.4; it.spotted = true; break; } }
   if (o.mode === 'search') gain *= 1.15;
-  // 逃げ場所（ダンボール・キャットタワーの上・高い所）でじっとしている間は、足跡や転がるもの・音があっても上げない。探している最中でも少しずつ下げる
+  // 隠れ場所（ダンボール・キャットタワーの上・高い所）でじっとしている間は、足跡や転がるもの・音があっても上げない。探している最中でも少しずつ下げる
   const hiding = inEscape() && !(cat.punchT > 0) && !cat.scratch;
   if (hiding) { gain = 0; if (o.mode === 'search') sus -= 6 * dt; }
   if (gain > 0) { sus += gain * dt; run.lastBy = gain - g0 > g0 && exBy ? exBy : watcherOf(); }   // いちばん多く上げた見張りを、見つかった原因として覚える
@@ -2530,7 +2526,7 @@ function updSus(dt) {
   stageMaxSus = Math.max(stageMaxSus, sus);
   // 飼い主が部屋の外にいるときは、100% になっても見つからない（戻ってくるまで 99% で待つ）。お客さん・カメラに見られているときは別
   if (sus >= 100 && !exSeen && (o.mode === 'away' || o.x < 6 || o.x > W - 6)) sus = 99;
-  if (sus >= 100 && hiding) sus = 99;   // 逃げ場所にいる間は見つからない
+  if (sus >= 100 && hiding) sus = 99;   // 隠れ場所にいる間は見つからない
   if (sus >= 100) { sus = 100; if (!chaseUsed) startChase(); else caught(); }
 }
 // 見つかったら、1ステージに1回だけ追いかけっこ。3秒以内にダンボールかタワーへ逃げ込めば助かる
@@ -2539,10 +2535,10 @@ function startChase() {
   if (o.mode === 'away') { o.x = cat.x < 200 ? 380 : -40; }
   setMode('chase'); setPulse(null); tapTarget = null; o.face = Math.sign(cat.x - o.x) || 1; say(lt('待てーっ!!', 'Get back here!!'), 3); sfx.alert(); sfx.bark(); buzz([40, 30, 40]); shake = 0.3;
 }
-// 逃げ場所の高い所：本棚の上・カーテンレール・吊り棚・エアコン（手が届かない）
+// 隠れ場所の高い所：本棚の上・カーテンレール・吊り棚・エアコン（手が届かない）
 const isHigh = () => !!cat.plat && cat.plat !== VACP && cat.plat.y <= PL.book.y + 5;
-const inEscape = () => !!cat && (cat.hidden || cat.safe || isHigh());   // 逃げ場所にいる
-const isHiding = () => inEscape() && !(cat.punchT > 0) && !cat.scratch;   // 逃げ場所でじっとしている（見つからない）
+const inEscape = () => !!cat && (cat.hidden || cat.safe || isHigh());   // 隠れ場所にいる
+const isHiding = () => inEscape() && !(cat.punchT > 0) && !cat.scratch;   // 隠れ場所でじっとしている（見つからない）
 let hideWas = false;
 function updHideMark() {
   // 隠れた瞬間に「かくれた!」（飼い主がいるときだけ。追いかけっこは「セーフ!」が出る）
@@ -2553,7 +2549,7 @@ function updHideMark() {
 function drawHideMark() {
   // かくれ中の札：ダンボールの上か、ネコの頭の上
   if (state !== 'play' || !isHiding() || chaseT > 0) return;
-  const x = (cat.hidden ? BOX.x : cat.x) + (cat.exitPush ? cat.exitPush * Math.min(1, (cat.exitT || 0) / 0.25) * 6 : 0), y = cat.hidden ? FLOOR - BOX.h - 16 : cat.y - 52, a = owner.mode === 'away' ? 0.55 : 0.95;
+  const x = cat.hidden ? BOX.x : cat.x, y = cat.hidden ? FLOOR - BOX.h - 16 : cat.y - 52, a = owner.mode === 'away' ? 0.55 : 0.95;
   g.save(); g.globalAlpha = a; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
   const t = lt('かくれ中', 'Hidden'), w = g.measureText(t).width + 26;
   g.fillStyle = '#2fb3a3'; g.strokeStyle = '#fff'; g.lineWidth = 2; rr(g, x - w / 2, y - 10, w, 20, 10); g.fill(); g.stroke();
@@ -4142,8 +4138,8 @@ function draw() {
     const vg = g.createRadialGradient(W / 2, -OY + VH / 2, VH * 0.3, W / 2, -OY + VH / 2, VH * 0.75); vg.addColorStop(0, 'rgba(200,20,20,0)'); vg.addColorStop(1, `rgba(200,20,20,${k})`);
     g.fillStyle = vg; g.fillRect(0, -OY, W, VH);
   }
-  // 逃げ場所の案内：ステージの始め（2秒ほど、名前つき）と、飼い主が探し始めたとき（追いかけっこの前）
-  if (state === 'play' && chaseT <= 0 && introT <= 0 && escT > 0) drawEsc(Math.min(1, escT / 0.3, (2.2 - escT) / 0.2), lt('逃げ場所', 'Hide'));
+  // 隠れ場所の案内：ステージの始め（2秒ほど、名前つき）と、飼い主が探し始めたとき（追いかけっこの前）
+  if (state === 'play' && chaseT <= 0 && introT <= 0 && escT > 0) drawEsc(Math.min(1, escT / 0.3, (2.2 - escT) / 0.2), lt('隠れ場所', 'Hide'));
   else if (state === 'play' && chaseT <= 0 && !isHiding() && (owner.mode === 'search' || sus >= 65)) drawEsc(0.55 + 0.35 * Math.abs(Math.sin(tAnim * 5)), '');
   if (state === 'play' && chaseT > 0) {
     // 追いかけっこ：画面のふちを赤く、逃げ込める場所に矢印
