@@ -2765,8 +2765,8 @@ function creditLines() {
   bro.forEach(([k, n]) => L.push(['t', IT[k].n + ' ×' + n])); if (!bro.length) L.push(['t', lt('（なし。本当に？）', '(none. really?)')]);
   if ((r.bigs || []).length) { L.push(['gap']); L.push(['h', lt('大技', 'BIG ONES')]); r.bigs.forEach(k => L.push(['t', BIG[k].n])); }
   L.push(['gap']); L.push(['h', lt('スタッフ', 'STAFF')]);
-  L.push(['t', lt('企画・プログラム・絵・音：', 'Design, code, art & sound: ') + AUTHOR]); L.push(['t', lt('字体：M PLUS Rounded 1c', 'Typeface: M PLUS Rounded 1c')]);
-  L.push(['t', lt('スペシャルサンクス：ここまで遊んでくれたあなた', 'Special thanks: you, for playing this far')]);
+  L.push(['t', lt('企画・プログラム・絵・音', 'Design, code, art & sound')]); L.push(['t', AUTHOR]); L.push(['t', lt('字体：M PLUS Rounded 1c', 'Typeface: M PLUS Rounded 1c')]);
+  L.push(['t', lt('スペシャルサンクス', 'Special thanks')]); L.push(['t', lt('ここまで遊んでくれたあなた', 'you, for playing this far')]);
   L.push(['gap']); L.push(['h', lt('3日間の被害額', '3-DAY DAMAGE')]); L.push(['big2', yen(r.yen)]); L.push(['t', lt('称号', 'Title') + '「' + titleOf(r.yen) + '」']);
   L.push(['gap']); L.push(['t', lt('飼い主は、まだ気づいていない', 'The owner still has no idea')]); L.push(['gap']); L.push(['sub', lt('そして、4日目へ……', 'And so, on to Day 4……')]);
   return L;
