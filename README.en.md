@@ -58,7 +58,7 @@ Want to play one-handed? Turn on **One-hand** on the title screen. Tap a spot or
 - **Wait until the owner is busy.** While they're on the phone, cooking, reading or brushing their teeth, they barely notice anything
 - **Stare at the camera, then knock it off.** Stand still next to an item and the cat stares at you. Punch now for a "Guilty!" bonus
 - **Keep knocking things off unseen for an "Unseen" streak bonus.** The bonus grows with every item
-- **Don't give up when you're spotted.** Once per stage, dive into the cardboard box or onto the cat tower within 3 seconds to escape
+- **Don't give up when you're spotted.** Once per stage, dive into the cardboard box, onto the cat tower, or up on top of the bookshelf or higher within 3 seconds to escape
 - **Sparkles, arrows or claw marks?** Something is there. There are no written instructions. Go and find out
 
 <table>
@@ -69,8 +69,9 @@ Want to play one-handed? Turn on **One-hand** on the title screen. Tap a spot or
 </tr>
 </table>
 
-- **Cat-meme moments included.** Break something pricey and the cat hops for joy; a big chain sends it to space. Watch its face when it gets caught. Stand still for a bit and it starts vibing to the music
-- **Books, pencils, cans and toy mice are free-for-all clutter.** Knock them to the floor for "Mess" damage. The owner crouches to tidy up, and only looks at their feet while doing it
+- **Cat-meme moments included.** Break something pricey and the cat hops for joy; a big chain sends it to space. Watch its face when it gets caught (six different reactions). Stand still for a bit and it starts vibing to the music
+- **Grab the red charm if you spot one.** It turns up on a shelf now and then. Holding it lets you continue the stage once after you get caught
+- **Books, pencils, cans and teddy bears are free-for-all clutter.** Knock them to the floor for "Mess" damage. The owner crouches to tidy up, and only looks at their feet while doing it
 - **Mouse on the loose? Bop it.** Mice pop out of a hole now and then and dash around the floor. Bop one for extra time. Chase it toward the owner and they freeze with a scream (your chance!)
 - **Don't let the boss cat win.** It knocks things off first and steals the damage. Land 3 paw hits and it runs away. If the owner catches it, it gets scolded and leaves
 - **You can walk in front of the bookshelf and the fridge.** The cat tower stands in front of the bookshelf
