@@ -9,6 +9,12 @@ service cloud.firestore {
       allow create: if valid(request.resource.data);
       allow update, delete: if false;
     }
+    // デイリーチャレンジ：日付ごとのコレクション（例：daily-2026-10-17）
+    match /{coll}/{id} {
+      allow read: if coll.matches('daily-[0-9]{4}-[0-9]{2}-[0-9]{2}');
+      allow create: if coll.matches('daily-[0-9]{4}-[0-9]{2}-[0-9]{2}') && valid(request.resource.data);
+      allow update, delete: if false;
+    }
     function valid(d) {
       return d.keys().hasOnly(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'v'])
         && d.keys().hasAll(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'v'])

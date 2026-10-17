@@ -49,7 +49,7 @@ Walking, jumping, meowing and eating are all "normal cat things", so you won't g
 | Meow | Meow | X |
 | Pause | ⏸ top right | Esc / P |
 
-Want to play one-handed? Turn on **One-hand** on the title screen. Tap where you want to walk, tap an item to punch it, and swipe up to jump.
+Want to play one-handed? Turn on **One-hand** on the title screen. Tap a spot or an item and the cat **finds its own way there, jumping as needed**, then punches the item (long tap for a power punch). Swipe up to jump; pressing any button takes back manual control.
 
 ## 💡 Tips
 
@@ -70,6 +70,7 @@ Want to play one-handed? Turn on **One-hand** on the title screen. Tap where you
 </table>
 
 - **Cat-meme moments included.** Break something pricey and the cat hops for joy; a big chain sends it to space. Watch its face when it gets caught. Stand still for a bit and it starts vibing to the music
+- **Books, pencils, cans and toy mice are free-for-all clutter.** Knock them to the floor for "Mess" damage. The owner crouches to tidy up, and only looks at their feet while doing it
 - **Hungry? Meow.** A cute meow next to the owner might get you food (= more time)
 
 ## 🏠 Four rooms
@@ -98,6 +99,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 ## 🏆 Rankings and titles
 
 - **World ranking**: register a nickname on the result screen to join the top 50 of all players (one entry per device). A record is sent only when you beat your personal best, and a new nickname appears the next time you do
+- **Daily challenge**: "Today's daily" on the title screen gives everyone the same rooms and layout for that day, with its own ranking
 - **This device**: your own top 10
 - **Titles**: 30 of them, and how to earn them is a secret. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
 - **Crime scene photo**: the moment you're caught becomes a Polaroid. Share it with `#MischievousCat`
