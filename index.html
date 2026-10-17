@@ -289,7 +289,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.17.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.17.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1057,12 +1057,13 @@ function bgmMix() {
   ['base', 'calm', 'tense', 'danger', 'chase'].forEach((k, i) => BGM.L[k].gain.setTargetAtTime(mix[i], ac.currentTime, k === 'chase' ? 0.05 : 0.2));
 }
 let hapLabel = null;
+// 戻り値：'ok'（Vibration API が受け付けた）、'blocked'（ブラウザが拒否した）、'none'（API なし）、'off'（設定が OFF）
 function buzz(p) {
-  if (!SET.vib) return;
+  if (!SET.vib) return 'off';
   try {
-    if (navigator.vibrate) { navigator.vibrate(p); return; }
+    if (navigator.vibrate) { return navigator.vibrate(p) ? 'ok' : 'blocked'; }
     // iOS Safari には Vibration API がない。switch 付きチェックボックスのラベルを押すと触覚が出る（公式の方法ではないので、効かない端末もある）
-    if (!('ontouchstart' in window)) return;
+    if (!('ontouchstart' in window)) return 'none';
     if (!hapLabel) {
       const inp = document.createElement('input'); inp.type = 'checkbox'; inp.setAttribute('switch', ''); inp.id = 'neko-hap'; inp.tabIndex = -1;
       inp.style.cssText = hapLabel = 'position:fixed;left:-100px;top:0;opacity:0;pointer-events:none';
@@ -1071,7 +1072,8 @@ function buzz(p) {
     }
     const n = Array.isArray(p) ? Math.ceil(p.length / 2) : 1;
     for (let i = 0; i < n; i++) setTimeout(() => hapLabel.click(), i * 110);
-  } catch (e) {}
+    return 'ok';
+  } catch (e) { return 'blocked'; }
 }
 function breakSound(it) { const d = IT[it.t]; ({ glass: sfx.glass, cera: sfx.cera, elec: sfx.elec, paper: sfx.paper, pens: sfx.pens, alarm: sfx.alarm, tink: sfx.tink, egg: sfx.egg })[d.snd](d.noise); }
 
@@ -4858,7 +4860,14 @@ function showSettings(back) {
   const bind = (id, key, store_) => { const el = $(id); el.addEventListener('input', () => { SET[key] = +el.value; $(id + 'V').textContent = el.value; store.set(store_, String(SET[key])); audio(); applySettings(); }); };
   bind('sBgm', 'bgm', 'nekoBgmVol'); bind('sSe', 'se', 'nekoSeVol');
   $('sSe').addEventListener('change', () => sfx.meow(CATS[selCat].voice, pickVoice()));
-  $('sVib').addEventListener('click', () => { SET.vib = !SET.vib; store.set('nekoVib', SET.vib ? '1' : '0'); buzz(40); showSettings(back); });
+  $('sVib').addEventListener('click', () => {
+    SET.vib = !SET.vib; store.set('nekoVib', SET.vib ? '1' : '0'); const r = buzz(40); showSettings(back);
+    // ON にしたのに振動できない理由を知らせる（API がない／ブラウザが拒否）。API が受け付けたのに震えないときは端末側の設定
+    if (!SET.vib) return;
+    if (r === 'none') toast(lt('このブラウザは振動に対応していません', 'This browser has no vibration support'), 4000);
+    else if (r === 'blocked') toast(lt('ブラウザが振動を止めました（もう一度押してみてください）', 'The browser blocked vibration (try once more)'), 4000);
+    else if (r === 'ok' && location.search.includes('vib')) toast('vibrate: ok', 3000);
+  });
   $('sSwap').addEventListener('click', () => { SET.swap = !SET.swap; store.set('nekoSwap', SET.swap ? '1' : '0'); applySettings(); showSettings(back); });
   $('sOh').addEventListener('click', () => { setOneHand(!oneHand); showSettings(back); });
   $('sFx').addEventListener('click', () => { SET.calm = !SET.calm; store.set('nekoCalm', SET.calm ? '1' : '0'); applySettings(); showSettings(back); });
