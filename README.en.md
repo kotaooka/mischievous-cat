@@ -5,7 +5,7 @@
 **Knock everything off the shelves while your owner isn't looking.**
 Cups, vases, smartphones. You're just an adorable cat. …Probably.
 
-#You can stop any time: the game auto-saves at the start of every stage, and the title screen offers "Continue" from that stage next time (or from that day's morning if you got caught).
+#You can stop any time: the game auto-saves at the start of every stage, and the title screen offers "Continue" from that stage next time (or from that day's morning if you got caught). "Continue" also shows how many stages are left in that day.
 
 ## ▶ [Play now](https://kotaooka.github.io/mischievous-cat/)
 
@@ -134,7 +134,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 - **This device**: your own top 10
 - **Accessories**: unlocked by specific cards ("Meow Decoy" for the bell collar, "Boss Beaten" for the bandana, and so on — the locked pill shows the card). Each gives a small bonus (punch +15%, jump +10%…); switching one on the title screen updates the stat pips
 - **Titles**: the title on the result screen is decided by one run's damage (five ranks)
-- **Crime scene photo**: a close-up of the cat at the moment you're caught becomes a Polaroid (no HUD in the shot), with a one-line pitch and where to play. Share it with `#MischievousCat`
+- **Crime scene photo**: a close-up of the cat at the moment you're caught becomes a Polaroid (no HUD in the shot), with a one-line pitch and where to play. Tap the photo on the result screen to see it big. Share it with `#MischievousCat`
 - **Day restarts**: from Day 2 on, the result screen offers "Continue from Day N morning". Damage, stars and charms go back to that morning, and the ranking shows how many restarts you used
 - **Bad records**: unsigned records and impossible scores don't appear in the ranking
 

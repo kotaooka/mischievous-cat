@@ -135,7 +135,11 @@
   .btn .ic { display: inline-block; width: 1.3em; height: 1.3em; vertical-align: -0.3em; margin-right: .25em; fill: currentColor; }
   /* 結果画面の下の支援リンク（Buy Me a Coffee）。遊ぶボタンより目立たせない */
   .share-row { display: flex; gap: 8px; align-items: stretch; margin: 6px 0 2px; }
-  .panel .share-row img { flex: 0 0 46%; width: 46%; height: auto; margin: 0; align-self: center; }
+  .panel .share-row img { flex: 0 0 calc(50% - 4px); width: calc(50% - 4px); height: auto; margin: 0; align-self: center; cursor: zoom-in; }
+  /* 画像を大きく見る（タップで閉じる） */
+  #lb { position: fixed; inset: 0; z-index: 60; background: rgba(40,20,8,.82); display: flex; align-items: center; justify-content: center; padding: 12px; cursor: zoom-out; }
+  #lb[hidden] { display: none; }
+  #lb img { width: min(96vw, 1200px); max-height: 90vh; height: auto; object-fit: contain; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.4); background: #f6e2c4; }
   .share-row .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
   .btn.sm { padding: 7px 6px; font-size: .92rem; border-radius: 12px; }
   .btn.go small { display: block; font-size: .7rem; font-weight: 500; line-height: 1.3; margin-top: 2px; }
@@ -328,7 +332,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.33.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.34.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -888,7 +892,7 @@ const REACT_TIME = [
   [tx('ごはんの時間だよ〜', 'Dinner time~'), tx('はい、おしまい', "Okay, that's it"), tx('夕方は静かにしてて', 'Quiet down, it\'s evening'), tx('もう暗くなるよ', "It's getting dark")],
   [tx('もう寝るよ〜', 'Bedtime~'), tx('そろそろ寝なさい', 'Time to sleep'), tx('今日はここまで', "That's enough for today"), tx('おやすみ〜', 'Good night~')]
 ];
-const CAUGHT_DUR = 2.9;
+const CAUGHT_DUR = 3.3;   // 4.34.0：2.9 → 3.3（最初の 0.4 秒は「誰に見られたか」の線）
 // 見つかったときのネコの顔（演出の後半）。w は出やすさ、cap は横に出す字、bg は背景の色
 const CAUGHT_FACES = [
   { id: 'deadpan', w: 2, cap: tx('……', '……'), bg: '#2fb3a3' },
@@ -1137,6 +1141,7 @@ let spot = [], spotT = 0, escT = 0, gag = {};   // gag：ネタの1面1回のし
 let guest = null, talkQ = [], offSay = null;   // お客さん（特別な夜）、掛け合いの順番待ち、画面の外からの声
 let weather = 'sun';   // その日の天気：sun 晴れ／cloud くもり／rain 雨（飼い主が早く戻る）／snow 雪
 let cams = [];          // ペットカメラ
+let remainL = W - 8;    // 右上「のこり」の札の左端（飼い主の顔をその左に置く）
 let traps = [], cuke = null, creaks = [], lamp = null, tv = null, churuRes = 0;
 const shelfTilt = { a: 0, dir: 0, t: 0, cd: 0, chain: 0, wob: 0 };
 let SHELF_MID = (PL.shelf.x0 + PL.shelf.x1) / 2;   // ステージに落ちているお守り（拾うと run.charm）   // 庭のニワトリ・ネズミ・子ども部屋の水槽・ボス猫
@@ -2295,14 +2300,14 @@ function drawSeason() {
 }
 // のこり：落とすべきものを、絵と個数で右上に縦に並べる（1行に1種類。多いときは最後の行を「+n」に）
 function drawLeftItems() {
-  const ms = mains(); if (!ms.length) return;
+  const ms = mains(); remainL = W - 8; if (!ms.length) return;
   const cnt = new Map(); for (const it of ms) cnt.set(it.t, (cnt.get(it.t) || 0) + 1);
   g.font = `800 14px ${FONT}`; g.textBaseline = 'alphabetic';
   let rows = [...cnt.entries()].map(([t, n]) => { const d = IT[t], sc = Math.min(1.1, 17 / d.h, 22 / d.w); return { t, n, sc, iw: d.w * sc }; });
   const MAXR = 6; let more = 0;
   if (rows.length > MAXR) { more = rows.slice(MAXR - 1).reduce((a, r) => a + r.n, 0); rows = rows.slice(0, MAXR - 1); }
   const tw = Math.max(...rows.map(r => 24 + 4 + g.measureText('×' + r.n).width), more ? g.measureText('+' + more).width + 8 : 0), lh = 23, y0 = 10 - OY, x1 = W - 8;
-  const n = rows.length + (more ? 1 : 0);
+  const n = rows.length + (more ? 1 : 0); remainL = x1 - tw - 6;
   g.fillStyle = 'rgba(255,250,242,.86)'; rr(g, x1 - tw - 6, y0, tw + 10, n * lh + 6, 9); g.fill();
   rows.forEach((r, i) => {
     const y = y0 + 4 + (i + 1) * lh - 3;
@@ -3926,6 +3931,30 @@ function caught(timeup) {
   bgmStop(); if (timeup) sfx.timeup(); else { sfx.watch(); sfx.caught(); } buzz(timeup ? 80 : [60, 40, 120]); setPulse(null);
   if (owner.mode === 'away') { owner.x = clamp(cat.x - 70, 20, 330); owner.face = 1; }
   setMode('look', 9); owner.lureT = 0; owner.face = Math.sign(cat.x - owner.x) || 1; owner.up = false; chaseT = 0;
+  // 4.34.0：誰に見つかったか（線の出どころ）。カメラ → レンズ、お客さん → 目、それ以外 → 飼い主の目
+  run.causePt = null;
+  if (!timeup) {
+    if (run.cause === 'cam' && cams.length) { const cm = cams.find(c => camSees(c, cat.x)) || cams[0]; run.causePt = { x: cm.mx, y: 132, k: 'cam' }; }
+    else if (run.cause === 'guest' && guest) run.causePt = { x: guest.x + guest.face * 6, y: FLOOR - 78, k: 'guest' };
+    else run.causePt = { x: owner.x + owner.face * 7, y: FLOOR - (room === 'kids' ? 94 : 118), k: 'owner' };
+  }
+}
+// 見つかった瞬間：原因からネコへ赤い線を引く（0.4 秒）。どこから見られたかを、文字なしで伝える
+function drawCause(t) {
+  const p = run.causePt; if (!p) return;
+  const k = Math.min(1, t / 0.16), tx0 = cat.x, ty0 = cat.y - 24, ex = p.x + (tx0 - p.x) * k, ey = p.y + (ty0 - p.y) * k;
+  g.fillStyle = 'rgba(40,20,8,.3)'; g.fillRect(0, -OY, W, VH);
+  g.save(); g.lineCap = 'round';
+  g.strokeStyle = '#fff'; g.lineWidth = 7; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(ex, ey); g.stroke();
+  g.strokeStyle = '#ff3b30'; g.lineWidth = 4; g.setLineDash([10, 7]); g.lineDashOffset = -t * 90; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(ex, ey); g.stroke();
+  g.setLineDash([]);
+  // 出どころ：目のしるし（白い輪と黒目）。広がる輪
+  const pr = 1 + (t * 3) % 1; g.strokeStyle = `rgba(255,59,48,${1.2 - (t * 3) % 1})`; g.lineWidth = 3; g.beginPath(); g.arc(p.x, p.y, 12 * pr, 0, TAU); g.stroke();
+  g.fillStyle = '#fff'; g.strokeStyle = '#4a2f1d'; g.lineWidth = 2; g.beginPath(); g.ellipse(p.x, p.y, 13, 8, 0, 0, TAU); g.fill(); g.stroke();
+  g.fillStyle = '#20252b'; g.beginPath(); g.arc(p.x + Math.sign(tx0 - p.x) * 3, p.y, 4, 0, TAU); g.fill();
+  // ネコの側：「!」
+  if (k >= 1) { g.font = `800 30px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 6; g.strokeStyle = '#fff'; g.strokeText('!', tx0, ty0 - 34); g.fillStyle = '#ff3b30'; g.fillText('!', tx0, ty0 - 34); }
+  g.restore();
 }
 // お守りで復活：お守りを使い、飼い主はいったん部屋を出る。怪しまれ度は下がり、追いかけっこもまた使える
 function revive() {
@@ -5130,17 +5159,29 @@ function drawBox() {
     g.fillStyle = '#111'; g.fillRect(BOX.x - 6.6, y + 8, 1.2, 6); g.fillRect(BOX.x + 5.4, y + 8, 1.2, 6);
   }
 }
+function tilt0(m, o) { return (o.up || m === 'up' || m === 'sky') ? -0.25 : (m === 'phone' ? 0.25 : 0); }   // 顔の傾き（見える範囲の目の高さの線に使う）
 function drawOwner() {
   const o = owner; if (o.mode === 'away') return;
   const m = o.mode, x = o.x, kid = room === 'kids', hy = kid ? 160 : 188;
   // 見える範囲（背景に薄く）
   if (m !== 'leave') {
+    // 4.34.0：飼い主に近いほど濃く、端は線で区切る。振り向く直前（warn の残り 0.3 秒）は赤と黄で点滅
     let col = null;
-    if (m === 'warn') col = 'rgba(255,190,40,.16)'; else if (m === 'look' || m === 'up' || m === 'search') col = 'rgba(255,70,60,.12)'; else if (m === 'walk') col = 'rgba(255,255,255,.08)'; else if (m === 'phone') col = 'rgba(100,150,255,.14)'; else if (m === 'busy' || m === 'tv' || m === 'tidy' || m === 'sad') col = 'rgba(80,190,120,.16)';
-    if (col) {
-      g.fillStyle = col;
-      if (o.omni) g.fillRect(x - o.range, -OY, o.range * 2, FLOOR + OY);
-      else if (o.face > 0) g.fillRect(x, -OY, o.range, FLOOR + OY); else g.fillRect(x - o.range, -OY, o.range, FLOOR + OY);
+    if (m === 'warn') col = [255, 190, 40, 0.3]; else if (m === 'look' || m === 'up' || m === 'search') col = [255, 70, 60, 0.26]; else if (m === 'walk') col = [255, 255, 255, 0.15]; else if (m === 'phone') col = [100, 150, 255, 0.2]; else if (m === 'busy' || m === 'tv' || m === 'tidy' || m === 'sad') col = [80, 190, 120, 0.22];
+    if (col && o.range > 0) {
+      if (m === 'warn' && o.t < 0.3 && !SET.calm) col = (tAnim * 16) % 1 < 0.5 ? [255, 70, 60, 0.42] : [255, 220, 90, 0.4];
+      const R = o.range, [cr, cg, cb, ca] = col, c = a => `rgba(${cr},${cg},${cb},${a})`, x0 = o.omni ? x - R : (o.face > 0 ? x : x - R), x1 = o.omni ? x + R : (o.face > 0 ? x + R : x);
+      const gr = g.createLinearGradient(x0, 0, x1, 0);
+      if (o.omni) { gr.addColorStop(0, c(ca * 0.3)); gr.addColorStop(0.5, c(ca)); gr.addColorStop(1, c(ca * 0.3)); }
+      else if (o.face > 0) { gr.addColorStop(0, c(ca)); gr.addColorStop(0.75, c(ca * 0.5)); gr.addColorStop(1, c(ca * 0.3)); }
+      else { gr.addColorStop(0, c(ca * 0.3)); gr.addColorStop(0.25, c(ca * 0.5)); gr.addColorStop(1, c(ca)); }
+      g.fillStyle = gr; g.fillRect(x0, -OY, x1 - x0, FLOOR + OY);
+      // 端の線（見える範囲の境目）
+      g.save(); g.strokeStyle = c(Math.min(1, ca * 2.2)); g.lineWidth = 2; g.setLineDash([7, 6]); g.lineDashOffset = -tAnim * 30;
+      for (const ex of (o.omni ? [x0, x1] : [o.face > 0 ? x1 : x0])) if (ex > 2 && ex < W - 2) { g.beginPath(); g.moveTo(ex, -OY); g.lineTo(ex, FLOOR); g.stroke(); }
+      g.restore();
+      // 目の高さの線（どっちを向いているか）
+      if (!o.omni) { const ey = FLOOR - (kid ? 95 : 118) + (tilt0(m, o) * 40); g.strokeStyle = c(Math.min(1, ca * 1.6)); g.lineWidth = 1.5; g.beginPath(); g.moveTo(x + o.face * 10, ey); g.lineTo(x + o.face * R, ey + (o.up || m === 'up' ? -30 : 0)); g.stroke(); }
     }
   }
   g.save(); g.translate(x, FLOOR); g.scale(o.face, 1);
@@ -5463,7 +5504,8 @@ function drawTut() {
 }
 function drawCutscene() {
   // 見つかったときの演出：白い閃光 → 飼い主のアップ → ネコの知らん顔
-  const e = CAUGHT_DUR - caughtT;
+  const e0 = CAUGHT_DUR - caughtT, e = e0 - 0.4;
+  if (e < 0) { drawCause(e0); return; }
   if (e < 0.35) { g.fillStyle = `rgba(255,255,255,${0.85 * (1 - e / 0.35)})`; g.fillRect(0, -OY, W, VH); return; }
   g.fillStyle = 'rgba(40,20,8,.55)'; g.fillRect(0, -OY, W, VH);
   g.lineJoin = 'round'; g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -5636,6 +5678,8 @@ function draw() {
     g.fillStyle = '#c95f17'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `800 15px ${FONT}`; g.fillText(dayName(level) + '　' + ph.clock, 0, -14);
     drawWeatherIcon(g, iw / 2 - 26, -14, weather);
     g.fillStyle = ph.special ? '#c0392b' : '#4a2f1d'; g.font = `800 26px ${FONT}`; g.fillText(title, 0, 14);
+    // 4.34.0：その日の進み（● が今の面まで、○ が残り）。札の下の縁に
+    { const di = (level - 1) % DAY_LEN; for (let i = 0; i < DAY_LEN; i++) { g.fillStyle = i <= di ? '#ff8a3d' : '#fff'; g.strokeStyle = '#4a2f1d'; g.lineWidth = 2; g.beginPath(); g.arc((i - (DAY_LEN - 1) / 2) * 16, 40, 5, 0, TAU); g.fill(); g.stroke(); } }
     if (ph.special) { g.fillStyle = '#ffc94a'; g.strokeStyle = '#4a2f1d'; g.lineWidth = 2; rr(g, -48, -58, 96, 22, 11); g.fill(); g.stroke(); g.fillStyle = '#4a2f1d'; g.font = `800 12px ${FONT}`; g.fillText(lt('とくべつな夜', 'SPECIAL NIGHT'), 0, -47); }
     else if (ph.foe || ph.rule) {
       // 第2週：相手の名前（赤）か、その日のルール（黄）
@@ -5685,10 +5729,10 @@ function draw() {
     g.fillStyle = ic; g.font = `800 19px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(sec), 9, 1);
     g.restore();
     if (run && run.charm) drawCharmIcon(g, W / 2 + 66 + Math.sin(tAnim * 3) * 1.5, 24 - OY, 1.2);
-    // 飼い主の顔（4.32.1：ゲーム画面の中、時計の左）：追いかけっこの残り。残り 2 にこにこ → 残り 1 むっ → 残り 0 かんかん。追いかけっこ中・「次はない!」は震える
+    // 飼い主の顔（4.34.0：右上「のこり」の左隣、直径 64）：追いかけっこの残り。残り 2 にこにこ → 残り 1 むっ → 残り 0 かんかん。追いかけっこ中・「次はない!」は震える
     { const hot = chaseT > 0 || (chaseN >= 2 && sus >= 70 && state === 'play'), sh = hot && !SET.calm ? Math.sin(tAnim * 40) * 2 : 0, R = 32;
-      const fy = 50 - OY + 12 + (tasks.length ? tasks.length * 22 + 12 : 0) + R + 8;   // お題の札のすぐ下（左上）。4.33.0：直径 64
-      g.save(); g.translate(14 + R + sh, fy); g.fillStyle = '#fff'; g.strokeStyle = hot ? '#e0362c' : '#4a2f1d'; g.lineWidth = 3; g.beginPath(); g.arc(0, 0, R, 0, TAU); g.fill(); g.stroke();
+      const fy = 10 - OY + R + 2, fx = remainL - 10 - R;
+      g.save(); g.translate(fx + sh, fy); g.fillStyle = '#fff'; g.strokeStyle = hot ? '#e0362c' : '#4a2f1d'; g.lineWidth = 3; g.beginPath(); g.arc(0, 0, R, 0, TAU); g.fill(); g.stroke();
       g.beginPath(); g.arc(0, 0, R - 2, 0, TAU); g.clip(); drawOwnerFace(g, 0, 4, 0.72, chaseN <= 0 ? true : chaseN === 1 ? 'grim' : false, room); g.restore(); }
   }
   if (state === 'caught') drawCutscene();
@@ -5859,7 +5903,7 @@ function showTitle() {
   ov.innerHTML = `<div class="panel">
     <div class="big-logo">${lt('こっそり<span>ネコ</span>', 'Mischievous <span>Cat</span>')}</div><p class="sub">${lt('MISCHIEVOUS CAT', 'こっそりネコ')}</p>
     <div class="first-cat"><canvas width="360" height="270"></canvas><b>${T.name}</b><span>${T.tag || T.note}${selAcc !== 'none' ? '　' + (ACCS.find(a => a.id === selAcc) || {}).name : ''}</span></div>
-    ${sv ? `<button class="btn go" id="resBtn" type="button">${lt('つづきから', 'Continue')}<small style="display:block;font-size:.72rem;font-weight:500">${stageLabel(sv.level).replace(/^\d+　/, '')}${sv.cont ? lt('（朝から）', ' (from morning)') : ''}</small></button><div class="row"><button class="btn w" id="goBtn" type="button">${lt('はじめから', 'New game')}</button></div>` : `<button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>`}
+    ${sv ? `<button class="btn go" id="resBtn" type="button">${lt('つづきから', 'Continue')}<small style="display:block;font-size:.72rem;font-weight:500">${stageLabel(sv.level).replace(/^\d+　/, '')}${sv.cont ? lt('（朝から）', ' (from morning)') : ''}<br>${lt('この日はあと ' + dayLeft(sv.level) + ' 面', dayLeft(sv.level) + ' stage' + (dayLeft(sv.level) > 1 ? 's' : '') + ' left today')}</small></button><div class="row"><button class="btn w" id="goBtn" type="button">${lt('はじめから', 'New game')}</button></div>` : `<button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>`}
     ${keysBox()}
     <div class="row"><button class="btn t" id="catBtn" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21c-5 0-8-3-8-7 0-3 1-5 3-7l1-4 3 3h2l3-3 1 4c2 2 3 4 3 7 0 4-3 7-8 7zm-3-8a1.3 1.3 0 100 2.6 1.3 1.3 0 000-2.6zm6 0a1.3 1.3 0 100 2.6 1.3 1.3 0 000-2.6z"/></svg>${lt('ネコとおしゃれ', 'Cat & style')}</button></div>
     <div class="row"><button class="btn y" id="recBtn" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M5 3h14v18l-7-4-7 4z"/></svg>${lt('きろく', 'Records')}</button><button class="btn b" id="seBtn" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm9 4l-2.2-.6-.5-1.3 1.2-2-1.6-1.6-2 1.2-1.3-.5L14 5h-4l-.6 2.2-1.3.5-2-1.2L4.5 8.1l1.2 2-.5 1.3L3 12v0l2.2.6.5 1.3-1.2 2 1.6 1.6 2-1.2 1.3.5L10 19h4l.6-2.2 1.3-.5 2 1.2 1.6-1.6-1.2-2 .5-1.3z"/></svg>${lt('せってい', 'Settings')}</button></div>
@@ -6187,6 +6231,7 @@ function showSettings(back) {
   }); }
 }
 // ---------- テストメニュー（確認用。ここから始めた回は記録・ランキング・称号・カードに残さない） ----------
+function dayLeft(L) { return DAY_LEN - ((L - 1) % DAY_LEN); }   // その日の残りの面数（今の面をふくむ）
 function stageLabel(L) {
   const ph = phaseOf(L), extra = ph.special ? String(ph.spTitle) : ph.foe ? String(FOES[ph.foe].n) : ph.rule ? String(RULE_NAME[ph.rule]) : '';
   return `${L}　${dayName(L)}・${ph.name}　${ph.roomName}${extra ? '（' + extra + '）' : ''}`;
@@ -6468,7 +6513,14 @@ async function showOver() {
   bindOnline();
   $('bShare').addEventListener('click', doShare);
   $('bSave').addEventListener('click', saveCard);
+  $('card').addEventListener('click', () => showLb($('card').src));
   buildCard();
+}
+// 画像を大きく見る（結果画面・完走画面の写真をタップ）
+function showLb(src) {
+  if (!src) return;
+  let lb = $('lb'); if (!lb) { lb = document.createElement('div'); lb.id = 'lb'; lb.innerHTML = '<img alt="">'; lb.addEventListener('click', () => { lb.hidden = true; }); document.body.appendChild(lb); }
+  lb.querySelector('img').src = src; lb.hidden = false;
 }
 // シェア用の画像を作る（結果画面・完走画面）。同じ回・同じ言語なら作り直さない
 async function buildCard() {
