@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.23.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.23.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2793,7 +2793,7 @@ function endingType(r) {
 let endingsSeen = new Set();
 try { endingsSeen = new Set(JSON.parse(store.get('nekoEndings', '[]'))); } catch (e) {}
 // スタッフロール：ENDING の種類、出演（ネコ・飼い主）、被害者一覧（割ったもの）、大技、3日間の写真。タップ・ボタンで飛ばせる
-let credT = 0, CRED_LEN = 20;   // 4.23.0：16 → 20 秒
+let credT = 0, CRED_LEN = 64 * (60 / 84 / 2);   // 曲のひとまわり（8 小節・84 BPM ＝ 約 22.9 秒）に合わせる。4.23.1
 function creditLines() {
   const r = run, E = ENDINGS[r.endType], L = [];
   L.push(['big', lt('こっそりネコ', 'Mischievous Cat')]); L.push(['sub', 'ENDING ' + String(E.n)]); L.push(['gap']);
@@ -4986,7 +4986,7 @@ function update(dt) {
       } else { setupStage(level + 1); state = 'play'; }
     }
   } else if (state === 'ending') {
-    endT += dt; if (endT > 15.8) { state = 'credits'; credT = 0; endBgmStart(true); EB.full = true; }
+    endT += dt; if (endT > 15.8) { state = 'credits'; credT = 0; endBgmStart(true); EB.full = true; if (EB.on && ac) { EB.step = 0; EB.next = ac.currentTime + 0.05; } }   // スタッフロールの始まりを曲の 1 小節目に合わせる
   } else if (state === 'credits') {
     credT += dt; if (credT > CRED_LEN && !endShown) { endShown = true; showEnding(); }
   } else if (state === 'endmenu') {
