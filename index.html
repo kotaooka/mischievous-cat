@@ -77,11 +77,6 @@
   #meter .bar { flex: 1; height: 19px; background: #f6e2c4; border: 2px solid var(--line); border-radius: 999px; overflow: hidden; }
   #meter .bar i { display: block; height: 100%; width: 0; background: var(--teal); border-radius: 999px; transition: background .2s; }
   /* 怪しまれ度は色だけでなく、言葉・しま模様・目の開き具合でも段階を示す */
-  #meter .esc { flex: none; display: inline-flex; align-items: center; gap: 2px; font-weight: 800; font-size: .72rem; border: 2px solid var(--line); border-radius: 999px; padding: 0 6px; height: 19px; background: var(--card); color: var(--teal-d); }
-  #meter .esc svg { width: 18px; height: 12px; }
-  #meter .esc.used { color: #b39a80; background: #fbf3e6; text-decoration: line-through; }
-  #meter .esc.used svg { opacity: .5; }
-  #meter .esc[hidden] { display: none; }
   #meter.l5 .lvl { background: #4a2f1d; color: #fff; animation: lvb .4s steps(2) infinite; }
   #meter.l5 .bar { border-color: #4a2f1d; box-shadow: 0 0 0 2px rgba(74,47,29,.4); }
   #meter .lvl { flex: none; min-width: 4.6em; text-align: center; font-weight: 800; font-size: .8rem; border: 2px solid var(--line); border-radius: 999px; padding: 0 6px; background: var(--card); color: var(--ink); line-height: 1.5; white-space: nowrap; }
@@ -181,6 +176,10 @@
   #frame.l3 canvas#c { border-color: #ff3b30; animation: frmBlink .4s ease-in-out infinite; }
   #frame.l5 canvas#c { border-color: #4a2f1d; animation: frmBlink .5s ease-in-out infinite; }
   #frame.l4 canvas#c { border-color: var(--teal-d); box-shadow: 0 0 0 3px rgba(47,179,163,.5); }
+  /* 追いかけっこの残り（4.29.0）：1 回使うと枠が赤のまま、使い切ると赤の破線（70% 以上で l5 の点滅が重なる） */
+  #frame.c1 canvas#c { border-color: #e0362c; }
+  #frame.c2 canvas#c { border-color: #4a2f1d; outline: 4px dashed #e0362c; outline-offset: -2px; }
+  #frame.c2.l5 canvas#c { outline-color: #ff3b30; }
   @keyframes frmBlink { 0%, 100% { box-shadow: 0 0 0 2px rgba(255,59,48,.35); } 50% { box-shadow: 0 0 0 6px rgba(255,59,48,.85), 0 0 18px rgba(255,59,48,.6); } }
   body.calm #frame.l2 canvas#c, body.calm #frame.l3 canvas#c, body.calm #frame.l5 canvas#c { animation: none; box-shadow: 0 0 0 4px rgba(255,59,48,.6); }
   .pager { touch-action: pan-y; flex: 1; min-height: 0; overflow-y: auto; }
@@ -292,7 +291,6 @@
   <div id="meter" aria-label="怪しまれ度">
     <svg viewBox="0 0 26 18" aria-hidden="true"><path d="M1 9C5 2 21 2 25 9C21 16 5 16 1 9Z" fill="#fff" stroke="#4a2f1d" stroke-width="2"/><circle cx="13" cy="9" r="4" fill="#4a2f1d"/></svg>
     <span class="bar"><i id="hB"></i></span>
-    <b class="esc" id="hEsc" aria-label="追いかけっこ" hidden><svg viewBox="0 0 24 16" aria-hidden="true"><path d="M3 13c0-4 3-7 7-7h5l3-3v4l2 1-2 2v2c0 1-1 2-2 2h-2l-1-2H9l-1 2H5c-1 0-2-1-2-3z" fill="currentColor"/><circle cx="16" cy="8" r="1" fill="#fff"/></svg><span>×1</span></b>
     <b class="lvl" id="hS" aria-live="polite">へいき</b>
   </div>
   <button id="upd" type="button" hidden></button>
@@ -326,7 +324,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.28.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.29.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1056,6 +1054,7 @@ const TV_LINES = [
 ];
 const tvSay = () => pick(Math.random() < 0.7 && tv ? TV_LINES[tv.show || 0] : LINES.tv);
 LINES.chaseEnd = [tx('次はないよ!!', 'Next time you\'re done!!'), tx('二度目はないからね!!', 'There won\'t be a second time!!'), tx('今度は許さないよ', 'Next time I won\'t forgive you'), tx('見逃すのは今回だけ', 'This is the only time I let it go'), tx('次に見つけたら、おしまいだからね', 'Catch you again and that\'s it'), tx('はぁ、はぁ……次は逃がさない', 'Huff… puff… you won\'t get away next time'), tx('一回だけだよ、一回だけ', 'Once. Just once')];
+LINES.chaseEnd2 = [tx('……もう知らない', '……I\'m done with you'), tx('次で本当に終わりだからね', 'Next time it\'s really over'), tx('はぁ……はぁ……もう追わないから', 'Huff… huff… I won\'t chase you again'), tx('次は逃がさない。絶対', 'Next time you don\'t get away. Period')];
 LINES.churu = [tx('チュールだよ〜', 'Churu time~'), tx('おいで〜', 'Come here~'), tx('ほらほら〜', 'Look, look~')];
 LINES.churuNo = [tx('あれ…いらないの？', "Huh… you don't want it?"), tx('めずらしいね…', "That's unusual…")];
 LINES.rub = [tx('あら、甘えんぼ', 'Aww, so clingy'), tx('かわいいねえ', "Aren't you cute"), tx('よしよし', 'There, there'), tx('すりすりしてる〜', "You're rubbing on me~")];
@@ -1112,7 +1111,7 @@ let tutDone = store.get('nekoTut', '0') === '1';
 let stageT = 0, clearT = 0, caughtT = 0, shake = 0, tAnim = 0, susCd = 0, slowT = 0, chainSeq = 0;
 let timeLeft = 40, timeMax = 40, lastTick = 99, bowl = null, feeds = 0, pausedFrom = null, resumeT = 0;   // resumeT：ポーズから戻るときの 3・2・1 の残り
 let room = 'living', kb = null, snack = null, dayT = 0, introT = 0, newAccs = [];
-let tasks = [], chaseT = 0, chaseUsed = false, hideT = 0, rideStage = 0, tapTarget = null, oneHand = store.get('nekoOneHand', '0') === '1';
+let tasks = [], chaseT = 0, chaseN = 0, susQ = 0, warn85 = false, hideT = 0, rideStage = 0, tapTarget = null, oneHand = store.get('nekoOneHand', '0') === '1';
 if (!catsOpen.has(CATS[selCat].id)) selCat = 2;
 let selAcc = store.get('nekoAcc', 'none');
 if (!ACCS.some(a => a.id === selAcc)) selAcc = 'none';
@@ -1676,7 +1675,7 @@ function setupStageCore(L) {
   tut.on = L === 1 && !tutDone; tut.broke = false;
   // 制限時間：もの1個につき7秒＋25秒
   // お題を3つ：部屋の仕掛けから1つ＋ほかから2つ（その面でできるものだけ）
-  tasks = []; chaseUsed = false; chaseT = 0; hideT = 0; rideStage = 0; tapTarget = null;
+  tasks = []; chaseN = 0; susQ = 0; warn85 = false; chaseT = 0; hideT = 0; rideStage = 0; tapTarget = null;
   {
     // この面で初めて出た仕掛けを集める（一度光らせたら learned に入れて、次からは出さない）
     const add = (k, x, y) => { if (!learned.has('see_' + k)) spot.push({ k, x, y }); };
@@ -1845,7 +1844,7 @@ function hearNoise(x, loud) {
   // 物音だけ（見られていない）では見つからない：部屋にいないときは 55%、いても見ていないときは 80% までしか上げない
   const noise = (v, cap) => { sus = Math.max(sus, Math.min(sus + v, cap)); };
   if (o.mode === 'away' || o.x < 6 || o.x > W - 6) { noise(12 * loud, 55); if (o.mode === 'away') { o.t = Math.min(o.t, 0.8); o.hint = x; } return; }
-  if (ownerSees(x)) { if (inEscape()) noise(40 * loud, 90); else sus += 40 * loud; if (loud >= 0.5 && o.mode !== 'search') { o.shock = 0.9; say(pick(LINES.seen), 1.2); } }
+  if (ownerSees(x)) { if (inEscape()) noise(40 * loud, 90); else susQ += 40 * loud; /* 4.29.0：見られた物音は一気に上げず、ゲージが毎秒 70% で追いつく（連鎖で 1 フレームに +120% にならない） */ if (loud >= 0.5 && o.mode !== 'search') { o.shock = 0.9; say(pick(LINES.seen), 1.2); } }
   else { noise(12 * loud, 80); if (o.mode !== 'search') { o.face = Math.sign(x - o.x) || o.face; o.lureT = Math.max(o.lureT, 1.2); say(pick(LINES.unseen), 1.2); } }
   if (dog && dog.cd <= 0 && Math.abs(x - dog.x) < 70 && loud >= 0.8) dogBark();
 }
@@ -2420,7 +2419,7 @@ function breakItem(it, plat) {
   if (!run.big || d.yen > run.big.y) run.big = { k: it.t, y: d.yen };
   run.stageDrops.push(yv); run.todYen[phaseOf(level).tod] += yv; if (d.yen >= 30000) run.bigN++; run.lastDropT = tAnim;
   if (plat === PL.floor && !IT[it.t].junk) { run.tape = run.tape || {}; const tp = run.tape[room] = run.tape[room] || []; if (tp.length < 14 && !tp.some(q => Math.abs(q.x - it.x) < 22)) tp.push({ x: clamp(it.x, 14, W - 14), r: rnd(-0.3, 0.3), L: level }); }   // 養生テープの跡（次にこの部屋へ来たとき）
-  if (it.t === 'alarm' && nap) { nap.asleep = false; sus = 100; susCd = 0; chaseUsed = true; run.lastBy = 'owner'; owner.face = Math.sign(it.x - owner.x) || 1; setMode('look', 9); say(lt('ジリリリリ!!', 'RIIIING!!'), 1.5); }   // 最後の夜：目覚まし時計で飛び起きる（即アウト）
+  if (it.t === 'alarm' && nap) { nap.asleep = false; sus = 100; susQ = 0; susCd = 0; chaseN = 2; run.lastBy = 'owner'; owner.face = Math.sign(it.x - owner.x) || 1; setMode('look', 9); say(lt('ジリリリリ!!', 'RIIIING!!'), 1.5); }   // 最後の夜：目覚まし時計で飛び起きる（即アウト）
   else if (it.t === 'alarm') rush(it.x);
   if (it.t === 'remote') tvOn();
   if (it.home === 'book') { run.bookBroke++; if (room === 'living') bigCount(it.x); }
@@ -3752,6 +3751,7 @@ function updSus(dt) {
     }
   } else { cat.hideKey = null; cat.hideT = 0; }
   if (hiding) { gain = 0; sus -= (o.mode === 'search' ? 12 : 8) * dt; }   // 隠れている間は早めに下がる（4.10.1：探している最中 6→12/秒、ふだんは +8/秒 上乗せ）
+  if (susQ > 0) { const d = Math.min(susQ, 70 * dt); susQ -= d; sus += d; if (gain <= 0) run.lastBy = watcherOf(); }
   if (gain > 0) { sus += gain * dt; run.lastBy = gain - g0 > g0 && exBy ? exBy : watcherOf(); }   // いちばん多く上げた見張りを、見つかった原因として覚える
   else if (o.mode !== 'search') sus -= (seen ? 6 : (o.mode === 'away' ? 24 : 14)) * dt;
   if (susCd > 0) susCd -= dt;
@@ -3772,13 +3772,15 @@ function updSus(dt) {
   if (!gag.tail && cat.hidden && cat.type.big && o.mode === 'search' && Math.abs(o.x - BOX.x) < 160) { gag.tail = true; say(lt('…しっぽ出てるよ', '…Your tail is showing'), 2); }
   if (gag.flash > 0) gag.flash -= dt;
   if (sus >= 100 && hiding) sus = 99;   // 隠れ場所にいる間は見つからない
-  if (sus >= 100) { sus = 100; if (!chaseUsed) startChase(); else caught(); }
+  // 4.29.0：追いかけっこは 2 回まで（1 回目 3 秒、2 回目 1.5 秒）。3 回目で即アウト。使い切ったあと 85% を越えた瞬間に一度だけ飼い主が警告する
+  if (chaseN >= 2 && !warn85 && sus >= 85 && state === 'play') { warn85 = true; say(lt('次やったら本気だよ!!', 'Do it again and I mean it!!'), 1.8); sfx.alert(); shake = Math.max(shake, 0.15); }
+  if (sus >= 100) { sus = 100; susQ = 0; if (chaseN < 2) startChase(); else caught(); }
 }
 // 見つかったら、1ステージに1回だけ追いかけっこ。3秒以内にダンボールかタワーへ逃げ込めば助かる
 function startChase() {
-  const o = owner; chaseUsed = true; chaseT = 3; o.lureT = 0; o.up = false;
+  const o = owner; chaseN++; chaseT = chaseN >= 2 ? 1.5 : 3; o.lureT = 0; o.up = false;
   if (o.mode === 'away') { o.x = cat.x < 200 ? 380 : -40; }
-  setMode('chase'); setPulse(null); tapTarget = null; o.face = Math.sign(cat.x - o.x) || 1; say(lt('待てーっ!!', 'Get back here!!'), 3); sfx.alert(); sfx.bark(); buzz([40, 30, 40]); shake = 0.3;
+  setMode('chase'); setPulse(null); tapTarget = null; o.face = Math.sign(cat.x - o.x) || 1; say(chaseN >= 2 ? lt('言ったでしょ!!', 'I TOLD you!!') : lt('待てーっ!!', 'Get back here!!'), 3); sfx.alert(); sfx.bark(); buzz([40, 30, 40]); shake = 0.3;
 }
 // 隠れ場所の高い所：本棚の上・カーテンレールの上（手が届かない）。吊り棚・エアコンの上は 4.8.6 から隠れ場所ではない（見つかる・追いかけっこで捕まる）
 const isHigh = () => !!cat.plat && (cat.plat === PL.book || cat.plat === PL.rail);
@@ -3815,7 +3817,7 @@ function updChase(dt) {
   const o = owner; chaseT -= dt;
   const high = isHigh();
   if (cat.hidden || cat.safe || high) {
-    chaseT = 0; sus = 60; susCd = 6; run.escapes++; setMode('leave'); say(pick(LINES.chaseEnd), 2.4);   // 4.28.1：逃げ切ったら必ず「次はない」と言う sfx.clear();
+    chaseT = 0; sus = chaseN >= 2 ? 80 : 60; susQ = 0; susCd = 6; run.escapes++; setMode('leave'); say(pick(chaseN >= 2 ? LINES.chaseEnd2 : LINES.chaseEnd), 2.4);   // 逃げ切ったら必ず言う。2 回目は 80% までしか下がらない sfx.clear();
     pops.push({ x: cat.x, y: cat.y - 60, text: lt('セーフ!', 'Safe!'), life: 1.6, col: '#1d8174', size: 26 }); return;
   }
   // 4.27.1：追いかけっこの 3 秒は丸ごと猶予。飼い主は追って走るが、近づいただけでは捕まえない（前は 26px で即アウトで、1 秒も持たないことが多かった）。3 秒たった時点で隠れていなければアウト
@@ -3872,7 +3874,7 @@ function caught(timeup) {
 // お守りで復活：お守りを使い、飼い主はいったん部屋を出る。怪しまれ度は下がり、追いかけっこもまた使える
 function revive() {
   run.charm = 0; run.revive = false; run.timeup = false; run.revives = (run.revives || 0) + 1;
-  state = 'play'; sus = 25; susCd = 6; chaseT = 0; chaseUsed = false; spaceT = 0; slowT = 0; shake = 0;
+  state = 'play'; sus = 25; susQ = 0; susCd = 6; chaseT = 0; chaseN = 0; spaceT = 0; slowT = 0; shake = 0;
   owner.x = -60; owner.lureT = 0; owner.say = ''; owner.scareT = 0; owner.up = false; setMode('away', rnd(4, 6)); owner.warned = false;
   cat.stun = 0; cat.mark = 0; cat.seen = false; tapTarget = null; timeLeft = Math.max(timeLeft, 10);
   for (let k = 0; k < 24; k++) addPart({ k: 'drop', x: cat.x + rnd(-30, 30), y: cat.y - rnd(0, 60), vx: rnd(-80, 80), vy: rnd(-200, -60), life: 0.9, gy: cat.y, c: pick(['#ffc94a', '#ff5a5a', '#ffffff']), s: rnd(2, 4), rot: 0, vr: 0 });
@@ -5544,7 +5546,7 @@ function draw() {
     const b = Math.abs(Math.sin(tAnim * 8)) * 8;
     drawEsc(1, '');
     g.lineJoin = 'round'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `800 24px ${FONT}`;
-    const rt = lt('にげろ! ', 'RUN! ') + Math.ceil(chaseT); g.lineWidth = 6; g.strokeStyle = '#fff'; g.strokeText(rt, W / 2, 210); g.fillStyle = '#ff3b30'; g.fillText(rt, W / 2, 210);
+    const rt = (chaseN >= 2 ? lt('最後! ', 'LAST! ') : lt('にげろ! ', 'RUN! ')) + Math.ceil(chaseT); g.lineWidth = 6; g.strokeStyle = '#fff'; g.strokeText(rt, W / 2, 210); g.fillStyle = '#ff3b30'; g.fillText(rt, W / 2, 210);
   }
   if (state !== 'title') {
     tag(dayName(level) + lt('・', ' · ') + phaseOf(level).name, 12, 'left');
@@ -5711,12 +5713,11 @@ function hud() {
   { const sh = updReady && (state === 'title' || state === 'over' || state === 'endmenu'); if (updB.hidden === sh) { updB.hidden = !sh; updB.textContent = lt('新しい版があります（タップで更新）', 'New version available (tap to update)'); } }
   // 段階：0 へいき（40未満）、1 あやしい（40〜69）、2 やばい（70以上）、3 追いかけっこ中
   // 5：追いかけっこを使ったあとの「やばい」（次に 100% になると即アウト）
-  const lv = (state === 'play' || state === 'clear') && owner.mode === 'chase' ? 3 : state === 'play' && isHiding() ? 4 : b >= 70 ? (chaseUsed && state === 'play' ? 5 : 2) : b >= 40 ? 1 : 0;
-  const key = s + '|' + y + '|' + b + '|' + lv + '|' + lang + '|' + state + '|' + chaseUsed; if (key === lastHud) return; lastHud = key;
-  { const el = $('hEsc'), sh = state === 'play' || state === 'clear' || state === 'pause' || state === 'caught'; el.hidden = !sh; el.classList.toggle('used', chaseUsed); el.querySelector('span').textContent = chaseUsed ? '×0' : '×1'; }
+  const lv = (state === 'play' || state === 'clear') && owner.mode === 'chase' ? 3 : state === 'play' && isHiding() ? 4 : b >= 70 ? (chaseN >= 2 && state === 'play' ? 5 : 2) : b >= 40 ? 1 : 0;
+  const key = s + '|' + y + '|' + b + '|' + lv + '|' + lang + '|' + state + '|' + chaseN; if (key === lastHud) return; lastHud = key;
   hY.textContent = y; hB.style.width = b + '%';
   hB.style.background = b >= 70 ? 'var(--red)' : b >= 40 ? 'var(--yel)' : 'var(--teal)';
-  meterEl.className = 'l' + lv; frameEl.className = (state === 'play' || state === 'clear') ? 'l' + lv : ''; hS.textContent = [lt('へいき', 'Calm'), lt('あやしい', 'Wary'), lt('やばい!', 'Danger!'), lt('にげろ!', 'RUN!'), lt('かくれ中', 'Hidden'), lt('次はない!', 'NO CHANCE!')][lv];
+  meterEl.className = 'l' + lv; frameEl.className = (state === 'play' || state === 'clear') ? 'l' + lv + (state === 'play' && chaseN > 0 ? ' c' + Math.min(2, chaseN) : '') : '';   // c1：追いかけっこを 1 回使った（枠が赤）、c2：使い切った（赤の破線） hS.textContent = [lt('へいき', 'Calm'), lt('あやしい', 'Wary'), lt('やばい!', 'Danger!'), lt('にげろ!', 'RUN!'), lt('かくれ中', 'Hidden'), lt('次はない!', 'NO CHANCE!')][lv];
 }
 const ohLabel = () => lt('スティック操作：', 'Touch stick: ') + (oneHand ? 'ON' : 'OFF');
 // 言語を切り替える：保存して、HTML に直接書いた文字（下のボタン・読み上げ用のラベル・ページの題名）も書き換える
