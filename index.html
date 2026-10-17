@@ -206,7 +206,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '3.1.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '3.2.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -395,7 +395,7 @@ const TITLES = [
   { id: 'stars', name: tx('お題マスター', "Task Master"), test: r => r.stars >= 9 },
   { id: 'escape', name: tx('逃げ足の達人', "Escape Artist"), test: r => r.escapes >= 2 },
   { id: 'mis', name: tx('爪とぎ職人', "Scratch Master"), test: r => r.mis >= 3 },
-  { id: 'launch', name: tx('カタパルト職人', "Catapult Engineer"), test: r => r.launch >= 2 },
+  { id: 'launch', name: tx('ネズミ作戦の参謀', 'Mouse Strategist'), test: r => r.scare >= 2 },   // 旧「カタパルト職人」（てこの廃止で入れ替え）
   { id: 'bowl', name: tx('ボウリング王', "Bowling King"), test: r => r.ballHits >= 3 },
   { id: 'top', name: tx('天井の住人', "Ceiling Dweller"), test: r => r.top },
   { id: 'streak', name: tx('ノーマークの達人', "Unseen Master"), test: r => r.maxStreak >= 5 },
@@ -499,7 +499,6 @@ const TASKS = {
   hide:    { t: tx('ダンボールで見張りをやりすごす', 'Hide in the box while watched'), ok: () => true },
   busy:    { t: tx('飼い主の「ながら」中に落とす', 'Knock one off while owner is busy'), ok: () => true },
   mis:     { t: tx('落とす以外のいたずらをする', 'Do mischief besides knocking'), ok: () => true },
-  launch:  { t: tx('てこでものを飛ばす', 'Launch something with the lever'), ok: () => !!(lever && lever.item) },
   ball:    { get t() { return lt(BALL[room].n + 'を当てて落とす', 'Knock one off with the ' + BALL[room].n); }, ok: () => !!ball && mains().length >= 2 },
   top:     { get t() { return room === 'kitchen' ? lt('吊り戸棚の上に乗る', 'Climb onto the cupboard') : room === 'garden' ? lt('パーゴラの上に乗る', 'Climb onto the pergola') : room === 'bath' ? lt('換気扇の上に乗る', 'Climb onto the vent fan') : lt('エアコンの上に乗る', 'Climb onto the AC'); }, ok: () => level >= 3 },
   streak:  { t: tx('ノーマークで3連続落とす', '3 unseen knocks in a row'), ok: () => mains().length >= 3, need: 3 },
@@ -891,12 +890,8 @@ function setupStage(L) {
     if (err < 0.06) break;
   }
   // 物理ギミック：てこ（ステージ2から。テーブルの左端の板。内側の端にものが乗っていると、外の端に飛び乗ると飛ぶ）
+  // てこ（テーブルの右端の板）は v3.2 で廃止：乗ったものが落としにくく、通り道の邪魔になるため。関連の処理は lever が null のときは何もしない
   lever = null; ball = null;
-  if (L >= 2 && room !== 'bath') {
-    lever = { tilt: 0, item: null, used: false };
-    const load = items.find(o => o.home === 'table' && !o.extra);
-    if (load && !items.some(o => o !== load && o.plat === PL.table && Math.abs(o.x - SEAT) < 30)) { load.x = SEAT; lever.item = load; }
-  }
   PLS = Object.values(PL).filter(p => p === PL.tank ? room === 'kids' : !(p === PL.side && room === 'kids')); if (lever) PLS.push(LEVP); if (room === 'bath') PLS.push(RIMP);
   // 転がるもの（ステージ3から）：パンチすると転がり、当たったものを押す。足場から落ちると跳ねる
   if (L >= 3) {

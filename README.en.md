@@ -63,8 +63,6 @@ Want to play one-handed? Turn on **One-hand** on the title screen. Tap a spot or
 
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/en/05-lever-hint.png" width="200" alt="Lever hint"><br>A dotted line and an arrow…?</td>
-<td align="center"><img src="docs/screenshots/en/06-lever.png" width="200" alt="Launching with the lever"><br>Jump on the board — Sproing!</td>
 <td align="center"><img src="docs/screenshots/en/07-scratch.png" width="200" alt="Scratching"><br>Hold punch where the claw mark appears</td>
 </tr>
 </table>
@@ -104,7 +102,7 @@ One day takes you through the whole house, from the living room in the morning t
 </tr>
 </table>
 
-As stages go on, pricey items start appearing up high (hanging shelf, curtain rail, air conditioner). New ways to make mischief appear little by little, too: a lever, a rolling yarn ball and scratching spots.
+As stages go on, pricey items start appearing up high (hanging shelf, curtain rail, air conditioner). New ways to make mischief appear little by little, too: a rolling yarn ball and scratching spots.
 
 ## 🐱 The cats
 
