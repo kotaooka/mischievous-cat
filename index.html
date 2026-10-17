@@ -5046,7 +5046,7 @@ async function showOver() {
     ${canCont() ? `<div class="row"><button class="btn go" id="bCont" type="button">${lt(dayName(run.ck.level) + 'の朝からつづける', 'Continue from ' + dayName(run.ck.level) + ' morning')}</button></div><p class="best" style="margin:0 0 6px;font-weight:500;font-size:.78rem">${lt('被害額は朝の時点に戻ります。続けた回数はランキングに載ります', 'Damage goes back to that morning. Restarts are shown in the ranking')}</p>` : ''}
     <div class="row"><button class="btn ${canCont() || canPostEnd() ? 'w' : 'go'}" id="bAgain" type="button">${lt(canCont() || canPostEnd() ? '1日目からやりなおす' : 'もう一回', canCont() || canPostEnd() ? 'Restart from Day 1' : 'Play again')}</button></div>
     <img id="card" alt="${lt('犯行現場写真', 'Crime scene photo')}" width="1200" height="630">
-    <div class="row"><button class="btn t" id="bShare" type="button">${lt('シェア', 'Share')}</button><button class="btn w" id="bSave" type="button">${lt('保存', 'Save')}</button></div>
+    <div class="row"><button class="btn t" id="bShare" type="button">${lt('シェア', 'Share')}</button><button class="btn w" id="bSave" type="button">${lt('画像を保存', 'Save image')}</button></div>
     <div class="row"><a class="btn" id="bLine" href="${lineUrl}" target="_blank" rel="noopener" style="background:#06c755;box-shadow:0 4px 0 #04963f">${lt('LINEで送る', 'Send on LINE')}</a></div>
     <div class="row"><button class="btn w" id="bChange" type="button">${lt('トップへ', 'Title')}</button><button class="btn w" id="bRk" type="button">${lt('きろく', 'Records')}</button></div>
     <a class="coffee" href="https://buymeacoffee.com/kotaooka" target="_blank" rel="noopener">${lt('☕ 作者にコーヒーをおごる', '☕ Buy me a coffee')}</a></div>`;
