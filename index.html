@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.8.7', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.9.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -664,7 +664,7 @@ let snap = null, chains = {}, tut = { on: false, broke: false, arrow: null, stop
 let lever = null, ball = null, spots = [], stageYen0 = 0, stageBonus = null;
 let chick = null, mouse = null, tank = null, rival = null;
 let charm = null;
-let spot = [], spotT = 0, escT = 0;   // escT：ステージの始めに隠れ場所を光らせる残り時間   // 初めて出た仕掛けの場所を順に光らせる（言葉は使わない）
+let spot = [], spotT = 0, escT = 0, gag = {};   // gag：ネタの1面1回のしるし（photo 写真、tail しっぽ、flash 撮影の光）   // escT：ステージの始めに隠れ場所を光らせる残り時間   // 初めて出た仕掛けの場所を順に光らせる（言葉は使わない）
 let guest = null, talkQ = [], offSay = null;   // お客さん（特別な夜）、掛け合いの順番待ち、画面の外からの声
 let weather = 'sun';   // その日の天気：sun 晴れ／cloud くもり／rain 雨（飼い主が早く戻る）／snow 雪
 let cams = [];          // ペットカメラ
@@ -1064,7 +1064,7 @@ function setupStage(L) {
   // 落とす以外のいたずらの場所（どの面にも2か所。クリアには関係ない寄り道）
   spots = ROOM_MIS[room].map(id => ({ id, t: 0, done: false }));
   stageYen0 = run ? run.yen : 0; stageBonus = null;
-  spot = []; spotT = 0; escT = 2.2;
+  spot = []; spotT = 0; escT = 2.2; gag = {};
   // お守り：ステージ2から 12% の確率で、どこかの段にひとつ置かれる（持てるのは1つ）
   charm = null;
   weather = run ? weatherFor(L) : 'sun';
@@ -1671,6 +1671,53 @@ function drawEsc(a, label) {
     if (label) { g.font = `800 13px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(label, x, y - 22 - b); g.fillStyle = '#c95f17'; g.fillText(label, x, y - 22 - b); }
   }
   g.restore();
+}
+// のこり：落とすべきものを、絵と個数で並べる（右上。1段目は時計の右、入りきらなければ2段目）
+// 季節の飾り（日本時間の日付）：10月 ハロウィン、12/1〜25 クリスマス、12/26〜1/10 お正月。庭では出さない
+function seasonNow() { const d = jstDay(), m = +d.slice(5, 7), dd = +d.slice(8, 10); return m === 10 ? 'halloween' : m === 12 && dd <= 25 ? 'xmas' : (m === 12 || (m === 1 && dd <= 10)) ? 'newyear' : ''; }
+function drawSeason() {
+  const se = seasonNow(); if (!se || room === 'garden') return;
+  // 壁の上のほうに、ひもと飾り
+  const y0 = 118, n = 9;
+  g.save(); g.strokeStyle = 'rgba(74,47,29,.55)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, y0); for (let i = 1; i <= 18; i++) { const x = i * W / 18; g.lineTo(x, y0 + Math.sin(i / 18 * Math.PI * 2) * 4 + 6 * Math.sin(i / 18 * Math.PI)); } g.stroke();
+  for (let i = 0; i < n; i++) {
+    const x = 25 + i * (W - 50) / (n - 1), y = y0 + 6 * Math.sin(x / W * Math.PI) + Math.sin(x / W * Math.PI * 2) * 4 + 2;
+    if (se === 'halloween') {
+      if (i % 2 === 0) { g.fillStyle = '#ff8a1f'; g.beginPath(); g.ellipse(x, y + 8, 8, 7, 0, 0, TAU); g.fill(); g.fillStyle = '#4a7a2a'; g.fillRect(x - 1, y, 2, 3); g.fillStyle = '#3a2210'; g.beginPath(); g.moveTo(x - 4, y + 6); g.lineTo(x - 2, y + 4); g.lineTo(x - 1, y + 7); g.fill(); g.beginPath(); g.moveTo(x + 4, y + 6); g.lineTo(x + 2, y + 4); g.lineTo(x + 1, y + 7); g.fill(); g.fillRect(x - 3, y + 10, 6, 1.5); }
+      else { g.fillStyle = '#3b2a4a'; g.beginPath(); g.ellipse(x, y + 6, 3, 4, 0, 0, TAU); g.fill(); g.beginPath(); g.moveTo(x - 2, y + 5); g.quadraticCurveTo(x - 9, y, x - 12, y + 7); g.quadraticCurveTo(x - 8, y + 5, x - 2, y + 8); g.fill(); g.beginPath(); g.moveTo(x + 2, y + 5); g.quadraticCurveTo(x + 9, y, x + 12, y + 7); g.quadraticCurveTo(x + 8, y + 5, x + 2, y + 8); g.fill(); }
+    } else if (se === 'xmas') {
+      g.fillStyle = ['#e0362c', '#2f9e5a', '#ffc94a'][i % 3]; g.beginPath(); g.arc(x, y + 7, 5.5, 0, TAU); g.fill(); g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.arc(x - 2, y + 5, 1.6, 0, TAU); g.fill(); g.fillStyle = '#c9b39a'; g.fillRect(x - 1.5, y, 3, 2);
+    } else {
+      g.fillStyle = i % 2 ? '#ffffff' : '#e0362c'; g.beginPath(); g.moveTo(x - 7, y); g.lineTo(x + 7, y); g.lineTo(x, y + 13); g.closePath(); g.fill(); g.strokeStyle = 'rgba(0,0,0,.12)'; g.lineWidth = 1; g.stroke();
+    }
+  }
+  // 床の飾り（テーブルとキャットタワーの間）：かぼちゃ・小さなツリー・鏡もち
+  const fx = 318, F = FLOOR;
+  if (room !== 'bath') {
+    if (se === 'halloween') { g.fillStyle = '#ff8a1f'; g.beginPath(); g.ellipse(fx, F - 9, 11, 9, 0, 0, TAU); g.fill(); g.strokeStyle = 'rgba(160,70,0,.5)'; g.lineWidth = 1; g.beginPath(); g.moveTo(fx, F - 18); g.lineTo(fx, F); g.stroke(); g.fillStyle = '#4a7a2a'; g.fillRect(fx - 1.5, F - 22, 3, 5); g.fillStyle = '#3a2210'; g.beginPath(); g.moveTo(fx - 6, F - 11); g.lineTo(fx - 3, F - 14); g.lineTo(fx - 1, F - 10); g.fill(); g.beginPath(); g.moveTo(fx + 6, F - 11); g.lineTo(fx + 3, F - 14); g.lineTo(fx + 1, F - 10); g.fill(); g.beginPath(); g.moveTo(fx - 5, F - 6); g.lineTo(fx + 5, F - 6); g.lineTo(fx, F - 3); g.fill(); }
+    else if (se === 'xmas') { g.fillStyle = '#8a5a34'; g.fillRect(fx - 2, F - 6, 4, 6); g.fillStyle = '#2f9e5a'; for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(fx, F - 30 + k * 7); g.lineTo(fx - 9 - k * 2, F - 16 + k * 5); g.lineTo(fx + 9 + k * 2, F - 16 + k * 5); g.closePath(); g.fill(); } g.fillStyle = '#ffc94a'; g.beginPath(); g.arc(fx, F - 31, 2.5, 0, TAU); g.fill(); }
+    else { g.fillStyle = '#c9a36a'; g.fillRect(fx - 11, F - 4, 22, 4); g.fillStyle = '#fbf6ea'; g.beginPath(); g.ellipse(fx, F - 9, 10, 5, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(fx, F - 16, 7, 4, 0, 0, TAU); g.fill(); g.fillStyle = '#ff9a1f'; g.beginPath(); g.arc(fx, F - 22, 3.5, 0, TAU); g.fill(); }
+  }
+  g.restore();
+}
+function drawLeftItems() {
+  const ms = mains(); if (!ms.length) return;
+  const cnt = new Map(); for (const it of ms) cnt.set(it.t, (cnt.get(it.t) || 0) + 1);
+  g.font = `800 14px ${FONT}`;
+  const cells = [...cnt.entries()].map(([t, n]) => { const d = IT[t], sc = Math.min(1.1, 18 / d.h, 22 / d.w); return { t, n, sc, iw: d.w * sc, w: d.w * sc + 3 + g.measureText('×' + n).width }; });
+  const maxW = [W - 10 - (W / 2 + 56), W - 16], rows = [[]], rw = [0];
+  for (const c of cells) { const r = rows.length - 1; if (rw[r] + c.w + 8 > maxW[Math.min(r, 1)] && rows[r].length) { if (rows.length >= 2) break; rows.push([]); rw.push(0); } rows[rows.length - 1].push(c); rw[rw.length - 1] += c.w + 8; }
+  const shown = rows.flat().reduce((a, c) => a + c.n, 0), more = ms.length - shown;
+  rows.forEach((row, r) => {
+    const tw = rw[r] + (r === rows.length - 1 && more > 0 ? 26 : 0), y = 30 + r * 27 - OY, x0 = W - 8 - tw;
+    g.fillStyle = 'rgba(255,250,242,.86)'; rr(g, x0 - 4, y - 21, tw + 6, 26, 9); g.fill();
+    let x = x0;
+    for (const c of row) {
+      g.save(); g.translate(x + c.iw / 2, y); g.scale(c.sc, c.sc); drawItem(g, c.t, 0, 0, 0, false); g.restore();
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#c93636'; g.fillText('×' + c.n, x + c.iw + 3, y - 2); x += c.w + 8;
+    }
+    if (r === rows.length - 1 && more > 0) { g.fillStyle = '#8a6a4f'; g.fillText('+' + more, x, y - 2); }
+  });
 }
 function drawNavMark() {
   // 自動移動の行き先に、肉球の目印を出す
@@ -2581,6 +2628,13 @@ function updSus(dt) {
   stageMaxSus = Math.max(stageMaxSus, sus);
   // 飼い主が部屋の外にいるときは、100% になっても見つからない（戻ってくるまで 99% で待つ）。お客さん・カメラに見られているときは別
   if (sus >= 100 && !exSeen && (o.mode === 'away' || o.x < 6 || o.x > W - 6)) sus = 99;
+  // ネタ：じっとくつろいでいると、飼い主がスマホで写真を撮る（1面に1回。怪しまれ度が少し下がる）
+  if (!gag.photo && state === 'play' && (o.mode === 'walk' || o.mode === 'look') && !cat.onFurn && !cat.hidden && cat.still > 3 && ownerSees(cat.x) && sus < 90) {
+    gag.photo = true; setMode('phone', 1.6); o.upIn = 9; o.face = Math.sign(cat.x - o.x) || o.face; say(lt('かわいい…撮っとこ', 'So cute… gotta get a pic'), 1.6); sus = Math.max(0, sus - 15); gag.flash = 0.25; sfx.rec();
+  }
+  // ネタ：大きいネコは箱からしっぽが出ている（見つかりはしない）
+  if (!gag.tail && cat.hidden && cat.type.big && o.mode === 'search' && Math.abs(o.x - BOX.x) < 160) { gag.tail = true; say(lt('…しっぽ出てるよ', '…Your tail is showing'), 2); }
+  if (gag.flash > 0) gag.flash -= dt;
   if (sus >= 100 && hiding) sus = 99;   // 隠れ場所にいる間は見つからない
   if (sus >= 100) { sus = 100; if (!chaseUsed) startChase(); else caught(); }
 }
@@ -2635,9 +2689,10 @@ function takeSnap() {
 }
 function caught(timeup) {
   run.revive = !timeup && run.charm > 0;
+  run.blame = !timeup && !!dog && dog.barkT <= 0 && Math.random() < 0.5;   // ネタ：寝ている犬のせいにする
   run.cause = timeup ? 'time' : (run.lastBy || watcherOf()); run.where = level; if (!run.revive) run.caughtOver = true;   // お守りを持っていれば、演出のあとで続きから
   snap = takeSnap();
-  state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.face = timeup ? 'deadpan' : pickW(CAUGHT_FACES, f => f.w).id; run.huh = run.face === 'huh'; run.huhStep = 0; spaceT = 0; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME[phaseOf(level).tod] || REACT_TIME[3]) : room === 'kids' && Math.random() < 0.6 ? pick(LINES.kid) : room === 'garden' && Math.random() < 0.7 ? pick(LINES.granny) : room === 'study' && Math.random() < 0.7 ? pick(LINES.dad) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35; slowT = 0;
+  state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.face = timeup ? 'deadpan' : pickW(CAUGHT_FACES, f => f.w).id; if (run.blame) run.face = 'innocent'; run.huh = run.face === 'huh'; run.huhStep = 0; spaceT = 0; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME[phaseOf(level).tod] || REACT_TIME[3]) : room === 'kids' && Math.random() < 0.6 ? pick(LINES.kid) : room === 'garden' && Math.random() < 0.7 ? pick(LINES.granny) : room === 'study' && Math.random() < 0.7 ? pick(LINES.dad) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35; slowT = 0;
   bgmStop(); if (timeup) sfx.timeup(); else { sfx.watch(); sfx.caught(); } buzz(timeup ? 80 : [60, 40, 120]); setPulse(null);
   if (owner.mode === 'away') { owner.x = clamp(cat.x - 70, 20, 330); owner.face = 1; }
   setMode('look', 9); owner.lureT = 0; owner.face = Math.sign(cat.x - owner.x) || 1; owner.up = false; chaseT = 0;
@@ -2766,6 +2821,7 @@ function drawHints() {
 // ---------- 結果 ----------
 function titleOf(y) { let t = TITLES[0].name; for (const x of TITLES) if (x.tier != null && y >= x.tier) t = x.name; return t; }
 function commentOf() {
+  if (run.blame) return tx('…犬はずっと寝てたよ', '…The dog was asleep the whole time');
   const b = run.broke, c = [];
   if (run.idle) c.push(tx('犯人が堂々と寝てる', "The culprit is just napping"));
   if (run.prints >= 3 && run.water > 0) c.push(tx('また足跡残してる', "Paw prints everywhere again"));
@@ -3752,6 +3808,13 @@ function drawBox() {
   g.strokeStyle = 'rgba(94,58,28,.4)'; g.lineWidth = 1.5; g.strokeRect(x + .5, y + .5, BOX.w - 1, BOX.h - 1);
   g.fillStyle = '#f3dfb5'; g.fillRect(x + BOX.w / 2 - 10, y + 20, 20, 5);
   }
+  if (cat.hidden && (state === 'play' || state === 'clear') && cat.type.big) {
+    // 大きいネコは、しっぽが箱からはみ出る
+    const sw2 = Math.sin(tAnim * 3) * 4, bx = BOX.x + BOX.w / 2; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(bx - 3, y + 26); g.quadraticCurveTo(bx + 22, y + 26, bx + 24 + sw2 * 0.5, y + 6); g.quadraticCurveTo(bx + 25 + sw2, y - 6, bx + 17 + sw2, y - 9);
+    g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 11; g.stroke(); g.strokeStyle = cat.type.body; g.lineWidth = 9; g.stroke();
+    g.strokeStyle = cat.type.stripe || 'rgba(0,0,0,.3)'; g.lineWidth = 9; g.setLineDash([3, 6]); g.stroke(); g.setLineDash([]);
+  }
   if (cat.hidden && (state === 'play' || state === 'clear')) {
     g.fillStyle = cat.type.eye; g.beginPath(); g.ellipse(BOX.x - 6, y + 11, 3, 3.6, 0, 0, TAU); g.ellipse(BOX.x + 6, y + 11, 3, 3.6, 0, 0, TAU); g.fill();
     g.fillStyle = '#111'; g.fillRect(BOX.x - 6.6, y + 8, 1.2, 6); g.fillRect(BOX.x + 5.4, y + 8, 1.2, 6);
@@ -4113,7 +4176,7 @@ function drawCutscene() {
       g.save(); g.translate(190 + ox, 343 + oy); g.rotate(rot); g.translate(-190, -343);
       drawCat(g, 270, 455, { type: cat.type, face: -1, scale: 4, pose: run.face, t: le, acc: selAcc, ears: run.face === 'scream' || run.face === 'cry' ? 'back' : null });
       g.restore();
-      const cap = String(F.cap), fs = run.face === 'scream' ? 40 + Math.sin(le * 30) * 3 : 34;
+      const cap = run.blame && run.face === 'innocent' ? lt('…ワンちゃんがやりました', '…The dog did it') : String(F.cap), fs = run.face === 'scream' ? 40 + Math.sin(le * 30) * 3 : 34;
       g.font = `800 ${fs}px ${FONT}`; let w2 = g.measureText(cap).width; if (w2 > 200) { g.font = `800 ${Math.round(fs * 200 / w2)}px ${FONT}`; }
       g.lineWidth = 8; g.strokeStyle = '#fff'; g.strokeText(cap, 110, 268); g.fillStyle = '#4a2f1d'; g.fillText(cap, 110, 268);
     }
@@ -4127,6 +4190,7 @@ function draw() {
   if (zoomK > 0 && state === 'play' && !SET.calm) { const z = 1 + 0.045 * zoomK * zoomK; g.translate(zoomX, zoomY); g.scale(z, z); g.translate(-zoomX, -zoomY); }
   if (state === 'ending' || state === 'endmenu') { drawEnding(); g.restore(); return; }
   drawRoom();
+  drawSeason();
   if (BOT > H) { const fg = g.createLinearGradient(0, FLOOR + 10, 0, BOT); fg.addColorStop(0, 'rgba(60,35,15,0)'); fg.addColorStop(1, 'rgba(60,35,15,.16)'); g.fillStyle = fg; g.fillRect(0, FLOOR + 10, W, BOT - FLOOR - 10); }   // 手前の床に奥行きの影
   drawHigh();
   drawOwner();
@@ -4156,7 +4220,8 @@ function draw() {
   drawLight();
   drawDark();
   if (room === 'garden') drawWeatherFx(0, -OY, W, VH);
-  if (snapMode) { drawParts(); g.restore(); return; }   // 犯行現場写真：ここまで（吹き出し・お題・時間などは描かない）
+  if (snapMode) { drawParts(); g.restore(); return; }
+  if (gag.flash > 0) { g.fillStyle = `rgba(255,255,255,${gag.flash * 2.4})`; g.beginPath(); g.arc(cat.x, cat.y - 20, 40, 0, TAU); g.fill(); }   // 犯行現場写真：ここまで（吹き出し・お題・時間などは描かない）
   drawOwnerTop();
   drawGuestTop();
   drawParts();
@@ -4206,10 +4271,7 @@ function draw() {
   }
   if (state !== 'title') {
     tag(dayName(level) + lt('・', ' · ') + phaseOf(level).name, 12, 'left');
-    // のこりの数：数字を大きく（プレイ中にいちばん見る数のひとつ）
-    const nL = String(mains().length); g.font = `800 26px ${FONT}`; const nw = g.measureText(nL).width;
-    g.textAlign = 'right'; g.lineWidth = 5; g.strokeStyle = 'rgba(255,255,255,.95)'; g.strokeText(nL, W - 12, 30 - OY); g.fillStyle = '#c93636'; g.fillText(nL, W - 12, 30 - OY);
-    g.font = `800 15px ${FONT}`; g.lineWidth = 4; g.strokeText(lt('のこり', 'Left'), W - 16 - nw, 28 - OY); g.fillStyle = '#4a2f1d'; g.fillText(lt('のこり', 'Left'), W - 16 - nw, 28 - OY);
+    drawLeftItems();
   }
   if (state === 'play' && introT > 0) {
     const ph = phaseOf(level), k = Math.min(1, (2 - introT) / 0.2, introT / 0.3);
