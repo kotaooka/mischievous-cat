@@ -55,7 +55,7 @@
     user-select: none; -webkit-user-select: none;
   }
   #app {
-    height: 100vh; height: 100dvh; display: flex; flex-direction: column;
+    height: 100vh; height: 100dvh; height: var(--app-h, 100dvh); display: flex; flex-direction: column;
     padding: max(6px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   }
   #top, #meter, #pad { width: 100%; max-width: 640px; margin-left: auto; margin-right: auto; flex: none; }
@@ -244,7 +244,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.13.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.13.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -4497,6 +4497,13 @@ function fit() {
 window.addEventListener('resize', fit);
 // 上段（被害額・怪しまれ度）の高さは字体を読み込むと変わる。ゲーム画面の置き場所の大きさが変わるたびに合わせ直す（下のボタンが押し出されないように）
 try { new ResizeObserver(() => fit()).observe($('stage')); } catch (e) {}
+// 画面の高さは、実際に見えている高さを測って合わせる（PWA で読み込み直したとき、100dvh が古い高さのまま残り、下のボタンが見切れることがあるため）
+function setAppH() { try { const h = Math.round((window.visualViewport && visualViewport.height) || innerHeight); if (h > 200) document.documentElement.style.setProperty('--app-h', h + 'px'); } catch (e) {} }
+setAppH();
+window.addEventListener('resize', setAppH); window.addEventListener('orientationchange', () => setTimeout(setAppH, 200)); window.addEventListener('pageshow', setAppH);
+try { visualViewport.addEventListener('resize', setAppH); } catch (e) {}
+[100, 400, 1000, 2500].forEach(t => setTimeout(setAppH, t));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { setAppH(); setTimeout(setAppH, 300); } });
 try { document.fonts.ready.then(fit); } catch (e) {}
 let lastHud = '', updReady = false, dayEndNext = false;
 function hud() {
