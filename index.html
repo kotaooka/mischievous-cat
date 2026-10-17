@@ -146,6 +146,13 @@
   .coffee { display: inline-flex; align-items: center; gap: 4px; margin: 6px 0 2px; padding: 5px 12px; border-radius: 999px; background: #fff; border: 2px solid var(--line); color: var(--ink2); font-size: .78rem; font-weight: 800; text-decoration: none; }
   .coffee .ic { width: 1.1em; height: 1.1em; margin: 0; fill: currentColor; }
   .coffee:active { transform: translateY(1px); }
+  .coffee small { font-weight: 500; opacity: .8; }
+  /* 4.35.0：気持ちが上がった画面（ベスト更新・完走）だけ、飼い主のひとこと＋「¥500 だけ弁償する」 */
+  .repair { margin: 8px 0 2px; }
+  .repair .bub { display: inline-block; position: relative; background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 5px 12px; font-size: .8rem; font-weight: 800; color: var(--ink); margin-bottom: 8px; }
+  .repair .bub::after { content: ''; position: absolute; left: 50%; bottom: -8px; width: 10px; height: 10px; background: #fff; border-right: 2px solid var(--line); border-bottom: 2px solid var(--line); transform: translateX(-50%) rotate(45deg); }
+  .repair .btn { font-size: .95rem; padding: 9px 8px; }
+  .repair .btn small { display: block; font-size: .68rem; font-weight: 500; }
   /* ボタン・ゲームパッド・キーボードでメニューを選ぶときの枠 */
   #ov .navf { outline: 4px solid #2b8fd9; outline-offset: 3px; position: relative; z-index: 1; }
   .best { font-weight: 800; color: var(--ink2); font-size: .9rem; margin: 6px 0 0; }
@@ -332,7 +339,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.34.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.35.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -3603,6 +3610,7 @@ function showEnding() {
     <button class="btn go" id="enCont" type="button">${lt((nd + 1) + '日目へつづける', 'On to Day ' + (nd + 1))}</button>
     <div class="row"><button class="btn w" id="enRes" type="button">${lt('ここで終わって結果を見る', 'Finish and see results')}</button></div>
     <div class="row"><button class="btn t sm" id="bShare" type="button">${lt('シェア', 'Share')}</button><a class="btn sm" id="bLine" href="${'https://line.me/R/share?text=' + encodeURIComponent(shareText() + '\n' + SITE)}" target="_blank" rel="noopener" style="background:#06c755;box-shadow:0 4px 0 #04963f">${lt('LINEで送る', 'Send on LINE')}</a><button class="btn w sm" id="bSave" type="button">${lt('画像を保存', 'Save image')}</button></div>
+    ${coffeeHtml(true)}
     <p class="best" style="margin:6px 0 0;font-weight:500;font-size:.72rem;color:var(--ink2)">${lt('こっそりネコ　制作：', 'Mischievous Cat — created by ')}${AUTHOR}</p></div>`;
   $('enCont').addEventListener('click', () => { endBgmStop(); ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
   $('enRes').addEventListener('click', () => { endBgmStop(); run.timeup = false; gameOver(); });
@@ -6484,6 +6492,13 @@ function foldBadges() {
   more.addEventListener('click', () => { bs.forEach(b => b.classList.remove('hid')); more.remove(); });
   box.appendChild(more);
 }
+// 作者への支援リンク（Buy Me a Coffee）。被害額のネタに乗せる：「このうち ¥500 だけ弁償する」。big は飼い主のひとことつき（ベスト更新・完走のときだけ）
+const COFFEE = 'https://buymeacoffee.com/kotaooka';
+function coffeeHtml(big) {
+  const y = run && run.yen >= 500;
+  if (!big) return `<a class="coffee" href="${COFFEE}" target="_blank" rel="noopener">${ICO.coffee}${y ? lt('このうち ¥500 だけ弁償する', 'Pay back just ¥500 of it') : lt('作者にコーヒーをおごる', 'Buy me a coffee')}<small>${y ? lt('（作者にコーヒー）', ' (buy me a coffee)') : ''}</small></a>`;
+  return `<div class="repair"><span class="bub">${lt('修理代、だれかカンパして…', 'Can someone chip in for the repairs…')}</span><a class="btn y" href="${COFFEE}" target="_blank" rel="noopener">${ICO.coffee}${y ? lt('¥500 だけ弁償する', 'Pay back just ¥500') : lt('¥500 カンパする', 'Chip in ¥500')}<small>${lt('作者にコーヒーをおごる', 'Buy me a coffee')}</small></a></div>`;
+}
 async function showOver() {
   overAt = performance.now();
   // X は x.com/intent/post だと、スマホのアプリで本文が空になることがあるので、互換の twitter.com/intent/tweet を使う
@@ -6494,7 +6509,7 @@ async function showOver() {
     <p class="res-yen">${lt('本日の被害額', "Today's damage")}<b>${yen(run.yen)}</b></p>
     <p class="best" style="font-size:.8rem;font-weight:500;margin-top:2px">★${run.stars}${run.skill > 0 ? lt(`　・　腕前 +${yen(run.skill)}`, ` · Skill +${yen(run.skill)}`) : ''}</p>
     ${run.skill > 0 ? `<p class="best" style="font-size:.72rem;font-weight:500;margin:-4px 0 4px;color:var(--ink2)">${[[lt('手際', 'Speed'), run.skQ], [lt('こっそり', 'Sneaky'), run.skS], [lt('技', 'Tricks'), run.skT]].filter(([, v]) => v > 0).map(([k, v]) => k + ' +' + yen(Math.round(v))).join('　')}</p>` : ''}
-    ${newRec ? `<p class="best" style="color:var(--red-d)">${lt('ベスト更新!', 'New best!')}</p>` : ''}
+    ${newRec ? `<p class="best" style="color:var(--red-d)">${lt('ベスト更新!', 'New best!')}</p>${(LIFE.plays || 0) >= 3 ? coffeeHtml(true) : ''}` : ''}
     ${onlineBox()}
     ${nextGoal()}
     <div class="badges">${newTitles.includes(titleOf(run.yen)) ? '' : `<span class="badge">${titleOf(run.yen)}</span>`}${newTitles.map(n => `<span class="badge new">NEW ${n}</span>`).join('')}${newCards.map(n => `<span class="badge new" style="background:var(--teal-d)">${lt('カード', 'CARD')} ${n}</span>`).join('')}${newAccs.map(n => `<span class="badge new" style="background:var(--teal)">${lt('きせかえ', 'NEW')} ${n}</span>`).join('')}${newCats.map(n => `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ', 'NEW CAT')} ${n}</span>`).join('')}</div>
@@ -6503,7 +6518,7 @@ async function showOver() {
     <div class="row"><button class="btn ${canCont() || canPostEnd() ? 'w' : 'go'}" id="bAgain" type="button">${lt(canCont() || canPostEnd() ? '1日目からやりなおす' : 'もう一回', canCont() || canPostEnd() ? 'Restart from Day 1' : 'Play again')}</button></div>
     <div class="share-row"><img id="card" alt="${lt('犯行現場写真', 'Crime scene photo')}" width="1200" height="630"><div class="col"><button class="btn t sm" id="bShare" type="button">${lt('シェア', 'Share')}</button><a class="btn sm" id="bLine" href="${lineUrl}" target="_blank" rel="noopener" style="background:#06c755;box-shadow:0 4px 0 #04963f">${lt('LINEで送る', 'Send on LINE')}</a><button class="btn w sm" id="bSave" type="button">${lt('画像を保存', 'Save image')}</button></div></div>
     <div class="row"><button class="btn w" id="bChange" type="button">${lt('トップへ', 'Title')}</button><button class="btn w" id="bRk" type="button">${lt('きろく', 'Records')}</button></div>
-    <a class="coffee" href="https://buymeacoffee.com/kotaooka" target="_blank" rel="noopener">${ICO.coffee}${lt('作者にコーヒーをおごる', 'Buy me a coffee')}</a></div>`;
+    ${newRec && (LIFE.plays || 0) >= 3 ? '' : coffeeHtml(false)}</div>`;
   $('bAgain').addEventListener('click', () => { audio(); startGame(); });
   foldBadges();
   if ($('bCont')) $('bCont').addEventListener('click', () => { audio(); continueDay(); });
