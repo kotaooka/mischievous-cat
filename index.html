@@ -238,7 +238,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.5.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.6.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2487,9 +2487,15 @@ function updChase(dt) {
   // 手が届くのは床・サイドテーブル・テーブル・壁の棚の高さまで。3秒たっても逃げ込めなければ捕まる
   if ((Math.abs(cat.x - o.x) < 26 && cat.y > 330) || chaseT <= 0) { chaseT = 0; caught(); }
 }
+let snapMode = false;
 function takeSnap() {
-  // 見つかった瞬間の画面（犯行現場写真）を写し取る
-  try { const s = document.createElement('canvas'); s.width = W * 2; s.height = H * 2; const c = s.getContext('2d'); c.drawImage(cv, 0, OY * DPR, W * DPR, H * DPR, 0, 0, s.width, s.height); return s; } catch (e) { return null; }
+  // 見つかった瞬間の画面（犯行現場写真）を写し取る。お題・時間・吹き出し・数字は描かずに描き直し、ネコのまわりを正方形で切り取る
+  try {
+    snapMode = true; draw(); snapMode = false;
+    const S = 250, sx = clamp(cat.x - S / 2, 0, W - S), sy = clamp(cat.y - S * 0.62, 20, FLOOR + 30 - S);
+    const s = document.createElement('canvas'); s.width = s.height = 640; const c = s.getContext('2d');
+    c.drawImage(cv, sx * DPR, (sy + OY) * DPR, S * DPR, S * DPR, 0, 0, 640, 640); return s;
+  } catch (e) { snapMode = false; return null; }
 }
 function caught(timeup) {
   run.revive = !timeup && run.charm > 0;   // お守りを持っていれば、演出のあとで続きから
@@ -3998,7 +4004,7 @@ function draw() {
   drawTraps();
   drawCuke();
   drawBall();
-  if (state === 'play') { for (const it of items) if (it.mark > 0) markAt(it.x, (it.state === 'fall' ? it.y : it.plat.y) - IT[it.t].h - 12); for (const p of prints) if (p.mark > 0) markAt(p.x, p.y - 12); }
+  if (state === 'play' && !snapMode) { for (const it of items) if (it.mark > 0) markAt(it.x, (it.state === 'fall' ? it.y : it.plat.y) - IT[it.t].h - 12); for (const p of prints) if (p.mark > 0) markAt(p.x, p.y - 12); }
   drawBowl();
   drawVac();
   drawCharm();
@@ -4012,6 +4018,7 @@ function draw() {
   drawLight();
   drawDark();
   if (room === 'garden') drawWeatherFx(0, -OY, W, VH);
+  if (snapMode) { drawParts(); g.restore(); return; }   // 犯行現場写真：ここまで（吹き出し・お題・時間などは描かない）
   drawOwnerTop();
   drawGuestTop();
   drawParts();
@@ -4645,48 +4652,44 @@ async function makeCard() {
     c.beginPath(); c.ellipse(x, y + 8, 14, 11, 0, 0, TAU); c.fill();
     [[-15, -6], [-6, -15], [6, -15], [15, -6]].forEach(([dx, dy]) => { c.beginPath(); c.arc(x + dx, y + dy, 5, 0, TAU); c.fill(); });
   }
-  // 犯行現場写真（ポラロイド）
-  c.save(); c.translate(290, 318); c.rotate(-0.06);
-  c.fillStyle = 'rgba(0,0,0,.22)'; c.fillRect(-192, -262, 400, 540);
-  c.fillStyle = '#fff'; c.fillRect(-200, -272, 400, 540);
-  if (snap) c.drawImage(snap, -180, -252, 360, 432);
-  else { c.fillStyle = '#f6d7a8'; c.fillRect(-180, -252, 360, 432); drawCat(c, 10, 120, { type: T, face: 1, scale: 4, t: 0.6, pose: 'smug', acc: selAcc }); }
-  c.fillStyle = 'rgba(255,220,120,.75)'; c.save(); c.rotate(0.05); c.fillRect(-60, -290, 120, 34); c.restore();
-  c.fillStyle = '#4a2f1d'; c.font = `800 30px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
-  c.fillText(lt('犯行現場　', 'Crime scene · ') + dayName(run.stage) + lt('・', ' · ') + phaseOf(run.stage).name, 0, 230);
+  // 犯行現場写真（ポラロイド）：ネコのまわりを大きく
+  c.save(); c.translate(270, 322); c.rotate(-0.05);
+  c.fillStyle = 'rgba(0,0,0,.22)'; c.fillRect(-202, -258, 420, 520);
+  c.fillStyle = '#fff'; c.fillRect(-210, -268, 420, 520);
+  if (snap) c.drawImage(snap, -190, -248, 380, 380);
+  else { c.fillStyle = '#f6d7a8'; c.fillRect(-190, -248, 380, 380); drawCat(c, 0, 90, { type: T, face: 1, scale: 4, t: 0.6, pose: 'smug', acc: selAcc }); }
+  c.fillStyle = 'rgba(255,220,120,.75)'; c.save(); c.rotate(0.05); c.fillRect(-60, -286, 120, 34); c.restore();
+  c.fillStyle = '#4a2f1d'; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  const cap = lt('犯行現場　', 'Crime scene · ') + dayName(run.stage) + lt('・', ' · ') + phaseOf(run.stage).name;
+  let cs = 30; c.font = `800 ${cs}px ${FONT}`; while (c.measureText(cap).width > 380 && cs > 18) { cs--; c.font = `800 ${cs}px ${FONT}`; }
+  c.fillText(cap, 0, 196);
   c.restore();
-  // 文字
-  const X = 560, stroke = (t, x, y, size, fill, sw) => { c.font = `800 ${size}px ${FONT}`; c.lineJoin = 'round'; c.lineWidth = sw || 10; c.strokeStyle = '#7a3510'; c.strokeText(t, x, y); c.fillStyle = fill; c.fillText(t, x, y); };
+  // 文字：題名と「何のゲームか」の一文 → 被害額 → 称号 → 飼い主のひとこと → 遊べる場所
+  const X = 540, RW = 630, stroke = (t, x, y, size, fill, sw) => { c.font = `800 ${size}px ${FONT}`; c.lineJoin = 'round'; c.lineWidth = sw || 10; c.strokeStyle = '#7a3510'; c.strokeText(t, x, y); c.fillStyle = fill; c.fillText(t, x, y); };
   c.textAlign = 'left'; c.textBaseline = 'alphabetic';
-  stroke(lt('こっそりネコ', 'Mischievous Cat'), X, 84, 46, '#fff', 10);
-  c.font = `800 22px ${FONT}`; c.fillStyle = 'rgba(255,255,255,.9)'; c.fillText(lt('MISCHIEVOUS CAT', 'こっそりネコ'), X + 4, 118);
-  stroke(lt('本日の被害額', "Today's damage"), X, 186, 32, '#ffe9a8', 8);
-  const ys = yen(run.yen); let fs = 108; c.font = `800 ${fs}px ${FONT}`;
-  while (c.measureText(ys).width > 600 && fs > 50) { fs -= 4; c.font = `800 ${fs}px ${FONT}`; }
-  stroke(ys, X, 196 + fs * 0.9, fs, '#fff', 14);
-  // 称号のバッジ
-  const tt = titleOf(run.yen); c.font = `800 32px ${FONT}`; const tw = c.measureText(tt).width + 44, ty = 314;
-  c.fillStyle = '#4a2f1d'; rr(c, X, ty, tw, 54, 27); c.fill(); c.fillStyle = '#ffc94a'; c.fillText(tt, X + 22, ty + 38);
-  // その回の見どころ：いちばん高かったもの・最大の連鎖・見つかったときの顔（入るだけ）
-  const chips = [], bn = run.big && (IT[run.big.k] || MISCHIEF[run.big.k]);
-  if (bn) chips.push(lt('最高額 ', 'Priciest: ') + String(bn.n) + ' ' + yen(run.big.y));
-  const fc = CAUGHT_FACES.find(f => f.id === run.face);
-  chips.push(run.ended ? lt('エンディング到達', 'Reached the ending') : run.timeup ? lt('時間切れ', 'Time up') : fc ? lt('バレた顔「', 'Caught: “') + String(fc.cap) + lt('」', '”') : '');
-  if (run.maxChain >= 2) chips.push(lt(`最大${run.maxChain}連鎖`, `${run.maxChain}x chain`));
-  c.font = `800 22px ${FONT}`; let cx = X;
-  for (const t of chips) {
-    if (!t) continue; const w = c.measureText(t).width + 28; if (cx + w > X + 610) continue;
-    c.fillStyle = 'rgba(255,255,255,.88)'; rr(c, cx, 382, w, 40, 20); c.fill(); c.fillStyle = '#7a3510'; c.fillText(t, cx + 14, 410); cx += w + 10;
-  }
+  stroke(lt('こっそりネコ', 'Mischievous Cat'), X, 78, 52, '#fff', 11);
+  let ts = 25; const tag = lt('ネコになって、飼い主にバレずに部屋を荒らすゲーム', 'Be the cat. Wreck the room. Don’t get caught.');
+  c.font = `800 ${ts}px ${FONT}`; while (c.measureText(tag).width > RW && ts > 16) { ts--; c.font = `800 ${ts}px ${FONT}`; }
+  c.fillStyle = '#5a2a0c'; c.fillText(tag, X + 2, 120);
+  stroke(lt('本日の被害額', "Today's damage"), X, 192, 30, '#ffe9a8', 8);
+  const ys = yen(run.yen); let fs = 104; c.font = `800 ${fs}px ${FONT}`;
+  while (c.measureText(ys).width > RW && fs > 50) { fs -= 4; c.font = `800 ${fs}px ${FONT}`; }
+  stroke(ys, X, 200 + fs * 0.88, fs, '#fff', 14);
+  const tt = titleOf(run.yen); c.font = `800 30px ${FONT}`; const tw = c.measureText(tt).width + 44, ty = 318;
+  c.fillStyle = '#4a2f1d'; rr(c, X, ty, tw, 52, 26); c.fill(); c.fillStyle = '#ffc94a'; c.fillText(tt, X + 22, ty + 36);
   // 飼い主のひとこと
-  const q = lt('「' + run.comment + '」', '“' + run.comment + '”'), bx = X, by = 442, bw = 600, bh = 96;
+  const q = lt('「' + run.comment + '」', '“' + run.comment + '”'), bx = X, by = 400, bw = 620, bh = 104;
   c.fillStyle = '#fff'; rr(c, bx, by, bw, bh, 24); c.fill();
-  c.beginPath(); c.moveTo(bx + 40, by + bh); c.lineTo(bx + 30, by + bh + 26); c.lineTo(bx + 76, by + bh); c.fill();
-  c.fillStyle = '#8a6a4f'; c.font = `800 22px ${FONT}`; c.fillText(lt('飼い主のひとこと', 'The owner says'), bx + 26, by + 32);
-  let qs = 34; c.font = `800 ${qs}px ${FONT}`; while (c.measureText(q).width > bw - 50 && qs > 18) { qs -= 2; c.font = `800 ${qs}px ${FONT}`; }
-  c.fillStyle = '#4a2f1d'; c.fillText(q, bx + 22, by + 76);
-  c.fillStyle = '#fff'; c.font = `800 24px ${FONT}`; c.fillText('#MischievousCat  #こっそりネコ', X, 606);
-  c.textAlign = 'right'; c.font = `800 20px ${FONT}`; c.fillStyle = 'rgba(255,255,255,.9)'; c.fillText('kotaooka.github.io/mischievous-cat', 1180, 32);
+  c.beginPath(); c.moveTo(bx + 40, by + bh); c.lineTo(bx + 30, by + bh + 24); c.lineTo(bx + 76, by + bh); c.fill();
+  c.fillStyle = '#8a6a4f'; c.font = `800 22px ${FONT}`; c.fillText(lt('飼い主のひとこと', 'The owner says'), bx + 26, by + 34);
+  let qs = 36; c.font = `800 ${qs}px ${FONT}`; while (c.measureText(q).width > bw - 50 && qs > 18) { qs -= 2; c.font = `800 ${qs}px ${FONT}`; }
+  c.fillStyle = '#4a2f1d'; c.fillText(q, bx + 22, by + 82);
+  // 遊べる場所
+  c.fillStyle = '#4a2f1d'; rr(c, X, 556, RW, 50, 25); c.fill();
+  // 「遊べる」とURLを1行に。入らなければ字を小さくする
+  const pl = lt('▶ ブラウザで遊べる　', '▶ Play free: '), url = 'kotaooka.github.io/mischievous-cat';
+  let us = 23; const uw = () => { c.font = `800 ${us}px ${FONT}`; return c.measureText(pl + url).width; }; while (uw() > RW - 40 && us > 14) us--;
+  c.font = `800 ${us}px ${FONT}`; c.fillStyle = '#fff'; c.fillText(pl, X + 22, 589); c.fillStyle = '#ffc94a'; c.fillText(url, X + 22 + c.measureText(pl).width, 589);
   return cn;
 }
 
