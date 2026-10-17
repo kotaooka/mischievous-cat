@@ -49,6 +49,8 @@ Walking, jumping, meowing and eating are all "normal cat things", so you won't g
 | Meow | Meow | X |
 | Pause | ⏸ top right | Esc / P |
 
+Gamepads work on PC too (D-pad/stick move, A jump, X or B punch, Y meow, START pause). Volume, vibration and mirrored buttons are under **Settings**.
+
 Want to play one-handed? Turn on **One-hand** on the title screen. Tap a spot or an item and the cat **finds its own way there, jumping as needed**, then punches the item (long tap for a power punch). Tap the boss cat, the chicken, a mouse or the fish tank to paw at it. Swipe up to jump; pressing any button takes back manual control.
 
 ## 💡 Tips
@@ -73,21 +75,28 @@ Want to play one-handed? Turn on **One-hand** on the title screen. Tap a spot or
 - **Mouse on the loose? Bop it.** Mice pop out of a hole now and then and dash around the floor. Bop one for extra time. Chase it toward the owner and they freeze with a scream (your chance!)
 - **Don't let the boss cat win.** It knocks things off first and steals the damage. Land 3 paw hits and it runs away. If the owner catches it, it gets scolded and leaves
 - **You can walk in front of the bookshelf and the fridge.** The cat tower stands in front of the bookshelf
+- **Rub against the owner's legs.** Stay still at their feet to lower suspicion and stop them in their tracks
+- **Step on the remote** to turn on the TV. The owner (and the guest) can't look away
+- **Yank the tablecloth** hanging off the right end of the table and everything on it slides off
+- **Swing on the ceiling lamp.** Leap at it from the hanging shelf, pump left and right, and jump to let go
+- **Pile things at one end of the shelf, then stand there…** CLUNK! The shelf tips and dumps everything
+- **Creaky boards:** running makes them creak. Hold punch to tiptoe silently
+- **From day 2, watch for traps** (noisy foil, sticky tape). From day 3, a pet cam sweeps the room
+- **Cucumbers** make the cat leap straight up. Use them as a springboard
+- **Churu!** When the owner shakes a churu, the cat gets pulled in. Eat it for time, or mash buttons to resist and leave the owner sulking
 - **Hungry? Meow.** A cute meow next to the owner might get you food (= more time)
 
-## 🏠 Seven rooms
+## 🏠 A day in the house
 
-One day takes you through the whole house, from the living room in the morning to the bedroom late at night.
+A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. Clear the third night to see the ending, then keep going into day 4 and beyond.
 
-| Time | Room | Notes |
-|---|---|---|
-| Morning 7:00 | Living room | You can ride the robot vacuum. A dog is sleeping, so be quiet |
-| Morning 9:00 | Garden | A noisy chicken. Startle it and it flaps up and shoves things off the shelves |
-| Noon 12:00 | Kitchen | A snack sits on the fridge. Plenty of plates and eggs |
-| Afternoon 15:00 | Kid's room | A goldfish tank and the neighbor's boss cat. The kid does the patrolling |
-| Evening 17:00 | Study | Walk across the keyboard and… the owner's work is gone |
-| Night 20:00 | Bathroom | Fall into the bathwater and you're soaked (less time, big fuss). Cross on the lid and the rim |
-| Late night 22:00 | Bedroom | The bed is bouncy. Knock off the alarm clock for chaos |
+| Day | Morning | Noon | Evening | Special night |
+|---|---|---|---|---|
+| 1 | Living room | Kitchen | Study | **Dinner guest night** (two watchers, lots of glasses) |
+| 2 | Garden | Kid's room | Bathroom | **Blackout night** (pitch dark; only the flashlight beam can spot you) |
+| 3 | Living room | Kitchen | Study | **Pet cam night** (two sweeping cameras and traps) |
+
+Each room has its own watcher: the owner, a kid (fast but short-sighted), grandma (slow, but glances back while walking) or dad (keeps looking up at the shelves). The weather changes every day too; on rainy days the owner stays in and comes back sooner.
 
 <table>
 <tr>
@@ -98,6 +107,16 @@ One day takes you through the whole house, from the living room in the morning t
 <tr>
 <td align="center"><img src="docs/screenshots/en/14-mouse.png" width="200" alt="The owner frozen by a mouse"><br>A mouse freezes the owner</td>
 <td align="center"><img src="docs/screenshots/en/15-fish.png" width="200" alt="The goldfish tank"><br>Paw at a fish near the surface</td>
+<td></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/en/16-guest.png" width="200" alt="Dinner guest night"><br>Dinner guest night</td>
+<td align="center"><img src="docs/screenshots/en/17-blackout.png" width="200" alt="Blackout night"><br>Blackout night</td>
+<td align="center"><img src="docs/screenshots/en/18-petcam.png" width="200" alt="Pet cam night"><br>Pet cam night</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/en/19-lamp.png" width="200" alt="Swinging on the lamp"><br>Swinging on the lamp</td>
+<td align="center"><img src="docs/screenshots/en/20-ending.png" width="200" alt="The ending: heh."><br>The ending: heh.</td>
 <td></td>
 </tr>
 </table>
@@ -120,8 +139,10 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 
 - **World ranking (All-time)**: register a nickname on the result screen to join the top 50 of all players (one entry per device). A record is sent only when you beat your personal best, and a new nickname appears the next time you do
 - **Today's ranking**: a ranking for today only (Japan time). Each run is sent to both All-time and Today whenever it beats your best there
+- **Send on LINE**: sends the text and the link (the image share sends only the picture on LINE)
+- **Records**: lifetime stats from the title screen
 - **This device**: your own top 10
-- **Titles**: 35 of them, and how to earn them is a secret. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
+- **Titles**: 40 of them, and how to earn them is a secret. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
 - **Crime scene photo**: the moment you're caught becomes a Polaroid. Share it with `#MischievousCat`
 
 ## ❓ FAQ

@@ -93,17 +93,26 @@ HTML に直接書いた文字（下のボタン、読み上げ用のラベル、
 
 本・鉛筆・空き缶・ネズミのおもちゃ（`IT` の `junk: true`）は割れず、最初に床へ落ちたときに「散らかし」として加算します。クリア条件・のこり数・時間には数えません（`mains()`）。飼い主は 7 割の確率で床の小物を拾いに行き（`tidy`）、元の段へ戻します。戻したものはもう一度落とせます。
 
-## 1日の流れ（7つの部屋）
+## 1日の流れ
 
-`PHASES` の順に、リビング → 庭 → キッチン → 子ども部屋 → 書斎 → お風呂場 → 寝室。`tod`（時間帯 0〜3）で BGM・セリフ・窓の景色を選ぶ。「ながら」は `BUSY_ROOM`（なければ時間帯の `BUSY`）。
+1日は `DAY_LEN`（4）ステージ。`phaseOf(L)` が、朝・昼・夕方は `SLOT_ROOMS` から日替わりで、夜は `SPECIALS`（guest／blackout／camera）から部屋を決める。`END_DAY`（3）日目の夜をクリアすると `startEnding()`（state は ending → endmenu）。続けるとそのまま次の日へ進む。
 
-部屋ごとの違い：
+- 見張り役：`watcherOf()`（living・kitchen・bath・bed は owner、kids は kid、garden は grandma、study は dad）。`WATCHER` の値を `setMode` と `enter` で使う
+- お客さん（`guest`）：2人目の見張り。`guestSees` を `updSus` で数える。掛け合いは `talkQ` を `updTalk` が順に出す
+- 停電：`drawDark` が別のキャンバスに暗やみを描き、懐中電灯の円すい・ネコのまわり・窓を destination-out で抜く。飼い主の見える距離は `setMode` で 170〜220px に縮める
+- ペットカメラ（`cams`）：`updCams` で首振り、`camSees` を `updSus` で数える
+- 天気：`weatherFor(L)` が日ごとに決める（`run.wx`）。雨は `goAway` の離席時間を 0.75 倍
 
-- 庭：背景・高い足場（木の枝・物干し竿・パーゴラ）・家具を別に描く（`drawGardenBg`／`drawGardenHigh`）。ダンボールは木箱、タワーは切り株
-- 子ども部屋：サイドテーブルの代わりに水槽のふた（`PL.tank`）を足場にする。見回りは子ども（0.8 倍で描く）
-- お風呂場：テーブルの右端を 204 にしてふたとし、ふち（`RIMP`）を足す。そのあいだ（`BATHW`）を上から通り抜けると `fallInBath`。ものは `sinkItem`。自動移動はお湯の上に降りる道を使わない。ダンボール（洗濯かご）は x=110
+ランキングの記録は `v: 4`（1日4ステージの数え方）。それより前の記録は「ステージ n」と表示する。
 
-本棚の前（床）はネコ・もの・ボールが通れる。キャットタワーは x 335〜375（本棚の前）。
+## 手ごたえと設定
+
+- `hitStop`（割れた瞬間に止める）と `zoomK`（少し寄る）は `frame` と `draw` で処理する
+- 残り10秒：BGM 1.25 倍速、画面のふち、`rushShown`。怪しまれ度 65% 以上で `bgmMix` が心臓の音を重ねる
+- 設定（`SET`）：BGM は `BGM.bus`、効果音は `sfxG`（効果音はすべてこのゲインを通る）。ボタンの左右反転は `body.swap #pad { direction: rtl }`
+- 通算記録（`LIFE`、localStorage の `nekoLife`）：`gameOver` の `addLife` で足す
+- ゲームパッド：`pollPad` を毎フレーム呼ぶ（標準配置：A=0、B=1、X=2、Y=3、START=9、十字キー 12〜15）
+- LINE：結果画面の「LINEで送る」は `https://line.me/R/share?text=` に文章とURLを入れる（Web Share API で画像と文章を一緒に渡すと、LINE では画像だけになるため）
 
 ## 部屋の仕掛け
 
@@ -111,3 +120,10 @@ HTML に直接書いた文字（下のボタン、読み上げ用のラベル、
 - ネズミ（`mouse`）：hide → run → home の順。床でパンチが当たると `mouseHit`（+4 秒、¥2,000 を腕前に）。飼い主のそばで `ownerScare`（`owner.scareT` の間は足もとしか見えない）
 - 水槽（`tank`）：ふたの上でじっとしていると金魚が浮く（`d` が水深 0〜1）。`d < 0.32` で前足の 15px 以内ならタッチ
 - ボス猫（`rival`）：`bodyStep`（ネコと同じ動き）と `aiNav`（`navStep` の道さがし）で動く。落としたもの（`byRival`）は被害額に入らない。ケンカは `fight` モード、体力 3
+- テーブルクロス：いたずらの場所 `cloth`（テーブル右端の床）。終わると `clothPull` が上のものを右へすべらせる（`byCloth`、+30%）
+- テレビ（`tv`、リビング）：リモコンを踏む・パンチ・割ると `tvOn`。飼い主は `tv` モード（足もとしか見えない）
+- すりすり・チュール・きゅうり・罠・床のきしみ：`updCat` の中。チュールは `churuRes`（がまんゲージ、`churuMash` でためる）
+- 積み重なったもの：`IT` の `stack`。着地すると `burstStack` が中身を飛ばす
+- 吊り照明（`lamp`）：振り子（`updLamp`）。ネコは `cat.hang` の間、照明の先にくっつく
+- 傾く棚（`shelfTilt`）：`updShelf`。描くときは `shelfDy` で棚の上のものとネコをずらす
+- お守り（`charm`）：拾うと `run.charm`。見つかったとき `revive` で続きから
