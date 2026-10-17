@@ -84,6 +84,10 @@
   #meter.l1 .bar i { background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.4) 0 4px, transparent 4px 10px); }
   #meter.l2 .bar i, #meter.l3 .bar i { background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.5) 0 3px, transparent 3px 6px); }
   #meter.l1 .lvl { background: var(--yel); }
+  /* かくれ中：上がらないことを、緑の札とバーのふちで示す */
+  #meter.l4 .lvl { background: var(--teal); color: #fff; border-color: var(--teal-d); }
+  #meter.l4 .bar { border-color: var(--teal-d); box-shadow: 0 0 0 2px rgba(47,179,163,.35); }
+  #meter.l4 svg circle { transform: scale(.3); }
   #meter.l2 .lvl, #meter.l3 .lvl { background: var(--red-d); color: #fff; animation: lvb .6s steps(2) infinite; }
   #meter.l2 .bar, #meter.l3 .bar { border-color: var(--red-d); box-shadow: 0 0 0 2px rgba(255,90,90,.35); }
   body.calm #meter .lvl { animation: none; }
@@ -238,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.8.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.8.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2529,6 +2533,25 @@ function startChase() {
 // 逃げ場所の高い所：本棚の上・カーテンレール・吊り棚・エアコン（手が届かない）
 const isHigh = () => !!cat.plat && cat.plat !== VACP && cat.plat.y <= PL.book.y + 5;
 const inEscape = () => !!cat && (cat.hidden || cat.safe || isHigh());   // 逃げ場所にいる
+const isHiding = () => inEscape() && !(cat.punchT > 0) && !cat.scratch;   // 逃げ場所でじっとしている（見つからない）
+let hideWas = false;
+function updHideMark() {
+  // 隠れた瞬間に「かくれた!」（飼い主がいるときだけ。追いかけっこは「セーフ!」が出る）
+  const h = state === 'play' && isHiding();
+  if (h && !hideWas && owner.mode !== 'away' && owner.mode !== 'chase') pops.push({ x: cat.hidden ? BOX.x : cat.x, y: (cat.hidden ? FLOOR - BOX.h : cat.y) - 50, text: lt('かくれた!', 'Hidden!'), life: 1.1, col: '#1d8174', size: 18 });
+  hideWas = h;
+}
+function drawHideMark() {
+  // かくれ中の札：ダンボールの上か、ネコの頭の上
+  if (state !== 'play' || !isHiding() || chaseT > 0) return;
+  const x = cat.hidden ? BOX.x : cat.x, y = cat.hidden ? FLOOR - BOX.h - 16 : cat.y - 52, a = owner.mode === 'away' ? 0.55 : 0.95;
+  g.save(); g.globalAlpha = a; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const t = lt('かくれ中', 'Hidden'), w = g.measureText(t).width + 26;
+  g.fillStyle = '#2fb3a3'; g.strokeStyle = '#fff'; g.lineWidth = 2; rr(g, x - w / 2, y - 10, w, 20, 10); g.fill(); g.stroke();
+  // 閉じた目のしるし
+  g.strokeStyle = '#fff'; g.lineWidth = 1.8; g.lineCap = 'round'; g.beginPath(); g.arc(x - w / 2 + 11, y - 2, 4, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+  g.fillStyle = '#fff'; g.fillText(t, x + 5, y + 0.5); g.restore();
+}
 function updChase(dt) {
   const o = owner; chaseT -= dt;
   const high = isHigh();
@@ -4067,6 +4090,7 @@ function draw() {
   drawRival();
   drawCatNow();
   drawBox();
+  drawHideMark();
   drawBark();
   drawCams();
   drawLight();
@@ -4111,7 +4135,7 @@ function draw() {
   }
   // 逃げ場所の案内：ステージの始め（2秒ほど、名前つき）と、飼い主が探し始めたとき（追いかけっこの前）
   if (state === 'play' && chaseT <= 0 && introT <= 0 && escT > 0) drawEsc(Math.min(1, escT / 0.3, (2.2 - escT) / 0.2), lt('逃げ場所', 'Hide'));
-  else if (state === 'play' && chaseT <= 0 && (owner.mode === 'search' || sus >= 65)) drawEsc(0.55 + 0.35 * Math.abs(Math.sin(tAnim * 5)), '');
+  else if (state === 'play' && chaseT <= 0 && !isHiding() && (owner.mode === 'search' || sus >= 65)) drawEsc(0.55 + 0.35 * Math.abs(Math.sin(tAnim * 5)), '');
   if (state === 'play' && chaseT > 0) {
     // 追いかけっこ：画面のふちを赤く、逃げ込める場所に矢印
     g.strokeStyle = `rgba(255,59,48,${SET.calm ? 0.6 : 0.5 + 0.3 * Math.sin(tAnim * 14)})`; g.lineWidth = 10; g.strokeRect(5, -OY + 5, W - 10, VH - 10);
@@ -4246,11 +4270,11 @@ function hud() {
   const showP = state === 'play' || state === 'clear'; if (bPause.hidden === showP) bPause.hidden = !showP;
   { const sh = updReady && (state === 'title' || state === 'over' || state === 'endmenu'); if (updB.hidden === sh) { updB.hidden = !sh; updB.textContent = lt('新しい版があります（タップで更新）', 'New version available (tap to update)'); } }
   // 段階：0 へいき（40未満）、1 あやしい（40〜69）、2 やばい（70以上）、3 追いかけっこ中
-  const lv = (state === 'play' || state === 'clear') && owner.mode === 'chase' ? 3 : b >= 70 ? 2 : b >= 40 ? 1 : 0;
+  const lv = (state === 'play' || state === 'clear') && owner.mode === 'chase' ? 3 : state === 'play' && isHiding() ? 4 : b >= 70 ? 2 : b >= 40 ? 1 : 0;
   const key = s + '|' + y + '|' + b + '|' + lv + '|' + lang; if (key === lastHud) return; lastHud = key;
   hY.textContent = y; hB.style.width = b + '%';
   hB.style.background = b >= 70 ? 'var(--red)' : b >= 40 ? 'var(--yel)' : 'var(--teal)';
-  meterEl.className = 'l' + lv; hS.textContent = [lt('へいき', 'Calm'), lt('あやしい', 'Wary'), lt('やばい!', 'Danger!'), lt('にげろ!', 'RUN!')][lv];
+  meterEl.className = 'l' + lv; hS.textContent = [lt('へいき', 'Calm'), lt('あやしい', 'Wary'), lt('やばい!', 'Danger!'), lt('にげろ!', 'RUN!'), lt('かくれ中', 'Hidden')][lv];
 }
 const ohLabel = () => lt('スティック操作：', 'Touch stick: ') + (oneHand ? 'ON' : 'OFF');
 // 言語を切り替える：保存して、HTML に直接書いた文字（下のボタン・読み上げ用のラベル・ページの題名）も書き換える
@@ -4911,7 +4935,7 @@ function frame(ts) {
   pollPad();
   if (hitStop > 0 && state === 'play') { hitStop -= dt; tAnim += dt * 0.2; } else { hitStop = 0; update(dt); }
   if (zoomK > 0) zoomK = Math.max(0, zoomK - dt * 3.5);
-  updStick(dt); draw(); drawStick(); hud();
+  updStick(dt); if (state === 'play') updHideMark(); draw(); drawStick(); hud();
   requestAnimationFrame(frame);
 }
 fit();
