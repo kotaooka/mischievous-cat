@@ -147,6 +147,8 @@
   .zukan div.off { color: #c9b39a; background: #fbf3e6; }
   .cert { border: 2px dashed var(--line); border-radius: 14px; padding: 10px 12px; margin: 8px 0; background: #fffaf0; }
   .end-panel .big-logo { color: var(--org-d); }
+  .online[hidden] { display: none; }
+  .online.up, .online.err { padding: 6px 10px; }
   .zukan small { display: block; font-weight: 500; font-size: .7rem; color: var(--ink2); margin-top: 2px; line-height: 1.35; }
   .zukan div.off small { color: #b39a80; }
   .a2hs { border: 2px dashed var(--line); border-radius: 12px; padding: 8px 10px; margin: 8px 0; font-size: .82rem; text-align: left; background: #fff; line-height: 1.5; }
@@ -244,7 +246,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.14.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.14.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -4666,11 +4668,14 @@ function onlineBox() {
   if (!onlineOn() || run.yen <= 0) return '';
   if (!myName) return `<div class="online"><p class="best">${lt('みんなのランキングに登録する', 'Join the world ranking')}</p>
     <div class="row"><input id="nmIn" class="nm" maxlength="10" placeholder="${NM_PH()}" autocomplete="off"><button class="btn t" id="nmGo" type="button" style="flex:none;padding:10px 14px">${lt('登録', 'Join')}</button></div><p class="nm-err" id="nmErr"></p></div>`;
-  const R = run.res, line = (lab, x) => lab + (x.err ? lt('送信できませんでした', "couldn't send") + (x.code === '403' ? lt('（403：ルール未設定）', ' (403: rules)') : x.code ? `（${esc(x.code)}）` : '')
-    : x.skip ? lt(`自己ベスト ${yen(x.known)} に届かず`, `below your best (${yen(x.known)})`) + (x.rank ? lt(`（いま ${x.rank}位）`, ` · now #${x.rank}`) : '')
-    : x.now ? lt(`自己ベスト更新！ ${x.now}位`, `new best! #${x.now}`) : lt('自己ベスト更新！（50位圏外）', 'new best! (outside top 50)'));
-  const msg = !R ? (run.sent ? lt('送信中…', 'Sending…') : lt('送信できませんでした', "Couldn't send")) : line(lt('総合：', 'All-time: '), R.world) + '<br>' + line(lt('今日：', 'Today: '), R.today);
-  return `<div class="online"><p class="best rank-in" id="wMsg">${msg}</p><p class="sub" style="margin:0">${lt('名前：' + esc(myName), 'Name: ' + esc(myName))}</p></div>`;
+  // 名前を登録してあるとき：自己ベストを更新したときだけ順位を出す。届かなかったときは何も出さない（送れなかったときだけ小さく知らせる）
+  const R = run.res, empty = '<div class="online" hidden></div>';
+  if (!R) return empty;
+  const ups = [['world', lt('総合', 'All-time')], ['today', lt('今日', 'Today')]].filter(([k]) => R[k] && R[k].now !== undefined).map(([k, lab]) => lab + ' ' + (R[k].now ? lt(R[k].now + '位', '#' + R[k].now) : lt('50位圏外', 'top 50+')));
+  const errs = ['world', 'today'].filter(k => R[k] && R[k].err);
+  if (ups.length) return `<div class="online up"><p class="best rank-in" id="wMsg">${lt('ランキング自己ベスト更新！', 'New ranking best!')}<br>${ups.join(lt('・', ' · '))}</p></div>`;
+  if (errs.length) { const c = R[errs[0]].code; return `<div class="online err"><p class="best" style="font-size:.78rem;font-weight:500">${lt('ランキングに送れませんでした', "Couldn't send to the ranking")}${c ? `（${esc(c)}）` : ''}</p></div>`; }
+  return empty;
 }
 function bindOnline() {
   const go = $('nmGo'); if (!go) return;
@@ -4948,11 +4953,10 @@ async function showOver() {
   ov.hidden = false;
   ov.innerHTML = `<div class="panel">
     <p class="res-yen">${lt('本日の被害額', "Today's damage")}<b>${yen(run.yen)}</b></p>
-    <p class="best">${lt('お題', 'Tasks')} ★${run.stars}${run.skill > 0 ? lt(`　うち腕前ボーナス ${yen(run.skill)}`, ` · Skill bonus ${yen(run.skill)}`) : ''}</p>
-    ${rankNow ? `<p class="best rank-in">${lt(`この端末のランキング ${rankNow}位`, `#${rankNow} on this device`)}${rankNow === 1 ? lt('（自己ベスト）', ' (personal best)') : ''}</p>` : ''}
+    <p class="best" style="font-size:.8rem;font-weight:500;margin-top:2px">★${run.stars}${run.skill > 0 ? lt(`　・　腕前 +${yen(run.skill)}`, ` · Skill +${yen(run.skill)}`) : ''}</p>
+    ${newRec ? `<p class="best" style="color:var(--red-d)">${lt('ベスト更新!', 'New best!')}</p>` : ''}
     ${onlineBox()}
     <div class="badges">${newTitles.includes(titleOf(run.yen)) ? '' : `<span class="badge">${titleOf(run.yen)}</span>`}${newTitles.map(n => `<span class="badge new">NEW ${n}</span>`).join('')}${newAccs.map(n => `<span class="badge new" style="background:var(--teal)">${lt('きせかえ', 'NEW')} ${n}</span>`).join('')}${newCats.map(n => `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ', 'NEW CAT')} ${n}</span>`).join('')}</div>
-    ${newRec ? `<p class="best" style="color:var(--red-d)">${lt('ベスト更新!', 'New best!')}</p>` : ''}
     ${canPostEnd() ? `<div class="row"><button class="btn go" id="bNext" type="button">${lt(dayName(run.stage + 1) + 'からつづける', 'Continue to ' + dayName(run.stage + 1))}</button></div>` : ''}
     ${canCont() ? `<div class="row"><button class="btn go" id="bCont" type="button">${lt(dayName(run.ck.level) + 'の朝からつづける', 'Continue from ' + dayName(run.ck.level) + ' morning')}</button></div><p class="best" style="margin:0 0 6px;font-weight:500;font-size:.78rem">${lt('被害額は朝の時点に戻ります。続けた回数はランキングに載ります', 'Damage goes back to that morning. Restarts are shown in the ranking')}</p>` : ''}
     <div class="row"><button class="btn ${canCont() || canPostEnd() ? 'w' : 'go'}" id="bAgain" type="button">${lt(canCont() || canPostEnd() ? '1日目からやりなおす' : 'もう一回', canCont() || canPostEnd() ? 'Restart from Day 1' : 'Play again')}</button></div>
