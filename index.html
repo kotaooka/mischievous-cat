@@ -160,6 +160,7 @@
   .panel.paged { display: flex; flex-direction: column; }
   .panel.paged > * { flex: none; }
   .panel.paged > .pager { flex: 1 1 auto; }
+  .panel.paged > .rk-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
   .stat-list h4 { grid-column: 1 / -1; }
   .pg-title { margin: 4px 0 6px; text-align: center; color: var(--org-d); }
   .pager-nav { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
@@ -267,7 +268,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.16.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.16.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -4739,9 +4740,9 @@ function showRank(tab) {
     ? (ranking.length ? `<table class="rank"><tbody>${ranking.map(local).join('')}</tbody></table>` : `<p class="best">${lt('まだ記録がありません', 'No records yet')}</p>`)
     : `<div id="wList"><p class="best">${lt('読み込み中…', 'Loading…')}</p></div>`;
   const nameRow = tab !== 'local' ? `<div class="row"><input id="nmIn2" class="nm" maxlength="10" placeholder="${NM_PH()}" value="${esc(myName)}" autocomplete="off"><button class="btn w" id="nmSave" type="button" style="flex:none;padding:10px 14px">${lt('保存', 'Save')}</button></div><p class="nm-err" id="nmErr2"></p>` : '';
-  ov.innerHTML = `<div class="panel">${recTabs('rank')}
+  ov.innerHTML = `<div class="panel paged" style="height:${pagedH()}px">${recTabs('rank')}
     <div class="big-logo" style="font-size:1.5rem">${lt('ランキング', 'Ranking')}</div><p class="sub">${tab === 'local' ? lt('この端末の上位10件', 'Top 10 on this device') : tab === 'daily' ? lt(`今日（${dailyKey}）の上位50人`, `Today (${dailyKey}): top 50 players`) : lt('総合の上位50人（1人1件）', 'All-time top 50 (best per player)')}</p>
-    ${tabs}${nameRow}${body}
+    ${tabs}${nameRow}<div class="rk-scroll">${body}</div>
     <div class="row"><button class="btn" id="rkBack" type="button">${lt('もどる', 'Back')}</button></div></div>`;
   $('rkBack').addEventListener('click', back); bindRecTabs();
   ov.querySelectorAll('.tabs:not(.rec-tabs) button').forEach(bt => bt.addEventListener('click', () => showRank(bt.dataset.t)));
