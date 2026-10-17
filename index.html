@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.22.5', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'KotaOoka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.23.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1018,6 +1018,7 @@ const SET = { bgm: +store.get('nekoBgmVol', 70), se: +store.get('nekoSeVol', 90)
 function applySettings() {
   if (sfxG) sfxG.gain.value = SET.se / 100;
   if (ac && BGM.bus && BGM.on) BGM.bus.gain.setTargetAtTime(0.55 * SET.bgm / 100, ac.currentTime, 0.1);
+  if (ac && EB.bus && EB.on) EB.bus.gain.setTargetAtTime(0.6 * SET.bgm / 100, ac.currentTime, 0.1);
   try { document.body.classList.toggle('swap', SET.swap); document.body.classList.toggle('calm', SET.calm); } catch (e) {}
 }
 function audio() {
@@ -1316,6 +1317,44 @@ function bgmMix() {
   else if (state === 'dayend') mix = [0.4, 0.6, 0, 0, 0];
   mix = mix.map(v => Math.round(v * 10) / 10); const key = mix.join(); if (key === BGM.mixKey) return; BGM.mixKey = key;
   ['base', 'calm', 'tense', 'danger', 'chase'].forEach((k, i) => BGM.L[k].gain.setTargetAtTime(mix[i], ac.currentTime, k === 'chase' ? 0.05 : 0.2));
+}
+// ---------- エンディングの BGM ----------
+// 本編のメロディ（MEL）の面影を残した、ゆったりした C メジャーの曲。寸劇の間は和音とメロディだけ、スタッフロールからベース・アルペジオ・ハットが加わる
+// コード進行：C → G → Am → F（8 小節で 1 まわり。最後の小節は F → G）。84 BPM、8 分音符で刻む
+const EB = { on: false, step: 0, next: 0, timer: 0, bus: null, full: false };
+const EB_ROOT = [48, 43, 45, 41, 48, 43, 45, 41], EB_CHORD = [[60, 64, 67], [59, 62, 67], [57, 60, 64], [57, 60, 65]];
+const EB_MEL = [
+  76, 0, 79, 0, 84, 0, 83, 0,   86, 0, 83, 0, 79, 0, 81, 0,   84, 0, 83, 81, 0, 79, 0, 76,   77, 0, 79, 0, 81, 0, 0, 0,
+  76, 0, 79, 0, 84, 0, 88, 0,   86, 0, 0, 83, 79, 0, 81, 83,   84, 0, 83, 0, 81, 0, 79, 0,   77, 0, 76, 0, 74, 0, 0, 0];
+const EB_SPB = 60 / 84 / 2;
+function endBgmStart(full) {
+  if (muted) return; const a = audio(); if (!a) return;
+  EB.full = !!full;
+  if (EB.on) return;
+  if (!EB.bus) { EB.bus = a.createGain(); EB.bus.gain.value = 0; EB.bus.connect(master); }
+  EB.on = true; EB.step = 0; EB.next = a.currentTime + 0.1; EB.bus.gain.setTargetAtTime(0.6 * SET.bgm / 100, a.currentTime, 0.6);
+  EB.timer = setInterval(endBgmTick, 30);
+}
+function endBgmStop() { if (!EB.on) return; EB.on = false; clearInterval(EB.timer); if (ac && EB.bus) EB.bus.gain.setTargetAtTime(0, ac.currentTime, 0.6); }
+function endBgmTick() {
+  if (!ac || !EB.on) return;
+  if (EB.next < ac.currentTime) EB.next = ac.currentTime + 0.02;
+  while (EB.next < ac.currentTime + 0.2) { endBgmStep(EB.step, EB.next); EB.next += EB_SPB; EB.step = (EB.step + 1) % 64; }
+}
+function endBgmStep(st, t) {
+  const bar = st >> 3, i = st & 7, spb = EB_SPB, D = EB.bus;
+  let ci = bar % 4; if (bar === 7 && i >= 4) ci = 1;   // 最後の小節の後半は G（次のまわりへ戻る）
+  const root = bar === 7 && i >= 4 ? 43 : EB_ROOT[bar], ch = EB_CHORD[ci];
+  // 和音（やわらかいパッド）：小節の頭と後半
+  if (i === 0 || i === 4) ch.forEach(n => { bgmNote(D, mtof(n), t, spb * 4.2, 'sine', 0.045); bgmNote(D, mtof(n - 12), t, spb * 4.2, 'triangle', 0.02); });
+  // メロディ（三角波＋1オクターブ上のサイン）。次の音までのばす
+  const m = EB_MEL[st];
+  if (m) { let len = 1; while (len < 6 && !EB_MEL[(st + len) % 64]) len++; bgmNote(D, mtof(m), t, spb * (len + 0.6), 'triangle', 0.13); bgmNote(D, mtof(m + 12), t, spb * len * 0.7, 'sine', 0.03); }
+  if (!EB.full) return;
+  // スタッフロールから：ベース、アルペジオ、ハット
+  if (i === 0 || i === 3 || i === 6) bgmNote(D, mtof(root + (i === 6 ? 7 : 0)), t, spb * 1.8, 'triangle', 0.2);
+  bgmNote(D, mtof(ch[i % 3] + (i >= 4 ? 12 : 0)), t, spb * 0.9, 'sine', 0.045);
+  if (i % 2 === 1) bgmHat(D, t, 0.02);
 }
 let hapLabel = null;
 // 戻り値：'ok'（Vibration API が受け付けた）、'blocked'（ブラウザが拒否した）、'none'（API なし）、'off'（設定が OFF）
@@ -2754,7 +2793,7 @@ function endingType(r) {
 let endingsSeen = new Set();
 try { endingsSeen = new Set(JSON.parse(store.get('nekoEndings', '[]'))); } catch (e) {}
 // スタッフロール：ENDING の種類、出演（ネコ・飼い主）、被害者一覧（割ったもの）、大技、3日間の写真。タップ・ボタンで飛ばせる
-let credT = 0, CRED_LEN = 16;
+let credT = 0, CRED_LEN = 20;   // 4.23.0：16 → 20 秒
 function creditLines() {
   const r = run, E = ENDINGS[r.endType], L = [];
   L.push(['big', lt('こっそりネコ', 'Mischievous Cat')]); L.push(['sub', 'ENDING ' + String(E.n)]); L.push(['gap']);
@@ -2764,7 +2803,7 @@ function creditLines() {
   const bro = Object.entries(r.broke || {}).filter(([k]) => IT[k]).sort((a, b) => b[1] - a[1]).slice(0, 7);
   bro.forEach(([k, n]) => L.push(['t', IT[k].n + ' ×' + n])); if (!bro.length) L.push(['t', lt('（なし。本当に？）', '(none. really?)')]);
   if ((r.bigs || []).length) { L.push(['gap']); L.push(['h', lt('大技', 'BIG ONES')]); r.bigs.forEach(k => L.push(['t', BIG[k].n])); }
-  L.push(['gap']); L.push(['h', lt('作者', 'CREATED BY')]); L.push(['t', AUTHOR]);
+  L.push(['gap']); L.push(['h', lt('こっそりネコ', 'Mischievous Cat')]); L.push(['t', lt('制作：', 'Created by ') + AUTHOR]);
   L.push(['gap']); L.push(['h', lt('3日間の被害額', '3-DAY DAMAGE')]); L.push(['big2', yen(r.yen)]); L.push(['t', lt('称号', 'Title') + '「' + titleOf(r.yen) + '」']);
   L.push(['gap']); L.push(['t', lt('飼い主は、まだ気づいていない', 'The owner still has no idea')]); L.push(['gap']); L.push(['sub', lt('そして、4日目へ……', 'And so, on to Day 4……')]);
   return L;
@@ -2794,7 +2833,7 @@ function drawCredits() {
 function startEnding() {
   run.endType = endingType(run); endFall = null; endLastPop = -1; endPopTxt = '';
   run.ended = true; run.days = dayOf(level); state = 'ending'; endT = 0; endShown = false; endCup = { x: 252, y: 474, vy: 0, vx: 0, rot: 0, broke: false };
-  bgmStop(); setPulse(null); setMode('away', 99); owner.say = ''; parts = []; pops = []; spaceT = 0; room = 'living'; spots = []; lamp = null; tv = null; weather = 'sun'; sfx.dayend();
+  bgmStop(); endBgmStart(false); setPulse(null); setMode('away', 99); owner.say = ''; parts = []; pops = []; spaceT = 0; room = 'living'; spots = []; lamp = null; tv = null; weather = 'sun'; sfx.dayend();
 }
 function drawEnding() {
   const e = endT, F = FLOOR;
@@ -2908,7 +2947,7 @@ function showEnding() {
       <button class="btn go" id="enNext" type="button">${lt('次：', 'Next: ') + '「' + ENDINGS[nx].n + '」'}</button>
       <div class="row"><button class="btn w" id="enBack" type="button">${lt('タイトルへ', 'Title')}</button></div></div>`;
     $('enNext').addEventListener('click', () => { audio(); previewEnding(previewIx + 1); });
-    $('enBack').addEventListener('click', () => { run.preview = false; showTitle(); });
+    $('enBack').addEventListener('click', () => { endBgmStop(); run.preview = false; showTitle(); });
     return;
   }
   state = 'endmenu'; ov.hidden = false; endFx = 0;
@@ -2936,9 +2975,9 @@ function showEnding() {
     <button class="btn go" id="enCont" type="button">${lt((END_DAY + 1) + '日目へつづける', 'On to Day ' + (END_DAY + 1))}</button>
     <p class="best" style="margin:2px 0 6px;font-weight:500;font-size:.78rem">${lt('ここからは1日ごとに飼い主がきびしくなります。どこまで行けるか腕だめし', 'From here the owner gets stricter every day. How far can you go?')}</p>
     <div class="row"><button class="btn w" id="enRes" type="button">${lt('ここで終わって結果を見る', 'Finish and see results')}</button></div>
-    <p class="best" style="margin:6px 0 0;font-weight:500;font-size:.72rem;color:var(--ink2)">${lt('作者：', 'Created by ')}${AUTHOR}</p></div>`;
-  $('enCont').addEventListener('click', () => { ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
-  $('enRes').addEventListener('click', () => { run.timeup = false; gameOver(); });
+    <p class="best" style="margin:6px 0 0;font-weight:500;font-size:.72rem;color:var(--ink2)">${lt('こっそりネコ　制作：', 'Mischievous Cat — created by ')}${AUTHOR}</p></div>`;
+  $('enCont').addEventListener('click', () => { endBgmStop(); ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
+  $('enRes').addEventListener('click', () => { endBgmStop(); run.timeup = false; gameOver(); });
 }
 let endFx = 0, endFall = null, endLastPop = -1, endPopTxt = '';
 // ---------- お客さんと掛け合い ----------
@@ -4947,7 +4986,7 @@ function update(dt) {
       } else { setupStage(level + 1); state = 'play'; }
     }
   } else if (state === 'ending') {
-    endT += dt; if (endT > 15.8) { state = 'credits'; credT = 0; }
+    endT += dt; if (endT > 15.8) { state = 'credits'; credT = 0; endBgmStart(true); EB.full = true; }
   } else if (state === 'credits') {
     credT += dt; if (credT > CRED_LEN && !endShown) { endShown = true; showEnding(); }
   } else if (state === 'endmenu') {
@@ -5048,7 +5087,7 @@ const keysBox = () => `<div class="keys" aria-label="${lt('キー操作', 'Keybo
 // 初回（まだ1回も遊び終えていない）は、ネコ1匹と「あそぶ」だけの軽いタイトルにする。ネコ・きせかえ・きろくは1回遊ぶと出る
 const firstTime = () => !(LIFE.plays || 0) && !bestYen;
 function showTitle() {
-  state = 'title'; newRun(); ov.hidden = false; setPulse(null);
+  endBgmStop(); state = 'title'; newRun(); ov.hidden = false; setPulse(null);
   if (firstTime()) {
     const T = CATS[selCat];
     ov.innerHTML = `<div class="panel first">
@@ -5761,7 +5800,7 @@ function drawStick() {
 const SND_ON = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const SND_OFF = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 function soundLabel() { const b = $('bSnd'); b.innerHTML = muted ? SND_OFF : SND_ON; b.setAttribute('aria-pressed', String(!muted)); }
-function toggleSound() { muted = !muted; store.set('nekoMute', muted ? '1' : '0'); soundLabel(); if (muted) bgmStop(); else { audio(); if (state !== 'over' && state !== 'caught') bgmStart(); } }
+function toggleSound() { muted = !muted; store.set('nekoMute', muted ? '1' : '0'); soundLabel(); const ending = state === 'ending' || state === 'credits' || state === 'endmenu'; if (muted) { bgmStop(); endBgmStop(); } else { audio(); if (ending) endBgmStart(state !== 'ending'); else if (state !== 'over' && state !== 'caught') bgmStart(); } }
 $('bSnd').addEventListener('click', toggleSound);
 bPause.addEventListener('click', pauseGame);
 soundLabel();
