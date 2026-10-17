@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.21.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.21.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -348,7 +348,7 @@ const RUBP = { x0: 347, x1: W - 4, y: FLOOR - 46 };
 const BIG = {
   living:  { fall: true, n: tx('本棚なだれ', 'Bookshelf Avalanche'), how: tx('本棚のものを1面で3つ落とす', 'Knock 3 things off the bookshelf in one stage'), need: 3, line: tx('本棚がーっ!! …本が、本が', 'The bookshelf!! …my books'), cols: ['#ff5a5a', '#2b8fd9', '#ffc94a', '#2fb3a3', '#9b7fc0'] },
   kitchen: { n: tx('冷蔵庫なだれ', 'Fridge Avalanche'), how: tx('床から冷蔵庫を強パンチで3回たたく', 'Power-punch the fridge 3 times from the floor'), need: 3, line: tx('冷蔵庫が… 卵が… 全部…', 'The fridge… the eggs… everything…'), cols: ['#fff3df', '#ffe08a', '#ff8a3d', '#9cc8ef', '#e8f4ff'], wet: true },
-  study:   { n: tx('書類なだれ', 'Paper Avalanche'), how: tx('床から収納棚を強パンチで3回たたく', 'Power-punch the cabinet 3 times from the floor'), need: 3, line: tx('今日の会議の資料が……', 'The documents for today\'s meeting……'), cols: ['#ffffff', '#f3efe6', '#e8e8e8', '#ffe08a', '#d8d8d8'] },
+  study:   { n: tx('資料なだれ', 'Paper Avalanche'), how: tx('床から本棚を強パンチで3回たたく', 'Power-punch the bookshelf 3 times from the floor'), need: 3, line: tx('今日の会議の資料が……', 'The documents for today\'s meeting……'), cols: ['#ff5a5a', '#2b8fd9', '#ffc94a', '#2fb3a3', '#9b7fc0', '#ffffff'] },
   bed:     { n: tx('タンスなだれ', 'Dresser Avalanche'), how: tx('床からタンスを強パンチで3回たたく', 'Power-punch the dresser 3 times from the floor'), need: 3, line: tx('たたんだのに!! 全部!!', 'I JUST folded those!!'), cols: ['#ff9fb2', '#9fd3ef', '#ffffff', '#ffc94a', '#b9a0e0'] },
   garden:  { n: tx('物置なだれ', 'Shed Collapse'), how: tx('地面から物置を強パンチで3回たたく', 'Power-punch the shed 3 times from the ground'), need: 3, line: tx('物置が…おじいさんの物置が…', 'The shed… Grandpa\'s shed…'), cols: ['#8fa6b5', '#5d7a9a', '#b8743f', '#2fb3a3', '#3a3f46'] },
   kids:    { fall: true, low: 442, n: tx('二段ベッド崩壊', 'Bunk Bed Collapse'), how: tx('二段ベッドの上で5回ジャンプする', 'Jump 5 times on top of the bunk bed'), need: 5, line: tx('ぼくのベッドがーっ!!', 'My BED!!'), cols: ['#5d8fd0', '#ffb020', '#ffffff', '#7fc1f0', '#4a7ab8'] },
@@ -414,30 +414,39 @@ function bigPost(g) {
     for (let i = 0; i < 22; i++) { const x = 350 + (i * 37) % (W - 356), y = top + 2 + (i * 13) % 32, w = 7 + (i * 7) % 6, h = 16 + (i * 5) % 9; blob(x, y, w, h, B.cols[i % B.cols.length], ((i * 29) % 60 - 30) * 0.04); }
     g.fillStyle = '#9a6038'; g.fillRect(345, FLOOR - 70 * (1 - k * 0.5), 6, 70 * (1 - k * 0.5));   // 残った左の側板
   } else if (room === 'kitchen') {
-    // 冷蔵庫なだれ：扉が開いて（左へ）、中はからっぽ。卵・牛乳・ケチャップ・りんごが床に
-    g.fillStyle = '#d6dde2'; g.fillRect(347, 293, W - 349, 65); g.fillRect(347, 365, W - 349, FLOOR - 367);   // 開いた中（からっぽの棚）
-    g.fillStyle = '#b8c2c9'; g.fillRect(347, 325, W - 349, 3); g.fillRect(347, 420, W - 349, 3); g.fillRect(347, 460, W - 349, 3);
-    const dw = 10 + 26 * e;   // 扉：左へ開く（奥行きで細く見える）
-    g.fillStyle = '#e4eaee'; g.beginPath(); g.moveTo(345, 291); g.lineTo(345 - dw, 291 + 4 * e); g.lineTo(345 - dw, 360 - 4 * e); g.lineTo(345, 360); g.closePath(); g.fill(); g.strokeStyle = '#b8c2c9'; g.lineWidth = 1.5; g.stroke();
-    g.fillStyle = '#e4eaee'; g.beginPath(); g.moveTo(345, 363); g.lineTo(345 - dw, 363 + 4 * e); g.lineTo(345 - dw, FLOOR - 4 * e); g.lineTo(345, FLOOR); g.closePath(); g.fill(); g.stroke();
-    // 中身（床の上。k で手前へ広がる）
-    const sp = 1 - k * 0.5;
+    // 冷蔵庫なだれ：取っ手は左にあるので、ちょうつがいは右端。扉は右端を軸に手前へ開く（奥行きで台形）。中はからっぽ。中身は床に
+    g.fillStyle = '#dfe6ea'; g.fillRect(347, 293, W - 349, 65); g.fillRect(347, 363, W - 349, FLOOR - 365);   // 中（からっぽ）
+    g.fillStyle = '#c2ccd3'; g.fillRect(347, 325, W - 349, 3); g.fillRect(347, 420, W - 349, 3); g.fillRect(347, 460, W - 349, 3); g.fillStyle = '#ffe08a'; g.fillRect(352, 300, 20, 12);   // 棚板・製氷皿
+    const dw = 12 + 36 * e, hx = W;   // 扉の見える幅と、ちょうつがい（右端）
+    const door = (y0, y1, hy0, hy1) => {
+      g.fillStyle = '#e4eaee'; g.beginPath(); g.moveTo(hx, y0); g.lineTo(hx - dw, y0 + 5 * e); g.lineTo(hx - dw, y1 - 5 * e); g.lineTo(hx, y1); g.closePath(); g.fill(); g.strokeStyle = '#c2ccd3'; g.lineWidth = 1.5; g.stroke();
+      g.fillStyle = '#a7adb5'; rr(g, hx - dw + 4, hy0 + 3 * e, 4, hy1 - hy0 - 6 * e, 2); g.fill();   // 取っ手は開く側（左）の端
+    };
+    door(291, 360, 310, 346); door(363, FLOOR, 375, 435);
+    g.fillStyle = '#2fb3a3'; g.fillRect(hx - dw * 0.55 - 7, 330 - 2 * e, 10 * Math.max(0.3, 1 - e * 0.6), 10); g.fillStyle = '#ff8a3d'; g.beginPath(); g.ellipse(hx - dw * 0.3, 400, 6 * Math.max(0.3, 1 - e * 0.6), 6, 0, 0, TAU); g.fill();   // 扉のマグネット
+    // 中身（床の上。e で手前へ広がる）
+    const sp = 1 - e * 0.5;
     blob(300 + 20 * sp, FLOOR - 7, 14, 20, '#ffffff', -0.9); g.fillStyle = '#2b8fd9'; g.fillRect(292 + 20 * sp, FLOOR - 13, 8, 5);   // 牛乳パック
     [[326, 0.3], [338, -0.5], [310, 0.9]].forEach(([x, r]) => { blob(x + 10 * sp, FLOOR - 5, 10, 8, '#fff8e8', r); g.strokeStyle = '#c9b38a'; g.lineWidth = 1; g.beginPath(); g.moveTo(x + 10 * sp - 3, FLOOR - 6); g.lineTo(x + 10 * sp + 1, FLOOR - 3); g.lineTo(x + 10 * sp + 3, FLOOR - 7); g.stroke(); });   // 割れた卵
     blob(362, FLOOR - 7, 8, 14, '#e0362c', 0.6); g.fillStyle = '#ffffff'; g.fillRect(366, FLOOR - 11, 3, 3);   // ケチャップ
     blob(386, FLOOR - 6, 11, 11, '#ff5a5a'); g.fillStyle = '#2fb3a3'; g.fillRect(385, FLOOR - 13, 2, 4);   // りんご
     blob(412, FLOOR - 6, 16, 10, '#ffe08a', 0.1); blob(436, FLOOR - 7, 12, 12, '#ffb020');   // バター・みかん
   } else if (room === 'study') {
-    // 書類なだれ：扉が開き、中の書類が全部飛び出す。床に紙が散らばる
-    g.fillStyle = '#7a4a26'; g.fillRect(349, 293, W - 353, FLOOR - 295);   // 開いた中（空）
-    g.fillStyle = '#8a5530'; for (let r = 0; r < 4; r++) g.fillRect(349, 335 + r * 41, W - 353, 4);
-    const dw = 8 + 24 * e;
-    [[293, 395], [398, FLOOR]].forEach(([y0, y1]) => { g.fillStyle = '#a5683a'; g.beginPath(); g.moveTo(345, y0); g.lineTo(345 - dw, y0 + 4 * e); g.lineTo(345 - dw, y1 - 4 * e); g.lineTo(345, y1); g.closePath(); g.fill(); g.strokeStyle = '#6d4222'; g.lineWidth = 1.5; g.stroke(); });
-    for (let i = 0; i < 18; i++) { const x = 280 + (i * 41) % 170, y = FLOOR - 3 - (i * 7) % 12, r = ((i * 23) % 90 - 45) * 0.03; blob(x, y, 20, 14, i % 4 === 0 ? '#ffe08a' : '#ffffff', r); if (i % 2) { g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x - 6, y - 3, 10, 1.2); g.fillRect(x - 6, y, 8, 1.2); } }
+    // 資料なだれ：書斎の家具は本棚。棚板だけ残して中はからっぽに塗り、本・ファイル・開いた資料が床の山になる。棚は立ったまま
+    for (let r = 0; r < 5; r++) { g.fillStyle = '#6d4222'; g.fillRect(349, 297 + r * 41, W - 351, 33); }
+    for (let i = 0; i < 20; i++) { const x = 282 + (i * 37) % 168, y = FLOOR - 6 - (i * 5) % 14, w = 7 + (i * 7) % 6, h = 18 + (i * 5) % 8, r = (i % 3) * 1.1 + ((i * 29) % 40 - 20) * 0.02; blob(x, y, w, h, B.cols[i % B.cols.length], r); }   // 本（横倒し・ななめ）
+    [[300, -0.2], [352, 0.15], [408, -0.1]].forEach(([x, r]) => { g.save(); g.translate(x, FLOOR - 12); g.rotate(r); g.fillStyle = '#ffffff'; rr(g, -14, -8, 28, 16, 2); g.fill(); g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(-1, -8, 2, 16); for (let k = 0; k < 3; k++) { g.fillRect(-11, -4 + k * 4, 8, 1.2); g.fillRect(3, -4 + k * 4, 8, 1.2); } g.restore(); });   // 開いた資料
   } else if (room === 'bed') {
-    // タンスなだれ：引き出しが飛び出し、服が床にばらまかれる
-    for (let r = 0; r < 5; r++) { const out = (14 + (r * 17) % 30) * e; g.fillStyle = '#b8743f'; g.fillRect(351 - out, 298 + r * 40, W - 357, 34); g.strokeStyle = 'rgba(94,58,28,.6)'; g.lineWidth = 2; g.strokeRect(351 - out, 298 + r * 40, W - 357, 34); g.fillStyle = '#ffc94a'; g.fillRect(392 - out, 313 + r * 40, 12, 4); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(351 - out, 298 + r * 40, out, 34); }
-    for (let i = 0; i < 16; i++) { const x = 282 + (i * 37) % 160, y = FLOOR - 5 - (i * 5) % 10, w = 16 + (i * 7) % 10, h = 8 + (i * 3) % 6; blob(x, y, w, h, B.cols[i % B.cols.length], ((i * 31) % 60 - 30) * 0.03); }
+    // タンスなだれ：引き出しが手前へ引き出される（前板が少し大きく・下がって見え、上に箱の中が見える）。服が引き出しからはみ出し、床にも散らばる
+    for (let r = 0; r < 5; r++) {
+      const out = (0.4 + (r * 7) % 5 * 0.15) * e, y0 = 298 + r * 40;
+      g.fillStyle = '#5e3a1c'; g.fillRect(351, y0, W - 357, 34);   // 箱の中（暗い）
+      g.fillStyle = '#8a5530'; g.fillRect(353, y0 + 2, W - 361, 10 * out);   // 引き出しの底（上から見える）
+      const dy = 9 * out, gw = 3 * out;
+      g.fillStyle = '#b8743f'; g.fillRect(351 - gw, y0 + dy, W - 357 + gw * 2, 34); g.strokeStyle = 'rgba(94,58,28,.6)'; g.lineWidth = 2; g.strokeRect(351 - gw, y0 + dy, W - 357 + gw * 2, 34); g.fillStyle = '#ffc94a'; g.fillRect(392, y0 + 15 + dy, 12, 4);   // 前板
+      if (r % 2 === 0) blob(360 + r * 10, y0 + 6 * out, 18, 8, B.cols[r % B.cols.length], 0.2 - r * 0.1);   // はみ出した服
+    }
+    for (let i = 0; i < 14; i++) { const x = 284 + (i * 37) % 150, y = FLOOR - 5 - (i * 5) % 10, w = 16 + (i * 7) % 10, h = 8 + (i * 3) % 6; blob(x, y, w, h, B.cols[i % B.cols.length], ((i * 31) % 60 - 30) * 0.03); }
     blob(330, FLOOR - 7, 12, 6, '#ffffff', 0.4); blob(300, FLOOR - 4, 10, 5, '#ff9fb2', -0.3);   // くつした
   } else if (room === 'garden') {
     // 物置なだれ：扉が外れて地面に倒れ、道具と鉢が転がり出る
@@ -760,7 +769,7 @@ const CARDS = [
   // 大技（部屋ごと）
   { id: 'big_living',  name: tx('本棚なだれ', 'Bookshelf Avalanche'), desc: tx('リビング：本棚のものを1面で3つ落とす', 'Living room: knock 3 things off the bookshelf in one stage'), test: r => !!r.ev.big_living },
   { id: 'big_kitchen', name: tx('冷蔵庫なだれ', 'Fridge Avalanche'),  desc: tx('キッチン：床から冷蔵庫を強パンチで3回', 'Kitchen: power-punch the fridge 3 times from the floor'), test: r => !!r.ev.big_kitchen },
-  { id: 'big_study',   name: tx('書類なだれ', 'Paper Avalanche'),     desc: tx('書斎：床から収納棚を強パンチで3回', 'Study: power-punch the cabinet 3 times from the floor'), test: r => !!r.ev.big_study },
+  { id: 'big_study',   name: tx('資料なだれ', 'Paper Avalanche'),     desc: tx('書斎：床から本棚を強パンチで3回', 'Study: power-punch the bookshelf 3 times from the floor'), test: r => !!r.ev.big_study },
   { id: 'big_bed',     name: tx('タンスなだれ', 'Dresser Avalanche'), desc: tx('寝室：床からタンスを強パンチで3回', 'Bedroom: power-punch the dresser 3 times from the floor'), test: r => !!r.ev.big_bed },
   { id: 'big_garden',  name: tx('物置なだれ', 'Shed Collapse'),       desc: tx('庭：地面から物置を強パンチで3回', 'Garden: power-punch the shed 3 times from the ground'), test: r => !!r.ev.big_garden },
   { id: 'big_kids',    name: tx('二段ベッド崩壊', 'Bunk Bed Collapse'), desc: tx('子ども部屋：二段ベッドの上で5回ジャンプ', "Kid's room: jump 5 times on top of the bunk bed"), test: r => !!r.ev.big_kids },
