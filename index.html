@@ -177,8 +177,9 @@
   #frame.l5 canvas#c { border-color: #4a2f1d; animation: frmBlink .5s ease-in-out infinite; }
   #frame.l4 canvas#c { border-color: var(--teal-d); box-shadow: 0 0 0 3px rgba(47,179,163,.5); }
   /* 追いかけっこの残り（4.29.0）：1 回使うと枠が赤のまま、使い切ると赤の破線（70% 以上で l5 の点滅が重なる） */
-  #frame.c1 canvas#c { border-color: #e0362c; }
-  #frame.c2 canvas#c { border-color: #4a2f1d; outline: 4px dashed #e0362c; outline-offset: -2px; }
+  /* 枠線（border）は怪しまれ度の段階、その内側の線（outline）が追いかけっこの残り。かくれ中（l4 の青緑）と同時に見える */
+  #frame.c1 canvas#c { outline: 3px solid #e0362c; outline-offset: -3px; }
+  #frame.c2 canvas#c { outline: 4px dashed #e0362c; outline-offset: -4px; }
   #frame.c2.l5 canvas#c { outline-color: #ff3b30; }
   @keyframes frmBlink { 0%, 100% { box-shadow: 0 0 0 2px rgba(255,59,48,.35); } 50% { box-shadow: 0 0 0 6px rgba(255,59,48,.85), 0 0 18px rgba(255,59,48,.6); } }
   body.calm #frame.l2 canvas#c, body.calm #frame.l3 canvas#c, body.calm #frame.l5 canvas#c { animation: none; box-shadow: 0 0 0 4px rgba(255,59,48,.6); }
@@ -324,7 +325,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.29.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.29.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
