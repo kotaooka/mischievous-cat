@@ -75,6 +75,22 @@
   #meter svg { width: 26px; height: 18px; flex: none; }
   #meter .bar { flex: 1; height: 14px; background: #f6e2c4; border: 2px solid var(--line); border-radius: 999px; overflow: hidden; }
   #meter .bar i { display: block; height: 100%; width: 0; background: var(--teal); border-radius: 999px; transition: background .2s; }
+  /* 怪しまれ度は色だけでなく、言葉・しま模様・目の開き具合でも段階を示す */
+  #meter .lvl { flex: none; min-width: 4.6em; text-align: center; font-weight: 800; font-size: .72rem; border: 2px solid var(--line); border-radius: 999px; padding: 0 6px; background: var(--card); color: var(--ink); line-height: 1.5; white-space: nowrap; }
+  #meter svg circle { transform-origin: 13px 9px; transition: transform .2s; }
+  #meter.l0 svg circle { transform: scale(.55); }
+  #meter.l2 svg circle, #meter.l3 svg circle { transform: scale(1.3); }
+  #meter.l1 .bar i { background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.4) 0 4px, transparent 4px 10px); }
+  #meter.l2 .bar i, #meter.l3 .bar i { background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.5) 0 3px, transparent 3px 6px); }
+  #meter.l1 .lvl { background: var(--yel); }
+  #meter.l2 .lvl, #meter.l3 .lvl { background: var(--red-d); color: #fff; animation: lvb .6s steps(2) infinite; }
+  body.calm #meter .lvl { animation: none; }
+  @keyframes lvb { 50% { opacity: .5; } }
+  #hY.bump { animation: bump .22s ease-out; }
+  @keyframes bump { 50% { transform: scale(1.15); } }
+  /* 新しい版の知らせ */
+  #upd { position: fixed; left: 50%; top: max(8px, env(safe-area-inset-top)); transform: translateX(-50%); z-index: 50; background: var(--teal-d); color: #fff; border: 0; border-radius: 999px; padding: 8px 16px; font-family: inherit; font-weight: 800; font-size: .9rem; box-shadow: 0 4px 0 rgba(0,0,0,.2); cursor: pointer; white-space: nowrap; }
+  #upd[hidden] { display: none; }
 
   /* ゲーム画面：残りの高さいっぱいに、縦横比 450:540 を保って最大の大きさで置く */
   #stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
@@ -121,6 +137,10 @@
   .zukan { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 8px 0; text-align: left; }
   .zukan div { border: 2px solid var(--line); border-radius: 12px; padding: 6px 8px; font-weight: 800; font-size: .86rem; background: #fff; }
   .zukan div.off { color: #c9b39a; background: #fbf3e6; }
+  .zukan small { display: block; font-weight: 500; font-size: .7rem; color: var(--ink2); margin-top: 2px; line-height: 1.35; }
+  .zukan div.off small { color: #b39a80; }
+  .a2hs { border: 2px dashed var(--line); border-radius: 12px; padding: 8px 10px; margin: 8px 0; font-size: .82rem; text-align: left; background: #fff; line-height: 1.5; }
+  .a2hs .row { margin-top: 6px; }
   /* ランキング */
   .rank { width: 100%; border-collapse: separate; border-spacing: 0 4px; margin: 6px 0; font-weight: 800; font-size: .84rem; text-align: left; }
   .rank td { background: #fff; padding: 5px 6px; border-top: 2px solid var(--line); border-bottom: 2px solid var(--line); vertical-align: middle; line-height: 1.25; }
@@ -181,7 +201,9 @@
   <div id="meter" aria-label="怪しまれ度">
     <svg viewBox="0 0 26 18" aria-hidden="true"><path d="M1 9C5 2 21 2 25 9C21 16 5 16 1 9Z" fill="#fff" stroke="#4a2f1d" stroke-width="2"/><circle cx="13" cy="9" r="4" fill="#4a2f1d"/></svg>
     <span class="bar"><i id="hB"></i></span>
+    <b class="lvl" id="hS" aria-live="polite">へいき</b>
   </div>
+  <button id="upd" type="button" hidden></button>
   <div id="stage">
     <div id="frame">
       <canvas id="c" width="450" height="540" lang="ja" aria-label="ゲーム画面"></canvas>
@@ -212,7 +234,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.2.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.3.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -425,6 +447,29 @@ const TITLES = [
   { id: 'lamp', name: tx('空中ブランコ', 'Trapeze Cat'), test: r => r.lamp >= 1 },
   { id: 'ending', name: tx('自称いい子', 'A "Good" Cat'), test: r => !!r.ended }
 ];
+// 称号の取り方（図鑑に出す）。「1回で」は、あそぶ を押してから見つかるまでの1回のこと
+const TDESC = {
+  t1: tx('はじめて遊ぶ', 'Play once'), t2: tx('1回で被害額 ¥10,000 以上', 'Deal ¥10,000+ in one run'), t3: tx('1回で被害額 ¥60,000 以上', 'Deal ¥60,000+ in one run'),
+  t4: tx('1回で被害額 ¥200,000 以上', 'Deal ¥200,000+ in one run'), t5: tx('1回で被害額 ¥500,000 以上', 'Deal ¥500,000+ in one run'),
+  phone: tx('1回でスマホを2台割る', 'Break 2 phones in one run'), water: tx('1回で水の入ったものを3回こぼす', 'Spill 3 drinks in one run'),
+  kaku: tx('1回で、飼い主と目が合ったまま3回落とす', 'Knock 3 things off while staring at the owner in one run'), ride: tx('1回でお掃除ロボに合計8秒乗る', 'Ride the robot vacuum for 8 seconds total in one run'),
+  chain: tx('3つ以上をまとめて落とす（3連鎖）', 'Make a 3x chain'), idle: tx('何もしていないときに見つかる', 'Get caught while doing nothing'),
+  paper: tx('1回でティッシュを3回落とす', 'Knock off tissues 3 times in one run'), print: tx('1回で足跡を40個つける', 'Leave 40 paw prints in one run'),
+  dog: tx('1回で犬に3回ほえられる', 'Get barked at 3 times in one run'), book: tx('1回で本棚のものを3つ落とす', 'Knock 3 things off the bookshelf in one run'),
+  fast: tx('2面目以降を15秒以内にクリア', 'Clear stage 2 or later within 15 seconds'), zero: tx('被害額 ¥0 のまま時間切れ', 'Run out of time with ¥0 damage'),
+  food: tx('1回でごはん・おやつを3回食べる', 'Eat food or snacks 3 times in one run'), day: tx('1日（4面）を最後まで終える', 'Finish a whole day (4 stages)'),
+  data: tx('書斎でパソコンのデータを消す', 'Wipe the computer data in the study'), alarm: tx('目覚まし時計を落とす', 'Knock off the alarm clock'),
+  stars: tx('1回でお題の★を9個集める', 'Earn 9 task stars in one run'), escape: tx('1回で追いかけっこから2回逃げ切る', 'Escape 2 chases in one run'),
+  mis: tx('1回で落とす以外のいたずらを3回する', 'Do 3 non-knocking mischiefs in one run'), launch: tx('1回でネズミで飼い主を2回驚かす', 'Scare the owner with the mouse twice in one run'),
+  bowl: tx('1回で転がるボールを3回ものに当てる', 'Hit things with the rolling ball 3 times in one run'), top: tx('エアコンの上に登る', 'Climb on top of the air conditioner'),
+  streak: tx('見られずに5回続けて落とす', 'Knock off 5 in a row unseen'), perfect: tx('1回で怪しまれ度30%未満のままクリアを3面', 'Clear 3 stages with suspicion under 30% in one run'),
+  space: tx('3連鎖か ¥100,000 以上のものを割って、ネコを踊らせる', 'Make the cat dance (3x chain or a ¥100,000+ break)'), fish: tx('1回で金魚に3回タッチ', 'Tap the goldfish 3 times in one run'),
+  mouse: tx('1回でネズミを2匹退治', 'Bop 2 mice in one run'), boss: tx('ボス猫を追い払う', 'Chase off the boss cat'),
+  chick: tx('1回でニワトリにものを2回落とさせる', 'Get the chicken to knock things off twice in one run'), bath: tx('お風呂に落ちる', 'Fall into the bath'),
+  cloth: tx('テーブルクロスを引く', 'Yank the tablecloth'), rub: tx('1回で飼い主の足に合計5秒すりすり', 'Rub against the owner for 5 seconds total in one run'),
+  cuke: tx('きゅうりで飛び上がる', 'Jump at a cucumber'), lamp: tx('吊り照明にぶら下がって飛ぶ', 'Swing from the hanging lamp'),
+  ending: tx('3日目の夜を越える', 'Get through the third night')
+};
 let unlocked = new Set();
 try { unlocked = new Set(JSON.parse(store.get('nekoTitles', '[]'))); } catch (e) {}
 
@@ -593,7 +638,7 @@ let tasks = [], chaseT = 0, chaseUsed = false, hideT = 0, rideStage = 0, tapTarg
 if (!catsOpen.has(CATS[selCat].id)) selCat = 2;
 let selAcc = store.get('nekoAcc', 'none');
 if (!ACCS.some(a => a.id === selAcc)) selAcc = 'none';
-let run, cat, items = [], puddles = [], prints = [], parts = [], pops = [], vac = null, dog = null, newRec = false, newTitles = [];
+let run, cat, items = [], puddles = [], prints = [], parts = [], pops = [], coins = [], vac = null, dog = null, newRec = false, newTitles = [];
 let snap = null, chains = {}, tut = { on: false, broke: false, arrow: null, stop: false }, pulseId = null;
 let lever = null, ball = null, spots = [], stageYen0 = 0, stageBonus = null;
 let chick = null, mouse = null, tank = null, rival = null;
@@ -628,11 +673,13 @@ const owner = { scareT: 0, x: -60, face: 1, mode: 'away', t: 3, range: 0, rate: 
 // ---------- 音（すべてその場で合成する）----------
 let ac = null, master = null, nbuf = null, sfxG = null;
 // 設定：BGM・効果音の音量（0〜100）、振動、ボタン配置の左右反転
-const SET = { bgm: +store.get('nekoBgmVol', 70), se: +store.get('nekoSeVol', 90), vib: store.get('nekoVib', '1') === '1', swap: store.get('nekoSwap', '0') === '1' };
+const SET = { bgm: +store.get('nekoBgmVol', 70), se: +store.get('nekoSeVol', 90), vib: store.get('nekoVib', '1') === '1', swap: store.get('nekoSwap', '0') === '1',
+  // 演出ひかえめ：画面の揺れ・ズーム・点滅を止める。未設定なら端末の「視差効果を減らす」に合わせる
+  calm: store.get('nekoCalm', '') ? store.get('nekoCalm', '') === '1' : !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) };
 function applySettings() {
   if (sfxG) sfxG.gain.value = SET.se / 100;
   if (ac && BGM.bus && BGM.on) BGM.bus.gain.setTargetAtTime(0.55 * SET.bgm / 100, ac.currentTime, 0.1);
-  try { document.body.classList.toggle('swap', SET.swap); } catch (e) {}
+  try { document.body.classList.toggle('swap', SET.swap); document.body.classList.toggle('calm', SET.calm); } catch (e) {}
 }
 function audio() {
   if (!ac) {
@@ -922,7 +969,7 @@ function breakSound(it) { const d = IT[it.t]; ({ glass: sfx.glass, cera: sfx.cer
 // ---------- ステージ ----------
 function setupStage(L) {
   level = L; stageT = 0; chains = {};
-  items = []; puddles = []; prints = []; parts = []; pops = [];
+  items = []; puddles = []; prints = []; parts = []; pops = []; coins = [];
   // 置き場所：面が進むと高い所が増える（壁の棚 → 本棚・吊り棚 → カーテンレール → エアコン）
   const ph = phaseOf(L); room = ph.room; introT = 2;
   const avail = room === 'kids' ? ['table'] : ['side', 'table']; if (L >= 2) avail.push('shelf'); if (L >= 3) avail.push('book', 'hang'); if (L >= 4) avail.push('rail'); if (L >= 5) avail.push('ac');
@@ -1650,7 +1697,7 @@ function landJunk(it, plat) {
   if (v > 250) { if (it.t === 'can') sfx.clink(); else sfx.thud2(); }
   if (plat === PL.floor && !it.scored) {
     it.scored = true; run.touched = true; run.yen += d.yen; run.mess = (run.mess || 0) + 1;
-    pops.push({ x: it.x, y: plat.y - 26, text: lt('散らかし +', 'Mess +') + yen(d.yen), life: 1.2, col: '#8a6a4f', size: 13 });
+    coinFly(it.x, plat.y - 14, d.yen);
     if (!it.spotted && cat.mark <= 0) { run.streak++; run.maxStreak = Math.max(run.maxStreak, run.streak); }
     hearNoise(it.x, d.noise);
   }
@@ -1665,6 +1712,7 @@ function breakItem(it, plat) {
     return;
   }
   run.touched = true; run.yen += d.yen; run.broke[it.t] = (run.broke[it.t] || 0) + 1; run.lastBroke = it.t;
+  if (!run.big || d.yen > run.big.y) run.big = { k: it.t, y: d.yen };
   if (it.t === 'alarm') rush(it.x);
   if (it.t === 'remote') tvOn();
   if (it.home === 'book') run.bookBroke++;
@@ -1675,13 +1723,14 @@ function breakItem(it, plat) {
   const lab = it.sunk ? (d.snd === 'elec' ? lt('水没 +', 'Drowned +') : lt('ぽちゃん +', 'Plop +')) : '+';
   pops.push({ x: it.x, y: plat.y - 30, text: lab + yen(d.yen), life: big ? 1.8 : 1.4, col: it.sunk ? '#1d6fa8' : '#e0362c', size: big ? 28 : 16 });
   if (big) { slowT = 0.7; sfx.kaching(); happyHop(); addPart({ k: 'crack', x: it.x, y: plat.y - 10, life: 0.7, gy: 9999, c: '#fff', s: 26, rot: rnd(0, 6), vr: 0, vx: 0, vy: 0, landed: true }); }
-  // 連鎖の数え上げ
+  // 連鎖の数え上げ。上乗せのボーナス（連鎖・精神的ダメージ・ノーマーク・ストライク）は、1つの札にまとめて縦に並べる
+  const bon = [];
   if (it.chain) {
     const n = chains[it.chain] = (chains[it.chain] || 0) + 1;
     if (n >= 2) happyHop();
     if (n >= 3) spaceCat();
     if (n >= 2) { pops.push({ x: it.x + rnd(-10, 10), y: plat.y - 40, text: n + '!', life: 1.2, col: n >= 4 ? '#e0362c' : '#ff8a3d', size: 26 + Math.min(n, 6) * 4 }); hitStop = Math.max(hitStop, 0.04 + 0.02 * Math.min(n, 5)); }
-    if (n >= 2) { const b = Math.round(d.yen * 0.2); run.yen += b; run.maxChain = Math.max(run.maxChain, n); pops.push({ x: it.x, y: plat.y - 62, text: lt(n + '連鎖 巻き添え+', n + 'x chain +') + yen(b), life: 1.8, col: '#ff8a3d', size: 22 }); sfx.combo(n); }
+    if (n >= 2) { const b = Math.round(d.yen * 0.2); run.yen += b; run.maxChain = Math.max(run.maxChain, n); bon.push([lt(n + '連鎖 巻き添え +', n + 'x chain +') + yen(b), '#ff8a3d']); sfx.combo(n); }
   }
   // 確信犯：目が合ってから落とされた飼い主の、精神的ダメージ
   if (d.yen >= 100000) spaceCat();
@@ -1694,19 +1743,20 @@ function breakItem(it, plat) {
   if (stageT < 20) taskHit('quick');
   if (it.t === 'alarm') taskHit('alarm');
   if (owner.mode === 'busy') taskHit('busy');
-  if (it.kaku) { const b = Math.round(d.yen * 0.5); run.yen += b; pops.push({ x: it.x, y: plat.y - 90, text: lt('精神的ダメージ+', 'Emotional damage +') + yen(b), life: 1.8, col: '#1d8174', size: 18 }); }
+  if (it.kaku) { const b = Math.round(d.yen * 0.5); run.yen += b; bon.push([lt('精神的ダメージ +', 'Emotional damage +') + yen(b), '#1d8174']); }
   // 腕前のボーナス（被害額に上乗せ）
   // ノーマーク：飼い主に動いているところを見られず、ネコも現行犯で見られていない落とし方が続くと、1個ごとに +10%（最大 +50%）
   if (!it.spotted && cat.mark <= 0) run.streak++; else run.streak = 0;
   run.maxStreak = Math.max(run.maxStreak, run.streak);
   const sk = tasks.find(k => k.id === 'streak' && !k.done); if (sk) { if (run.streak === 0) sk.n = 0; else { sk.n = Math.min(run.streak, sk.need) - 1; taskHit('streak'); } }
-  if (run.streak >= 2) { const b = Math.round(d.yen * 0.1 * Math.min(run.streak - 1, 5)); run.yen += b; run.skill += b; pops.push({ x: it.x, y: plat.y - 118, text: lt('ノーマーク×', 'Unseen x') + run.streak + ' +' + yen(b), life: 1.8, col: '#5d7a9a', size: 16 }); }
+  if (run.streak >= 2) { const b = Math.round(d.yen * 0.1 * Math.min(run.streak - 1, 5)); run.yen += b; run.skill += b; bon.push([lt('ノーマーク×', 'Unseen x') + run.streak + ' +' + yen(b), '#5d7a9a']); }
   // てこで飛ばした（カタパルト）・転がるもので当てた（ストライク）：+30%
   if (it.launched || it.byBall || it.byChick || it.byCloth) {
     const b = Math.round(d.yen * 0.3); run.yen += b; run.skill += b;
     if (it.launched) run.launch++; else if (it.byCloth) {} else if (it.byChick) { run.chick++; taskHit('chick'); } else { run.ballHits++; taskHit('ball'); }
-    pops.push({ x: it.x, y: plat.y - 146, text: (it.launched ? lt('カタパルト', 'Catapult') : it.byCloth ? lt('クロス引き', 'Yank') : it.byChick ? lt('コケッコー連携', 'Chicken combo') : lt('ストライク', 'Strike')) + ' +' + yen(b), life: 1.8, col: '#9b5fc0', size: 18 });
+    bon.push([(it.launched ? lt('カタパルト', 'Catapult') : it.byCloth ? lt('クロス引き', 'Yank') : it.byChick ? lt('コケッコー連携', 'Chicken combo') : lt('ストライク', 'Strike')) + ' +' + yen(b), '#9b5fc0']);
   }
+  if (bon.length) pops.push({ x: it.x, y: plat.y - 58, text: bon.map(b => b[0]).join('\n'), cols: bon.map(b => b[1]), life: 1.8, col: bon[0][1], size: 16 });
   // ネコの解禁：重いもの（通算）・1回の被害額
   if (it.t === 'mug' || it.t === 'vase' || it.t === 'console') { heavyCount++; store.set('nekoHeavy', String(heavyCount)); if (heavyCount >= 5) openCat('maine'); }
   if (run.yen >= 100000) openCat('mike');
@@ -1758,6 +1808,7 @@ function breakFx(it, plat) {
 function damage(y, key, x, py, loud) {
   // ものではない被害（書斎のデータ・爪とぎなど）。loud は物音の大きさ（省略時 0.9）
   run.touched = true; run.yen += y; if (run.yen >= 100000) openCat('mike'); run.broke[key] = (run.broke[key] || 0) + 1; run.lastBroke = key;
+  if ((IT[key] || MISCHIEF[key]) && (!run.big || y > run.big.y)) run.big = { k: key, y };
   pops.push({ x, y: py - 40, text: '+' + yen(y), life: 1.8, col: '#e0362c', size: y >= 10000 ? 28 : 20 });
   if (y >= 10000) { slowT = 0.6; shake = 0.25; } sfx.kaching(); buzz(y >= 10000 ? [80, 50, 120] : 40); hearNoise(x, loud == null ? 0.9 : loud);
 }
@@ -1816,7 +1867,7 @@ function fallInBath() {
 function sinkItem(it) {
   it.sunk = true; it.plat = null; taskHit('sink');
   if (IT[it.t].junk) {
-    if (!it.scored) { it.scored = true; run.yen += IT[it.t].yen; run.touched = true; pops.push({ x: it.x, y: WATERP.y - 26, text: lt('ぽちゃん +', 'Plop +') + yen(IT[it.t].yen), life: 1.2, col: '#1d6fa8', size: 13 }); }
+    if (!it.scored) { it.scored = true; run.yen += IT[it.t].yen; run.touched = true; coinFly(it.x, WATERP.y - 14, IT[it.t].yen); }
     splashFx(it.x, 8); sfx.plop(); hearNoise(it.x, 0.3); return;
   }
   breakItem(it, WATERP);
@@ -3704,14 +3755,46 @@ function drawParts() {
     g.restore(); g.globalAlpha = 1;
   }
   g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
+  // 重なりをよける：新しいものから順に場所を決め、重なる古いものを上へずらす（ずれはなめらかに追いかける）。画面の左右からもはみ出さない
+  const placed = [], order = pops.map((p, i) => i).sort((a, b) => ((pops[b].size || 16) - (pops[a].size || 16)) || (b - a));
+  for (const i of order) {
+    const p = pops[i], sz = p.size || 16, life0 = p.l0 || (p.l0 = p.life);
+    if (p.w == null) { g.font = `800 ${sz}px ${FONT}`; p.ls = String(p.text).split('\n'); p.w = Math.max(...p.ls.map(t => g.measureText(t).width)) + 8; }
+    const n = p.ls.length, lh = sz + 3, w = Math.min(p.w, W - 8), h = n * lh, x = clamp(p.x, w / 2 + 4, W - w / 2 - 4), y0 = p.y - (life0 - p.life) * 26 - sz * 0.35 + (n - 1) * lh / 2;
+    let ty = 0;
+    for (let n = 0; n < 16; n++) {
+      const hit = placed.find(q => Math.abs(q.x - x) < (q.w + w) / 2 && Math.abs(q.y - (y0 + ty)) < (q.h + h) / 2 - 0.5);
+      if (!hit) break; ty = hit.y - (hit.h + h) / 2 - y0;
+    }
+    p.oy = p.oy == null ? ty : p.oy + (ty - p.oy) * 0.3; p.dx = x;
+    placed.push({ x, y: y0 + ty, w, h });
+  }
   for (const p of pops) {
-    const life0 = (p.size || 16) >= 22 ? 1.8 : (p.size === 18 ? 1.2 : 1.4), k = clamp((life0 - p.life) / 0.12, 0, 1), sc = 0.6 + 0.4 * k + ((p.size || 16) >= 22 ? 0.25 * (1 - k) : 0);
-    g.globalAlpha = clamp(p.life / 0.5, 0, 1); g.font = `800 ${Math.round((p.size || 16) * sc)}px ${FONT}`;
-    const yy = p.y - (life0 - p.life) * 26;
-    g.lineWidth = 5; g.strokeStyle = '#fff'; g.strokeText(p.text, p.x, yy);
-    g.fillStyle = p.col || '#e0362c'; g.fillText(p.text, p.x, yy); g.globalAlpha = 1;
+    const sz = p.size || 16, life0 = p.l0 || p.life, k = clamp((life0 - p.life) / 0.12, 0, 1), sc = 0.6 + 0.4 * k + (sz >= 22 ? 0.25 * (1 - k) : 0);
+    g.globalAlpha = clamp(p.life / 0.5, 0, 1); g.font = `800 ${Math.round(sz * sc)}px ${FONT}`;
+    const yy = p.y - (life0 - p.life) * 26 + (p.oy || 0), xx = p.dx == null ? p.x : p.dx, ls = p.ls || [p.text];
+    g.lineWidth = 5; g.strokeStyle = '#fff';
+    ls.forEach((t, j) => { const ly = yy + j * (sz + 3) * sc; g.strokeText(t, xx, ly); g.fillStyle = (p.cols && p.cols[j]) || p.col || '#e0362c'; g.fillText(t, xx, ly); });
+    g.globalAlpha = 1;
+  }
+  // 小さな被害（散らかし・ぽちゃん）は、上の被害額へ飛んでいく小判にする
+  if (coins.length) {
+    const hp = hudPt();
+    for (const c of coins) {
+      const e = c.t * c.t, x = c.x0 + (hp.x - c.x0) * e, y = c.y0 + (hp.y - c.y0) * e - Math.sin(Math.PI * c.t) * 50, r = 6;
+      g.globalAlpha = c.t < 0.25 ? 1 : 0.95; g.fillStyle = '#ffc94a'; g.strokeStyle = '#b07a12'; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(x, y, r, r * 0.8, 0, 0, TAU); g.fill(); g.stroke();
+      g.fillStyle = '#8a5a0a'; g.font = `800 8px ${FONT}`; g.textBaseline = 'middle'; g.fillText('¥', x, y + 0.5); g.textBaseline = 'alphabetic';
+      if (c.t < 0.45) { g.globalAlpha = 1 - c.t / 0.45; g.font = `800 12px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText('+' + yen(c.v), c.x0, c.y0 - 12 - c.t * 20); g.fillStyle = '#8a6a4f'; g.fillText('+' + yen(c.v), c.x0, c.y0 - 12 - c.t * 20); }
+      g.globalAlpha = 1;
+    }
   }
 }
+function hudPt() {
+  // 被害額の札（ゲーム画面の外）の位置を、ゲーム画面の座標に直す
+  try { const r = cv.getBoundingClientRect(), h = hY.getBoundingClientRect(), sx = W / r.width; return { x: (h.left + h.width / 2 - r.left) * sx, y: (h.top + h.height / 2 - r.top) * sx - OY }; } catch (e) { return { x: W * 0.7, y: -OY - 20 }; }
+}
+function coinFly(x, y, v) { if (coins.length < 40) coins.push({ x0: x, y0: y, t: 0, v }); }
 function updParts(dt) {
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i]; p.life -= dt;
@@ -3724,6 +3807,7 @@ function updParts(dt) {
     p.x = clamp(p.x, 4, W - 4);
   }
   for (let i = pops.length - 1; i >= 0; i--) { pops[i].life -= dt; if (pops[i].life <= 0) pops.splice(i, 1); }
+  for (let i = coins.length - 1; i >= 0; i--) { coins[i].t += dt * 1.5; if (coins[i].t >= 1) { coins.splice(i, 1); hY.classList.remove('bump'); void hY.offsetWidth; hY.classList.add('bump'); } }
   for (let i = puddles.length - 1; i >= 0; i--) { puddles[i].life -= dt; if (puddles[i].life <= 0) puddles.splice(i, 1); }
   for (let i = prints.length - 1; i >= 0; i--) { prints[i].life -= dt; if (prints[i].life <= 0) prints.splice(i, 1); }
 }
@@ -3885,8 +3969,8 @@ function drawCutscene() {
 function draw() {
   g.setTransform(DPR, 0, 0, DPR, 0, OY * DPR);
   g.save();
-  if (shake > 0) g.translate(rnd(-3, 3) * Math.min(1, shake * 4), rnd(-3, 3) * Math.min(1, shake * 4));
-  if (zoomK > 0 && state === 'play') { const z = 1 + 0.045 * zoomK * zoomK; g.translate(zoomX, zoomY); g.scale(z, z); g.translate(-zoomX, -zoomY); }
+  if (shake > 0 && !SET.calm) g.translate(rnd(-3, 3) * Math.min(1, shake * 4), rnd(-3, 3) * Math.min(1, shake * 4));
+  if (zoomK > 0 && state === 'play' && !SET.calm) { const z = 1 + 0.045 * zoomK * zoomK; g.translate(zoomX, zoomY); g.scale(z, z); g.translate(-zoomX, -zoomY); }
   if (state === 'ending' || state === 'endmenu') { drawEnding(); g.restore(); return; }
   drawRoom();
   if (BOT > H) { const fg = g.createLinearGradient(0, FLOOR + 10, 0, BOT); fg.addColorStop(0, 'rgba(60,35,15,0)'); fg.addColorStop(1, 'rgba(60,35,15,.16)'); g.fillStyle = fg; g.fillRect(0, FLOOR + 10, W, BOT - FLOOR - 10); }   // 手前の床に奥行きの影
@@ -3948,14 +4032,14 @@ function draw() {
     });
   }
   if (state === 'play' && chaseT <= 0 && (timeLeft <= 10 || sus >= 65)) {
-    const hb = Math.pow(Math.abs(Math.sin(tAnim * (sus >= 85 ? 7 : 5))), 6), a = timeLeft <= 10 ? 0.25 + 0.25 * Math.abs(Math.sin(tAnim * 6)) : 0;
+    const hb = SET.calm ? 0.4 : Math.pow(Math.abs(Math.sin(tAnim * (sus >= 85 ? 7 : 5))), 6), a = timeLeft <= 10 ? (SET.calm ? 0.3 : 0.25 + 0.25 * Math.abs(Math.sin(tAnim * 6))) : 0;
     const k = Math.max(a, sus >= 65 ? (0.15 + 0.35 * hb) * Math.min(1, (sus - 65) / 30) : 0);
     const vg = g.createRadialGradient(W / 2, -OY + VH / 2, VH * 0.3, W / 2, -OY + VH / 2, VH * 0.75); vg.addColorStop(0, 'rgba(200,20,20,0)'); vg.addColorStop(1, `rgba(200,20,20,${k})`);
     g.fillStyle = vg; g.fillRect(0, -OY, W, VH);
   }
   if (state === 'play' && chaseT > 0) {
     // 追いかけっこ：画面のふちを赤く、逃げ込める場所に矢印
-    g.strokeStyle = `rgba(255,59,48,${0.5 + 0.3 * Math.sin(tAnim * 14)})`; g.lineWidth = 10; g.strokeRect(5, -OY + 5, W - 10, VH - 10);
+    g.strokeStyle = `rgba(255,59,48,${SET.calm ? 0.6 : 0.5 + 0.3 * Math.sin(tAnim * 14)})`; g.lineWidth = 10; g.strokeRect(5, -OY + 5, W - 10, VH - 10);
     const b = Math.abs(Math.sin(tAnim * 8)) * 8;
     [[BOX.x, FLOOR - BOX.h - 14], [(PL.tower.x0 + PL.tower.x1) / 2, 426], [400, PL.book.y - 14]].forEach(([x, y]) => { g.fillStyle = '#ffc94a'; g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(x, y - b); g.lineTo(x - 10, y - 14 - b); g.lineTo(x + 10, y - 14 - b); g.closePath(); g.fill(); g.stroke(); });
     g.lineJoin = 'round'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `800 24px ${FONT}`;
@@ -4054,7 +4138,7 @@ function update(dt) {
 
 // ---------- 画面（HUD・タイトル・結果・図鑑）----------
 const $ = id => document.getElementById(id);
-const hY = $('hY'), hB = $('hB'), ov = $('ov'), bPause = $('bPause');
+const hY = $('hY'), hB = $('hB'), ov = $('ov'), bPause = $('bPause'), hS = $('hS'), meterEl = $('meter'), updB = $('upd');
 // ゲーム画面を、残りの領域いっぱいに広げる。
 // 横幅で決まるとき（縦長の画面）は、余った高さの分だけ壁を上に伸ばす（最大で 1.6 倍）。
 function fit() {
@@ -4070,14 +4154,18 @@ function fit() {
   } catch (e) {}
 }
 window.addEventListener('resize', fit);
-let lastHud = '';
+let lastHud = '', updReady = false;
 function hud() {
   const s = '', y = run ? yen(run.yen) : '¥0', b = Math.round(sus);
   bgmMix();
   const showP = state === 'play' || state === 'clear'; if (bPause.hidden === showP) bPause.hidden = !showP;
-  const key = s + '|' + y + '|' + b; if (key === lastHud) return; lastHud = key;
+  { const sh = updReady && (state === 'title' || state === 'over' || state === 'endmenu'); if (updB.hidden === sh) { updB.hidden = !sh; updB.textContent = lt('新しい版があります（タップで更新）', 'New version available (tap to update)'); } }
+  // 段階：0 へいき（40未満）、1 あやしい（40〜69）、2 やばい（70以上）、3 追いかけっこ中
+  const lv = (state === 'play' || state === 'clear') && owner.mode === 'chase' ? 3 : b >= 70 ? 2 : b >= 40 ? 1 : 0;
+  const key = s + '|' + y + '|' + b + '|' + lv + '|' + lang; if (key === lastHud) return; lastHud = key;
   hY.textContent = y; hB.style.width = b + '%';
   hB.style.background = b >= 70 ? 'var(--red)' : b >= 40 ? 'var(--yel)' : 'var(--teal)';
+  meterEl.className = 'l' + lv; hS.textContent = [lt('へいき', 'Calm'), lt('あやしい', 'Wary'), lt('やばい!', 'Danger!'), lt('にげろ!', 'RUN!')][lv];
 }
 const ohLabel = () => lt('かたて操作：', 'One-hand: ') + (oneHand ? 'ON' : 'OFF');
 // 言語を切り替える：保存して、HTML に直接書いた文字（下のボタン・読み上げ用のラベル・ページの題名）も書き換える
@@ -4093,6 +4181,24 @@ function applyLang() {
     $('hY').setAttribute('aria-label', lt('被害額', 'Damage')); $('meter').setAttribute('aria-label', lt('怪しまれ度', 'Suspicion')); cv.setAttribute('aria-label', lt('ゲーム画面', 'Game screen'));
   } catch (e) {}
 }
+// ---------- ホーム画面に追加の案内（3回遊んだあと、閉じるまでタイトルに出す）----------
+let instEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); instEvt = e; if (state === 'title' && !ov.hidden && !ov.querySelector('.a2hs')) showTitle(); });
+window.addEventListener('appinstalled', () => { store.set('nekoA2hs', '1'); instEvt = null; });
+const isStandalone = () => { try { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch (e) { return false; } };
+function a2hsBox() {
+  if (isStandalone() || store.get('nekoA2hs', '') === '1' || (LIFE.plays || 0) < 3) return '';
+  const ua = navigator.userAgent, ios = /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1), inApp = /\bLine\/|FBAN|FBAV|Instagram|Twitter/i.test(ua);
+  const how = instEvt ? '' : inApp ? lt('いまはアプリの中のブラウザです。Safari か Chrome で開いてから、メニューの「ホーム画面に追加」を選んでください', 'Open this page in Safari or Chrome first, then choose "Add to Home Screen"')
+    : ios ? lt('Safari の共有ボタン（□↑）→「ホーム画面に追加」', 'Safari Share (□↑) → "Add to Home Screen"') : lt('ブラウザのメニュー →「ホーム画面に追加」か「アプリをインストール」', 'Browser menu → "Add to Home screen" or "Install app"');
+  return `<div class="a2hs"><b>${lt('ホーム画面に置くと、アプリのようにすぐ遊べます（電波がなくても遊べます）', 'Add it to your home screen to play like an app, even offline')}</b>${how ? '<br>' + how : ''}
+    <div class="row">${instEvt ? `<button class="btn t" id="a2Go" type="button">${lt('追加する', 'Add')}</button>` : ''}<button class="btn w" id="a2No" type="button">${lt('閉じる', 'Dismiss')}</button></div></div>`;
+}
+function bindA2hs() {
+  const go = $('a2Go'), no = $('a2No');
+  if (go) go.addEventListener('click', async () => { const e = instEvt; if (!e) return; instEvt = null; try { e.prompt(); const r = await e.userChoice; if (r && r.outcome === 'accepted') store.set('nekoA2hs', '1'); } catch (x) {} if (state === 'title') showTitle(); });
+  if (no) no.addEventListener('click', () => { store.set('nekoA2hs', '1'); const b = ov.querySelector('.a2hs'); if (b) b.remove(); });
+}
 function showTitle() {
   state = 'title'; newRun(); ov.hidden = false; setPulse(null);
   ov.innerHTML = `<div class="panel">
@@ -4103,7 +4209,7 @@ function showTitle() {
     <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
     <div class="row"><button class="btn w" id="stBtn" type="button">${lt('通算記録', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('設定', 'Settings')}</button></div>
     <div class="row"><button class="btn w" id="rkBtn" type="button">${lt('ランキング', 'Ranking')}</button><button class="btn w" id="zkBtn" type="button">${lt('称号図鑑', 'Titles')} ${unlocked.size}/${TITLES.length}</button></div>
-    <p class="best">${lt('ベスト被害額', 'Best damage')} ${yen(bestYen)}</p>${verLine()}</div>`;
+    ${a2hsBox()}<p class="best">${lt('ベスト被害額', 'Best damage')} ${yen(bestYen)}</p>${verLine()}</div>`;
   ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
   ov.querySelectorAll('.cats button').forEach(b => b.addEventListener('click', () => {
     selCat = +b.dataset.i; store.set('nekoCat', String(selCat)); audio(); bgmStart(); sfx.meow(CATS[selCat].voice, pickVoice());
@@ -4116,6 +4222,7 @@ function showTitle() {
   }));
   showStats();
   $('goBtn').addEventListener('click', () => { audio(); startGame(); });
+  bindA2hs();
   $('zkBtn').addEventListener('click', showZukan);
   $('rkBtn').addEventListener('click', () => showRank());
   $('stBtn').addEventListener('click', showLife);
@@ -4145,6 +4252,14 @@ function cleanName(t) {
   return t;
 }
 const dailyColl = () => 'daily-' + dailyKey;
+// 不正対策：被害額の上限（ステージ数 s から。ボーナスを全部重ねて出せる額の2倍ほど）と、記録の署名（firestore.rules で同じ計算をして確かめる）
+// 署名の鍵はこのページに書いてあるので、ねらって解析されれば破られる。通信を書き換えて送るだけの不正を防ぐためのもの
+const capY = s => 100000 * s * s + 500000 * s;
+const SIG_KEY = 'mc-k7f3a9c2';
+async function sigOf(f) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode([f.y, f.s, f.st, f.sk, f.uid, SIG_KEY].join('|')));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
 const worldCaches = {};
 async function fetchWorld(force, coll) {
   // 上位100件を取り、同じ人（uid）は一番よい記録だけ残す。読み取りを減らすため 60 秒はキャッシュを使う
@@ -4162,7 +4277,8 @@ async function fetchWorld(force, coll) {
     const f = r.document.fields || {}, num = k => +(f[k] && (f[k].integerValue || f[k].doubleValue) || 0), str = k => (f[k] && f[k].stringValue) || '';
     return { name: str('name'), y: num('y'), s: num('s'), st: num('st'), c: str('c'), uid: str('uid'), sk: num('sk'), v: num('v'), d: (r.document.createTime || '').slice(0, 10) };
   });
-  const seen = new Set(), list = rows.filter(r => !seen.has(r.uid) && seen.add(r.uid)).slice(0, 50);
+  // 上限を超える記録（明らかな不正）は表示しない
+  const seen = new Set(), list = rows.filter(r => r.y <= capY(Math.max(1, r.s)) && !seen.has(r.uid) && seen.add(r.uid)).slice(0, 50);
   worldCaches[coll] = { list, at: Date.now() };
   if (coll === 'scores') worldCache = list;
   return list;
@@ -4173,8 +4289,10 @@ async function sendOne(coll, bestKey) {
   try { list = await fetchWorld(false, coll); } catch (e) {}
   const mine = (list || []).filter(r => isMe(r.uid)), known = Math.max(+store.get(bestKey, 0) || 0, ...mine.map(r => r.y), 0);
   if (Math.round(run.yen) <= known) return { skip: true, known, rank: (list || []).findIndex(r => isMe(r.uid)) + 1 };
-  const I = v => ({ integerValue: String(Math.round(v)) }), S = v => ({ stringValue: v });
-  const body = { fields: { name: S(myName), y: I(run.yen), s: I(run.stage), st: I(run.stars), c: S(CATS[selCat].id), uid: S(myUid), sk: I(Math.min(run.skill, run.yen)), v: I(4) } };
+  const I = v => ({ integerValue: String(v) }), S = v => ({ stringValue: v });
+  const f = { y: Math.round(run.yen), s: run.stage | 0, st: run.stars | 0, sk: Math.round(Math.min(run.skill, run.yen)), uid: myUid };
+  if (f.y > capY(f.s)) return { err: true, code: 'cap' };
+  const body = { fields: { name: S(myName), y: I(f.y), s: I(f.s), st: I(f.st), c: S(CATS[selCat].id), uid: S(myUid), sk: I(f.sk), v: I(5), h: S(await sigOf(f)) } };
   const res = await fetch(`${FS()}/${coll}?key=${encodeURIComponent(ONLINE.apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   store.set(bestKey, String(Math.round(run.yen)));
@@ -4278,7 +4396,7 @@ function showZukan() {
   ov.hidden = false;
   ov.innerHTML = `<div class="panel">
     <div class="big-logo" style="font-size:1.5rem">${lt('称号図鑑', 'Titles')}</div><p class="sub">${unlocked.size} / ${TITLES.length}</p>
-    <div class="zukan">${TITLES.map(t => unlocked.has(t.id) ? `<div>${t.name}</div>` : '<div class="off">？？？</div>').join('')}</div>
+    <div class="zukan">${TITLES.map(t => `<div class="${unlocked.has(t.id) ? '' : 'off'}">${unlocked.has(t.id) ? t.name : '？？？'}<small>${TDESC[t.id] ? String(TDESC[t.id]) : ''}</small></div>`).join('')}</div>
     <button class="btn" id="zkBack" type="button">${lt('もどる', 'Back')}</button></div>`;
   $('zkBack').addEventListener('click', state === 'over' ? showOver : showTitle);
 }
@@ -4289,6 +4407,7 @@ function showSettings(back) {
     ${sl('sBgm', lt('BGM', 'Music'), SET.bgm)}${sl('sSe', lt('効果音', 'Sound FX'), SET.se)}
     <div class="row"><button class="btn w" id="sVib" type="button">${lt('振動：', 'Vibration: ') + (SET.vib ? 'ON' : 'OFF')}</button><button class="btn w" id="sSwap" type="button">${lt('ボタン：', 'Buttons: ') + (SET.swap ? lt('左右反転', 'Mirrored') : lt('ふつう', 'Normal'))}</button></div>
     <div class="row"><button class="btn w" id="sOh" type="button">${ohLabel()}</button><button class="btn w" id="sLg" type="button" lang="${lt('en', 'ja')}">${lt('English', '日本語')}</button></div>
+    <div class="row"><button class="btn w" id="sFx" type="button">${lt('演出：', 'Effects: ') + (SET.calm ? lt('ひかえめ（揺れ・ズーム・点滅なし）', 'Reduced (no shake, zoom, flashing)') : lt('ふつう', 'Full'))}</button></div>
     <p class="best" style="font-weight:500;font-size:.78rem">${lt('ゲームパッド：十字キー／左スティックで移動、A ジャンプ、X か B パンチ（長押しで強）、Y 鳴く、START ポーズ', 'Gamepad: D-pad/stick move, A jump, X or B punch (hold = power), Y meow, START pause')}</p>
     <button class="btn go" id="sBack" type="button">${lt('もどる', 'Back')}</button></div>`;
   const bind = (id, key, store_) => { const el = $(id); el.addEventListener('input', () => { SET[key] = +el.value; $(id + 'V').textContent = el.value; store.set(store_, String(SET[key])); audio(); applySettings(); }); };
@@ -4297,6 +4416,7 @@ function showSettings(back) {
   $('sVib').addEventListener('click', () => { SET.vib = !SET.vib; store.set('nekoVib', SET.vib ? '1' : '0'); buzz(40); showSettings(back); });
   $('sSwap').addEventListener('click', () => { SET.swap = !SET.swap; store.set('nekoSwap', SET.swap ? '1' : '0'); applySettings(); showSettings(back); });
   $('sOh').addEventListener('click', () => { setOneHand(!oneHand); showSettings(back); });
+  $('sFx').addEventListener('click', () => { SET.calm = !SET.calm; store.set('nekoCalm', SET.calm ? '1' : '0'); applySettings(); showSettings(back); });
   $('sLg').addEventListener('click', () => { setLang(lt('en', 'ja')); showSettings(back); });
   $('sBack').addEventListener('click', back);
 }
@@ -4459,16 +4579,27 @@ async function makeCard() {
   while (c.measureText(ys).width > 600 && fs > 50) { fs -= 4; c.font = `800 ${fs}px ${FONT}`; }
   stroke(ys, X, 196 + fs * 0.9, fs, '#fff', 14);
   // 称号のバッジ
-  const tt = titleOf(run.yen); c.font = `800 34px ${FONT}`; const tw = c.measureText(tt).width + 48, ty = 340;
-  c.fillStyle = '#4a2f1d'; rr(c, X, ty, tw, 58, 29); c.fill(); c.fillStyle = '#ffc94a'; c.fillText(tt, X + 24, ty + 41);
+  const tt = titleOf(run.yen); c.font = `800 32px ${FONT}`; const tw = c.measureText(tt).width + 44, ty = 314;
+  c.fillStyle = '#4a2f1d'; rr(c, X, ty, tw, 54, 27); c.fill(); c.fillStyle = '#ffc94a'; c.fillText(tt, X + 22, ty + 38);
+  // その回の見どころ：いちばん高かったもの・最大の連鎖・見つかったときの顔（入るだけ）
+  const chips = [], bn = run.big && (IT[run.big.k] || MISCHIEF[run.big.k]);
+  if (bn) chips.push(lt('最高額 ', 'Priciest: ') + String(bn.n) + ' ' + yen(run.big.y));
+  const fc = CAUGHT_FACES.find(f => f.id === run.face);
+  chips.push(run.ended ? lt('エンディング到達', 'Reached the ending') : run.timeup ? lt('時間切れ', 'Time up') : fc ? lt('バレた顔「', 'Caught: “') + String(fc.cap) + lt('」', '”') : '');
+  if (run.maxChain >= 2) chips.push(lt(`最大${run.maxChain}連鎖`, `${run.maxChain}x chain`));
+  c.font = `800 22px ${FONT}`; let cx = X;
+  for (const t of chips) {
+    if (!t) continue; const w = c.measureText(t).width + 28; if (cx + w > X + 610) continue;
+    c.fillStyle = 'rgba(255,255,255,.88)'; rr(c, cx, 382, w, 40, 20); c.fill(); c.fillStyle = '#7a3510'; c.fillText(t, cx + 14, 410); cx += w + 10;
+  }
   // 飼い主のひとこと
-  const q = lt('「' + run.comment + '」', '“' + run.comment + '”'), bx = X, by = 424, bw = 600, bh = 104;
+  const q = lt('「' + run.comment + '」', '“' + run.comment + '”'), bx = X, by = 442, bw = 600, bh = 96;
   c.fillStyle = '#fff'; rr(c, bx, by, bw, bh, 24); c.fill();
   c.beginPath(); c.moveTo(bx + 40, by + bh); c.lineTo(bx + 30, by + bh + 26); c.lineTo(bx + 76, by + bh); c.fill();
-  c.fillStyle = '#8a6a4f'; c.font = `800 22px ${FONT}`; c.fillText(lt('飼い主のひとこと', 'The owner says'), bx + 26, by + 36);
+  c.fillStyle = '#8a6a4f'; c.font = `800 22px ${FONT}`; c.fillText(lt('飼い主のひとこと', 'The owner says'), bx + 26, by + 32);
   let qs = 34; c.font = `800 ${qs}px ${FONT}`; while (c.measureText(q).width > bw - 50 && qs > 18) { qs -= 2; c.font = `800 ${qs}px ${FONT}`; }
-  c.fillStyle = '#4a2f1d'; c.fillText(q, bx + 22, by + 82);
-  c.fillStyle = '#fff'; c.font = `800 24px ${FONT}`; c.fillText('#MischievousCat  #こっそりネコ', X, 600);
+  c.fillStyle = '#4a2f1d'; c.fillText(q, bx + 22, by + 76);
+  c.fillStyle = '#fff'; c.font = `800 24px ${FONT}`; c.fillText('#MischievousCat  #こっそりネコ', X, 606);
   c.textAlign = 'right'; c.font = `800 20px ${FONT}`; c.fillStyle = 'rgba(255,255,255,.9)'; c.fillText('kotaooka.github.io/mischievous-cat', 1180, 32);
   return cn;
 }
@@ -4561,7 +4692,13 @@ window.addEventListener('keyup', e => {
 });
 // 別のアプリやタブに切り替えたら、自動でポーズする
 window.addEventListener('blur', () => { keys.L = keys.R = false; punchUp(); pauseGame(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
+// 画面が隠れている間は音も止める（ポーズ中の小さなBGMも鳴らさない）
+let acWasOn = false;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { pauseGame(); keys.L = keys.R = false; if (ac && ac.state === 'running') { acWasOn = true; ac.suspend().catch(() => {}); } }
+  else if (ac && acWasOn) { acWasOn = false; ac.resume().catch(() => {}); }
+});
+window.addEventListener('pagehide', () => { pauseGame(); if (ac && ac.state === 'running') { acWasOn = true; ac.suspend().catch(() => {}); } });
 
 // ---------- ループ ----------
 let last = 0;
@@ -4577,7 +4714,17 @@ fit();
 applySettings();
 applyLang();
 showTitle();
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+// 新しい版：サービスワーカーが入れ替わったら、タイトル・結果の画面で「タップで更新」を出す（遊んでいる途中では出さない）
+let swReg = null;
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  const hadSw = !!navigator.serviceWorker.controller;   // 初めて開いたときの入れ替わりでは出さない
+  navigator.serviceWorker.register('sw.js').then(r => { swReg = r; }).catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSw) { updReady = true; lastHud = ''; } });
+  const swCheck = () => { if (swReg) swReg.update().catch(() => {}); };
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) swCheck(); });
+  setInterval(swCheck, 30 * 60 * 1000);
+}
+updB.addEventListener('click', () => { updB.disabled = true; location.reload(); });
 requestAnimationFrame(frame);
 })();
 </script>

@@ -2,6 +2,7 @@ rules_version = '2';
 // こっそりネコ：みんなのランキングのルール
 // 読み取りはだれでも可。書き込みは「新しい記録を1件足す」だけを許し、書き換え・削除はできない。
 // 値の範囲を確かめて、明らかにおかしい記録をはじく（ブラウザから送るので、完全には改ざんを防げない）。
+// v5（4.3.0）から：被害額の上限をステージ数の2次式にし、記録の署名 h を確かめる（index.html の capY・sigOf と同じ計算）。
 service cloud.firestore {
   match /databases/{database}/documents {
     match /scores/{id} {
@@ -16,18 +17,21 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     function valid(d) {
-      return d.keys().hasOnly(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'v'])
-        && d.keys().hasAll(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'v'])
+      return d.keys().hasOnly(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'v', 'h'])
+        && d.keys().hasAll(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'v', 'h'])
         && d.name is string && d.name.size() >= 1 && d.name.size() <= 10
         && d.s is int && d.s >= 1 && d.s <= 200
-        // 被害額：1円以上、ステージ数 × 100万円以下
-        && d.y is int && d.y >= 1 && d.y <= d.s * 1000000
+        // 被害額：1円以上、上限は 100,000×s² + 500,000×s（ボーナスを全部重ねて出せる額の2倍ほど）
+        && d.y is int && d.y >= 1 && d.y <= 100000 * d.s * d.s + 500000 * d.s
         // ★：1面につき最大3個
         && d.st is int && d.st >= 0 && d.st <= d.s * 3
         && d.c in ['kuro', 'cha', 'saba', 'maine', 'mike']
         && d.uid is string && d.uid.size() >= 8 && d.uid.size() <= 40
         && d.sk is int && d.sk >= 0 && d.sk <= d.y
-        && d.v is int;
+        && d.v == 5
+        // 署名：SHA-256("y|s|st|sk|uid|鍵") の16進数
+        && d.h is string
+        && d.h.lower() == hashing.sha256(string(d.y) + '|' + string(d.s) + '|' + string(d.st) + '|' + string(d.sk) + '|' + d.uid + '|mc-k7f3a9c2').toHexString().lower();
     }
   }
 }

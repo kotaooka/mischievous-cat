@@ -10,7 +10,7 @@ Cups, vases, smartphones. You're just an adorable cat. …Probably.
 ![Mischievous Cat](og.png)
 
 - Just open it in your browser. No install, no sign-up (phone or PC)
-- Add it to your home screen to launch it like an app. Once opened, it also works offline
+- Add it to your home screen to launch it like an app. Once opened, it also works offline. When a new version is out, the title screen shows "tap to update"
 - The game switches to English automatically when your device isn't set to Japanese. You can also switch languages under Settings (from the title or pause screen)
 - Compete with everyone on the world ranking
 
@@ -49,7 +49,7 @@ Walking, jumping, meowing and eating are all "normal cat things", so you won't g
 | Meow | Meow | X |
 | Pause | ⏸ top right | Esc / P |
 
-Gamepads work on PC too (D-pad/stick move, A jump, X or B punch, Y meow, START pause). Volume, vibration and mirrored buttons are under **Settings**.
+Gamepads work on PC too (D-pad/stick move, A jump, X or B punch, Y meow, START pause). Volume, vibration, mirrored buttons and reduced effects (no screen shake, zoom or flashing) are under **Settings**.
 
 Want to play one-handed? Turn on **One-hand** under **Settings**. Tap a spot or an item and the cat **finds its own way there, jumping as needed**, then punches the item (long tap for a power punch). Tap the boss cat, the chicken, a mouse or the fish tank to paw at it. Swipe up to jump; pressing any button takes back manual control.
 
@@ -142,8 +142,9 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 - **Send on LINE**: sends the text and the link (the image share sends only the picture on LINE)
 - **Records**: lifetime stats from the title screen
 - **This device**: your own top 10
-- **Titles**: 40 of them, and how to earn them is a secret. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
-- **Crime scene photo**: the moment you're caught becomes a Polaroid. Share it with `#MischievousCat`
+- **Titles**: 40 of them. The Titles list shows how to earn even the ones you don't have yet. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
+- **Crime scene photo**: the moment you're caught becomes a Polaroid, along with your priciest break, your caught face and your best chain. Share it with `#MischievousCat`
+- **Bad records**: unsigned records and impossible scores don't appear in the ranking
 
 ## ❓ FAQ
 
