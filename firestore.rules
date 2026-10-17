@@ -3,6 +3,7 @@ rules_version = '2';
 // 読み取りはだれでも可。書き込みは「新しい記録を1件足す」だけを許し、書き換え・削除はできない。
 // 値の範囲を確かめて、明らかにおかしい記録をはじく（ブラウザから送るので、完全には改ざんを防げない）。
 // v5（4.3.0）から：被害額の上限をステージ数の2次式にし、記録の署名 h を確かめる（index.html の capY・sigOf と同じ計算）。
+// v6（4.7.0）から：その日の朝から続けた回数 k を記録に入れる（署名にも含める）。
 service cloud.firestore {
   match /databases/{database}/documents {
     match /scores/{id} {
@@ -17,8 +18,8 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     function valid(d) {
-      return d.keys().hasOnly(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'v', 'h'])
-        && d.keys().hasAll(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'v', 'h'])
+      return d.keys().hasOnly(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'k', 'v', 'h'])
+        && d.keys().hasAll(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'k', 'v', 'h'])
         && d.name is string && d.name.size() >= 1 && d.name.size() <= 10
         && d.s is int && d.s >= 1 && d.s <= 200
         // 被害額：1円以上、上限は 100,000×s² + 500,000×s（ボーナスを全部重ねて出せる額の2倍ほど）
@@ -28,10 +29,12 @@ service cloud.firestore {
         && d.c in ['kuro', 'cha', 'saba', 'maine', 'mike']
         && d.uid is string && d.uid.size() >= 8 && d.uid.size() <= 40
         && d.sk is int && d.sk >= 0 && d.sk <= d.y
-        && d.v == 5
-        // 署名：SHA-256("y|s|st|sk|uid|鍵") の16進数
+        // 続けた回数：0〜999
+        && d.k is int && d.k >= 0 && d.k <= 999
+        && d.v == 6
+        // 署名：SHA-256("y|s|st|sk|k|uid|鍵") の16進数
         && d.h is string
-        && d.h.lower() == hashing.sha256(string(d.y) + '|' + string(d.s) + '|' + string(d.st) + '|' + string(d.sk) + '|' + d.uid + '|mc-k7f3a9c2').toHexString().lower();
+        && d.h.lower() == hashing.sha256(string(d.y) + '|' + string(d.s) + '|' + string(d.st) + '|' + string(d.sk) + '|' + string(d.k) + '|' + d.uid + '|mc-k7f3a9c2').toHexString().lower();
     }
   }
 }

@@ -144,6 +144,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 - **This device**: your own top 10
 - **Titles**: 40 of them. The Titles list shows how to earn even the ones you don't have yet. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
 - **Crime scene photo**: a close-up of the cat at the moment you're caught becomes a Polaroid (no HUD in the shot), with a one-line pitch and where to play. Share it with `#MischievousCat`
+- **Day restarts**: from Day 2 on, the result screen offers "Continue from Day N morning". Damage, stars and charms go back to that morning, and the ranking shows how many restarts you used
 - **Bad records**: unsigned records and impossible scores don't appear in the ranking
 
 ## ❓ FAQ

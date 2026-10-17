@@ -238,7 +238,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.6.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.7.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -973,6 +973,8 @@ function breakSound(it) { const d = IT[it.t]; ({ glass: sfx.glass, cera: sfx.cer
 // ---------- ステージ ----------
 function setupStage(L) {
   level = L; stageT = 0; chains = {};
+  // その日の朝（各日の1面目）の状態を覚えておく（見つかったら、ここから続けられる）
+  if (run && (L - 1) % DAY_LEN === 0) run.ck = { level: L, run: JSON.parse(JSON.stringify(Object.assign({}, run, { ck: null, res: null, sent: false }))) };
   items = []; puddles = []; prints = []; parts = []; pops = []; coins = [];
   // 置き場所：面が進むと高い所が増える（壁の棚 → 本棚・吊り棚 → カーテンレール → エアコン）
   const ph = phaseOf(L); room = ph.room; introT = 2;
@@ -1053,14 +1055,14 @@ function setupStage(L) {
     // 罠・ペットカメラ・きゅうり・床のきしみ・吊り照明・テレビ（日を追うごとに増える）
     const d = dayOf(L), sp0 = ph.special, normal = !sp0;
     traps = [];
-    const nt = sp0 === 'camera' ? 4 : normal && d >= 3 ? 3 : normal && d >= 2 ? 2 : 0;
+    const nt = sp0 === 'camera' ? 3 : normal && d >= 3 ? 3 : normal && d >= 2 ? 2 : 0;
     for (let k = 0, guard = 0; k < nt && guard < 60; guard++) {
       const s = pick(avail.filter(q => !(room === 'bath' && q === 'table'))), r = spotOf(s), x = rnd(r[0], r[1]);
       if (traps.some(t => t.plat === PL[s] && Math.abs(t.x - x) < 40)) continue;
       traps.push({ type: Math.random() < 0.6 ? 'foil' : 'tape', plat: PL[s], x, w: 30 }); k++;
     }
     cams = [];
-    if (sp0 === 'camera') cams = [{ mx: 90, period: 5.5, ph: 0, w: 90, cx: 0, rec: 0 }, { mx: 360, period: 7.5, ph: 2.2, w: 90, cx: 0, rec: 0 }];
+    if (sp0 === 'camera') cams = [{ mx: 90, period: 5.5, ph: 0, w: 70, cx: 0, rec: 0 }, { mx: 360, period: 7.5, ph: 2.2, w: 70, cx: 0, rec: 0 }];   // 4.7.0 で見る幅 90 → 70、罠 4 → 3
     else if (normal && d >= 3) cams = [{ mx: 60, period: 6.5, ph: 1, w: 90, cx: 0, rec: 0 }];
     cuke = d >= 2 && normal && room !== 'bath' && Math.random() < 0.4 ? { x: 0, cd: 0 } : null;
     if (cuke) { for (let k = 0; k < 20; k++) { cuke.x = rnd(40, W - 60); if (Math.abs(cuke.x - BOX.x) > 50 && Math.abs(cuke.x - 255) > 40 && (!mouse || Math.abs(cuke.x - mouse.hole) > 30)) break; } }
@@ -1134,8 +1136,8 @@ function newRun() {
 }
 
 // ---------- 飼い主 ----------
-const awayRange = L => [Math.max(2.2, 5.5 - 0.35 * L), Math.max(4, 8.5 - 0.5 * L)];
-const warnTime = L => Math.max(0.5, 0.95 - 0.04 * L);
+const awayRange = L => [Math.max(3, 5.5 - 0.35 * L), Math.max(4.5, 8.5 - 0.5 * L)];   // 飼い主のいない時間（4.7.0 で下限を 2.2〜4 秒 → 3〜4.5 秒に）
+const warnTime = L => Math.max(0.7, 0.95 - 0.04 * L);   // 「？」から振り向くまで（4.7.0 で下限を 0.5 → 0.7 秒に）
 const lookTime = L => Math.min(3.2, 1.6 + 0.12 * L);
 const walkSpeed = L => Math.min(110, 60 + 4 * L);
 // 部屋ごとの見張り役：owner 飼い主／kid 子ども（速いが近くしか見ない）／grandma おばあちゃん（遅いが歩きながら振り返る）／dad お父さん（棚の上をよく見上げる）
@@ -2436,7 +2438,7 @@ function updBall(dt) {
 }
 function updSus(dt) {
   const o = owner;
-  let seen = false, exSeen = false;
+  let seen = false, exSeen = false, exBy = '';   // exBy：お客さん・ペットカメラのどちらに見られたか
   if (o.mode !== 'away' && !cat.hidden && !cat.safe) seen = ownerSees(cat.x);
   let rate = o.rate; if (o.mode === 'up' && o.t > 0.5) rate = 8;
   // 怪しまれるのは「いたずら」だけ。床を歩く・跳ぶ・鳴く・食べるのはネコとして普通なので上がらない
@@ -2444,9 +2446,9 @@ function updSus(dt) {
   if (seen) {
     if (cat.punchT > 0) { gain += rate * cat.type.sus; cat.mark = 0.4; }   // パンチの現行犯
     else if (cat.scratch) { gain += rate * 0.9 * cat.type.sus; cat.mark = 0.4; }   // 爪とぎ・ゴミ箱あさりの現行犯（床の上でも）
-    else if (cat.onFurn) { gain += rate * (Math.abs(cat.vx) > 6 ? 0.35 : 0.2) * cat.type.sus; cat.mark = 0.4; }   // 乗ってはいけない所にいる
+    else if (cat.onFurn && !isHigh()) { gain += rate * (Math.abs(cat.vx) > 6 ? 0.35 : 0.2) * cat.type.sus; cat.mark = 0.4; }   // 乗ってはいけない所にいる（逃げ場所の高い所でじっとしているのは別）
     if (cat.mark > 0) run.streak = 0;   // 現行犯で見られたら、ノーマークの連続は切れる
-    if (cat.onFurn && !cat.punchT && !(o.sayT > 0) && o.mode !== 'search' && Math.random() < dt * 0.6) say(pick(LINES.down), 1.5);
+    if (cat.onFurn && !isHigh() && !cat.punchT && !(o.sayT > 0) && o.mode !== 'search' && Math.random() < dt * 0.6) say(pick(LINES.down), 1.5);
   }
   if (o.mode !== 'away') {
     let mv = false;
@@ -2455,20 +2457,21 @@ function updSus(dt) {
     if (rate >= 60 || o.mode === 'walk') { let n = 0; for (const p of prints) if (ownerSees(p.x) && ++n <= 5) { gain += 2.5; p.mark = 0.4; } }   // 足跡（証拠）
   }
   // ほかの見張り：お客さんとペットカメラ（ネコのいたずら・動いているものを見ると上がる）
+  const g0 = gain;
   if (!cat.hidden && !cat.safe && chaseT <= 0) {
     const ex = [];
-    if (guestSees(cat.x)) ex.push(guest.mode === 'chat' ? 30 : 15);
-    for (const cm of cams) if (camSees(cm, cat.x)) { ex.push(40); cm.rec = 0.6; }
+    if (guestSees(cat.x)) { ex.push(guest.mode === 'chat' ? 30 : 15); exBy = exBy || 'guest'; }
+    for (const cm of cams) if (camSees(cm, cat.x)) { ex.push(40); cm.rec = 0.6; exBy = 'cam'; }
     for (const r of ex) {
       if (cat.punchT > 0) { gain += r * cat.type.sus; cat.mark = 0.4; }
       else if (cat.scratch) { gain += r * 0.9 * cat.type.sus; cat.mark = 0.4; }
-      else if (cat.onFurn) { gain += r * 0.25 * cat.type.sus; cat.mark = 0.4; }
+      else if (cat.onFurn && !isHigh()) { gain += r * 0.25 * cat.type.sus; cat.mark = 0.4; }
     }
     if (ex.length) { seen = true; exSeen = true; }
   }
-  if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { gain += cams.some(cm => camSees(cm, it.x)) ? 24 : 16; it.mark = 0.4; it.spotted = true; break; } }
+  if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { const ic = cams.some(cm => camSees(cm, it.x)); gain += ic ? 24 : 16; exBy = exBy || (ic ? 'cam' : 'guest'); it.mark = 0.4; it.spotted = true; break; } }
   if (o.mode === 'search') gain *= 1.15;
-  if (gain > 0) sus += gain * dt;
+  if (gain > 0) { sus += gain * dt; run.lastBy = gain - g0 > g0 && exBy ? exBy : watcherOf(); }   // いちばん多く上げた見張りを、見つかった原因として覚える
   else if (o.mode !== 'search') sus -= (seen ? 6 : (o.mode === 'away' ? 24 : 14)) * dt;
   if (susCd > 0) susCd -= dt;
   cat.seen = seen;
@@ -2488,9 +2491,11 @@ function startChase() {
   if (o.mode === 'away') { o.x = cat.x < 200 ? 380 : -40; }
   setMode('chase'); setPulse(null); tapTarget = null; o.face = Math.sign(cat.x - o.x) || 1; say(lt('待てーっ!!', 'Get back here!!'), 3); sfx.alert(); sfx.bark(); buzz([40, 30, 40]); shake = 0.3;
 }
+// 逃げ場所の高い所：本棚の上・カーテンレール・吊り棚・エアコン（手が届かない）
+const isHigh = () => !!cat.plat && cat.plat !== VACP && cat.plat.y <= PL.book.y + 5;
 function updChase(dt) {
   const o = owner; chaseT -= dt;
-  const high = !!cat.plat && cat.plat !== VACP && cat.plat.y <= PL.book.y + 5;   // 本棚の上・カーテンレール・吊り棚・エアコンは手が届かない
+  const high = isHigh();
   if (cat.hidden || cat.safe || high) {
     chaseT = 0; sus = 60; susCd = 6; run.escapes++; setMode('leave'); say(high ? lt('…届かない', "…Can't reach") : lt('…あれ？ いない', '…Huh? Gone'), 1.8); sfx.clear();
     pops.push({ x: cat.x, y: cat.y - 60, text: lt('セーフ!', 'Safe!'), life: 1.6, col: '#1d8174', size: 26 }); return;
@@ -2510,7 +2515,8 @@ function takeSnap() {
   } catch (e) { snapMode = false; return null; }
 }
 function caught(timeup) {
-  run.revive = !timeup && run.charm > 0;   // お守りを持っていれば、演出のあとで続きから
+  run.revive = !timeup && run.charm > 0;
+  run.cause = timeup ? 'time' : (run.lastBy || watcherOf()); run.where = level; if (!run.revive) run.caughtOver = true;   // お守りを持っていれば、演出のあとで続きから
   snap = takeSnap();
   state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.face = timeup ? 'deadpan' : pickW(CAUGHT_FACES, f => f.w).id; run.huh = run.face === 'huh'; run.huhStep = 0; spaceT = 0; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME) : room === 'kids' && Math.random() < 0.6 ? pick(LINES.kid) : room === 'garden' && Math.random() < 0.7 ? pick(LINES.granny) : room === 'study' && Math.random() < 0.7 ? pick(LINES.dad) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35; slowT = 0;
   bgmStop(); if (timeup) sfx.timeup(); else { sfx.watch(); sfx.caught(); } buzz(timeup ? 80 : [60, 40, 120]); setPulse(null);
@@ -2682,7 +2688,7 @@ function gameOver() {
   rankNow = 0;
   if (run.yen > 0) {
     const d = new Date(), pad = n => String(n).padStart(2, '0');
-    const rec = { y: Math.round(run.yen), s: level, st: run.stars, c: CATS[selCat].id, sk: Math.round(run.skill), d: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` };
+    const rec = { y: Math.round(run.yen), s: level, st: run.stars, c: CATS[selCat].id, sk: Math.round(run.skill), k: run.conts || 0, d: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` };
     let i = ranking.findIndex(r => r.y < rec.y); if (i < 0) i = ranking.length;
     if (i < 10) { ranking.splice(i, 0, rec); ranking = ranking.slice(0, 10); rankNow = i + 1; store.set('nekoRank', JSON.stringify(ranking)); }
   }
@@ -4068,7 +4074,7 @@ function draw() {
     g.fillStyle = vg; g.fillRect(0, -OY, W, VH);
   }
   // 逃げ場所の案内：ステージの始め（2秒ほど、名前つき）と、飼い主が探し始めたとき（追いかけっこの前）
-  if (state === 'play' && chaseT <= 0 && introT <= 0 && escT > 0) drawEsc(Math.min(1, escT / 0.3, (2.2 - escT) / 0.2), lt('にげ場所', 'Hide'));
+  if (state === 'play' && chaseT <= 0 && introT <= 0 && escT > 0) drawEsc(Math.min(1, escT / 0.3, (2.2 - escT) / 0.2), lt('逃げ場所', 'Hide'));
   else if (state === 'play' && chaseT <= 0 && (owner.mode === 'search' || sus >= 65)) drawEsc(0.55 + 0.35 * Math.abs(Math.sin(tAnim * 5)), '');
   if (state === 'play' && chaseT > 0) {
     // 追いかけっこ：画面のふちを赤く、逃げ込める場所に矢印
@@ -4300,7 +4306,7 @@ const dailyColl = () => 'daily-' + dailyKey;
 const capY = s => 100000 * s * s + 500000 * s;
 const SIG_KEY = 'mc-k7f3a9c2';
 async function sigOf(f) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode([f.y, f.s, f.st, f.sk, f.uid, SIG_KEY].join('|')));
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode([f.y, f.s, f.st, f.sk, f.k, f.uid, SIG_KEY].join('|')));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 const worldCaches = {};
@@ -4318,7 +4324,7 @@ async function fetchWorld(force, coll) {
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const rows = (await res.json()).filter(r => r.document).map(r => {
     const f = r.document.fields || {}, num = k => +(f[k] && (f[k].integerValue || f[k].doubleValue) || 0), str = k => (f[k] && f[k].stringValue) || '';
-    return { name: str('name'), y: num('y'), s: num('s'), st: num('st'), c: str('c'), uid: str('uid'), sk: num('sk'), v: num('v'), d: (r.document.createTime || '').slice(0, 10) };
+    return { name: str('name'), y: num('y'), s: num('s'), st: num('st'), c: str('c'), uid: str('uid'), sk: num('sk'), v: num('v'), k: num('k'), d: (r.document.createTime || '').slice(0, 10) };
   });
   // 上限を超える記録（明らかな不正）は表示しない
   const seen = new Set(), list = rows.filter(r => r.y <= capY(Math.max(1, r.s)) && !seen.has(r.uid) && seen.add(r.uid)).slice(0, 50);
@@ -4333,9 +4339,9 @@ async function sendOne(coll, bestKey) {
   const mine = (list || []).filter(r => isMe(r.uid)), known = Math.max(+store.get(bestKey, 0) || 0, ...mine.map(r => r.y), 0);
   if (Math.round(run.yen) <= known) return { skip: true, known, rank: (list || []).findIndex(r => isMe(r.uid)) + 1 };
   const I = v => ({ integerValue: String(v) }), S = v => ({ stringValue: v });
-  const f = { y: Math.round(run.yen), s: run.stage | 0, st: run.stars | 0, sk: Math.round(Math.min(run.skill, run.yen)), uid: myUid };
+  const f = { y: Math.round(run.yen), s: run.stage | 0, st: run.stars | 0, sk: Math.round(Math.min(run.skill, run.yen)), k: Math.min(999, run.conts || 0), uid: myUid };
   if (f.y > capY(f.s)) return { err: true, code: 'cap' };
-  const body = { fields: { name: S(myName), y: I(f.y), s: I(f.s), st: I(f.st), c: S(CATS[selCat].id), uid: S(myUid), sk: I(f.sk), v: I(5), h: S(await sigOf(f)) } };
+  const body = { fields: { name: S(myName), y: I(f.y), s: I(f.s), st: I(f.st), c: S(CATS[selCat].id), uid: S(myUid), sk: I(f.sk), k: I(f.k), v: I(6), h: S(await sigOf(f)) } };
   const res = await fetch(`${FS()}/${coll}?key=${encodeURIComponent(ONLINE.apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   store.set(bestKey, String(Math.round(run.yen)));
@@ -4393,11 +4399,11 @@ function showRank(tab) {
   const cname = id => (CATS.find(c => c.id === id) || CATS[2]).name;
   const local = (r, i) => {
     const now = state === 'over' && i + 1 === rankNow;
-    return `<tr class="${now ? 'now' : ''}"><td class="no">${i + 1}</td><td class="yen">${yen(r.y)}${r.sk ? `<small>${lt('腕前', 'Skill')} ${yen(r.sk)}</small>` : ''}</td><td>${dayName(r.s)}${lt('・', ' · ')}${phaseOf(r.s).name}<small>★${r.st}${lt('・', ' · ')}${cname(r.c)}</small></td><td class="dt">${r.d.slice(5).replace('-', '/')}</td></tr>`;
+    return `<tr class="${now ? 'now' : ''}"><td class="no">${i + 1}</td><td class="yen">${yen(r.y)}${r.sk ? `<small>${lt('腕前', 'Skill')} ${yen(r.sk)}</small>` : ''}</td><td>${dayName(r.s)}${lt('・', ' · ')}${phaseOf(r.s).name}<small>★${r.st}${lt('・', ' · ')}${cname(r.c)}${r.k > 0 ? lt('・つづき' + r.k + '回', ' · ' + r.k + ' restart' + (r.k > 1 ? 's' : '')) : ''}</small></td><td class="dt">${r.d.slice(5).replace('-', '/')}</td></tr>`;
   };
   const world = (r, i) => {
     const s = clamp(r.s | 0, 1, 999);
-    return `<tr class="${isMe(r.uid) ? 'now' : ''}"><td class="no">${i + 1}</td><td class="nm-c">${esc(r.name)}<small>${r.v >= 4 ? dayName(s) + lt('・', ' · ') + phaseOf(s).name : lt('ステージ' + s, 'Stage ' + s)}${lt('・', ' · ')}${esc(cname(r.c))}</small></td><td class="yen">${yen(r.y)}${r.sk ? `<small>${lt('腕前', 'Skill')} ${yen(r.sk)}</small>` : ''}</td></tr>`;
+    return `<tr class="${isMe(r.uid) ? 'now' : ''}"><td class="no">${i + 1}</td><td class="nm-c">${esc(r.name)}<small>${r.v >= 4 ? dayName(s) + lt('・', ' · ') + phaseOf(s).name : lt('ステージ' + s, 'Stage ' + s)}${lt('・', ' · ')}${esc(cname(r.c))}${r.k > 0 ? lt('・つづき' + r.k + '回', ' · ' + r.k + ' restart' + (r.k > 1 ? 's' : '')) : ''}</small></td><td class="yen">${yen(r.y)}${r.sk ? `<small>${lt('腕前', 'Skill')} ${yen(r.sk)}</small>` : ''}</td></tr>`;
   };
   const tabs = onlineOn() ? `<div class="tabs"><button type="button" data-t="world" aria-pressed="${tab === 'world'}">${lt('総合', 'All-time')}</button><button type="button" data-t="daily" aria-pressed="${tab === 'daily'}">${lt('今日', 'Today')}</button><button type="button" data-t="local" aria-pressed="${tab === 'local'}">${lt('この端末', 'This device')}</button></div>` : '';
   const body = tab === 'local'
@@ -4464,11 +4470,13 @@ function showSettings(back) {
   $('sBack').addEventListener('click', back);
 }
 // ---------- 通算記録 ----------
+const CAUSE_N = { owner: tx('飼い主', 'Owner'), kid: tx('子ども', 'Kid'), grandma: tx('おばあちゃん', 'Grandma'), dad: tx('お父さん', 'Dad'), guest: tx('お客さん', 'Guest'), cam: tx('ペットカメラ', 'Pet camera'), time: tx('時間切れ', 'Time up') };
 let LIFE = {};
 try { LIFE = JSON.parse(store.get('nekoLife', '{}')) || {}; } catch (e) { LIFE = {}; }
 function addLife() {
   const L = LIFE, r = run, inc = (k, v) => { L[k] = (L[k] || 0) + (v || 0); };
   inc('plays', 1); inc('yen', Math.round(r.yen)); inc('sec', Math.round(r.time || 0)); inc('mice', r.mice); inc('boss', r.boss); inc('fish', r.fish); inc('bath', r.bathFall); inc('cloth', r.cloth);
+  if (r.caughtOver && r.cause) { L.cause = L.cause || {}; L.cause[r.cause] = (L.cause[r.cause] || 0) + 1; L.where = L.where || {}; L.where[r.where] = (L.where[r.where] || 0) + 1; }
   inc('cuke', r.cuke); inc('mis', r.mis); inc('mess', r.mess); inc('revive', r.revives); inc('stars', r.stars); inc(r.timeup ? 'timeups' : 'caught', 1); if (r.ended) inc('endings', 1);
   L.maxDay = Math.max(L.maxDay || 0, dayOf(level)); L.maxStage = Math.max(L.maxStage || 0, level); L.maxChain = Math.max(L.maxChain || 0, r.maxChain || 0); L.best = Math.max(L.best || 0, Math.round(r.yen));
   L.broke = L.broke || {}; for (const [k, v] of Object.entries(r.broke)) if (IT[k]) L.broke[k] = (L.broke[k] || 0) + v;
@@ -4491,6 +4499,9 @@ function showLife() {
       ${row(lt('テーブルクロス引き', 'Tablecloth yanks'), n(L.cloth))}${row(lt('きゅうりで飛び上がった', 'Cucumber jumps'), n(L.cuke))}
       ${row(lt('お風呂に落ちた', 'Bath plunges'), n(L.bath))}${row(lt('お守りで復活', 'Charm revivals'), n(L.revive))}
       ${row(lt('見つかった', 'Caught'), n(L.caught))}${row(lt('時間切れ', 'Time ups'), n(L.timeups))}
+      ${row(lt('朝からつづけた', 'Day restarts'), n(L.conts))}
+      ${L.cause ? `<h4>${lt('見つかった原因', 'Caught by')}</h4>` + Object.entries(L.cause).sort((a, b) => b[1] - a[1]).map(([k, v]) => row(String(CAUSE_N[k] || k), n(v))).join('') : ''}
+      ${L.where ? `<h4>${lt('よく見つかった場所', 'Where you got caught')}</h4>` + Object.entries(L.where).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s, v]) => { const ph = phaseOf(+s); return row(dayName(+s) + lt('・', ' · ') + (ph.special ? String(ph.spTitle) : ph.name + lt('の', ' · ') + ph.roomName), n(v)); }).join('') : ''}
       ${top.length ? `<h4>${lt('よく割ったもの', 'Most broken')}</h4>` + top.map(([k, v]) => row(String(IT[k].n), n(v))).join('') : ''}
     </div><button class="btn go" id="lfBack" type="button">${lt('もどる', 'Back')}</button></div>`;
   $('lfBack').addEventListener('click', showTitle);
@@ -4527,6 +4538,15 @@ function pollPad() {
   padPrev = cur;
 }
 function startGame() { ov.hidden = true; newRun(); state = 'play'; bgmStart(); }
+function continueDay() {
+  // その日の朝から続ける：被害額・★・お守りなども朝の状態に戻す。続けた回数は数えてランキングに載せる
+  const ck = run && run.ck; if (!ck) return;
+  const k = (run.conts || 0) + 1;
+  run = JSON.parse(JSON.stringify(ck.run)); run.conts = k;
+  ov.hidden = true; sus = 0; snap = null; carryT = 0; newCats = []; newTitles = []; newAccs = [];
+  setupStage(ck.level); state = 'play'; bgmStart();
+  if (LIFE) { LIFE.conts = (LIFE.conts || 0) + 1; store.set('nekoLife', JSON.stringify(LIFE)); }
+}
 // ---------- メニューの操作（ゲームパッド・画面下のボタン・キーボード）----------
 // 選べるもの：ボタン・リンク・つまみ（文字の入力欄は除く）。枠は、これらで操作したときだけ出す（タップでは出さない）
 let navEl = null, navOn = false;
@@ -4601,6 +4621,7 @@ ${verLine()}</div>`;
   $('pSet').addEventListener('click', () => showSettings(showPause));
 }
 let cardBlob = null, cardUrl = null, cardFor = null, cardLang = null;
+const canCont = () => !!(run && run.caughtOver && run.ck && run.ck.level > 1);
 function shareText() {
   return lt(`本日の被害額 ${yen(run.yen)}\nステージ${run.stage}（${dayName(run.stage)}・${phaseOf(run.stage).name}）／★${run.stars}／称号「${titleOf(run.yen)}」\n飼い主「${run.comment}」\n#MischievousCat #こっそりネコ`,
     `Today's damage: ${yen(run.yen)}\nStage ${run.stage} (${dayName(run.stage)} · ${phaseOf(run.stage).name}) / ★${run.stars} / Title: ${titleOf(run.yen)}\nOwner: "${run.comment}"\n#MischievousCat #こっそりネコ`);
@@ -4618,12 +4639,14 @@ async function showOver() {
     ${onlineBox()}
     <div class="badges">${newTitles.includes(titleOf(run.yen)) ? '' : `<span class="badge">${titleOf(run.yen)}</span>`}${newTitles.map(n => `<span class="badge new">NEW ${n}</span>`).join('')}${newAccs.map(n => `<span class="badge new" style="background:var(--teal)">${lt('きせかえ', 'NEW')} ${n}</span>`).join('')}${newCats.map(n => `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ', 'NEW CAT')} ${n}</span>`).join('')}</div>
     ${newRec ? `<p class="best" style="color:var(--red-d)">${lt('ベスト更新!', 'New best!')}</p>` : ''}
+    ${canCont() ? `<div class="row"><button class="btn go" id="bCont" type="button">${lt(dayName(run.ck.level) + 'の朝からつづける', 'Continue from ' + dayName(run.ck.level) + ' morning')}</button></div><p class="best" style="margin:0 0 6px;font-weight:500;font-size:.78rem">${lt('被害額は朝の時点に戻ります。続けた回数はランキングに載ります', 'Damage goes back to that morning. Restarts are shown in the ranking')}</p>` : ''}
+    <div class="row"><button class="btn ${canCont() ? 'w' : 'go'}" id="bAgain" type="button">${lt(canCont() ? '1日目からやりなおす' : 'もう一回', canCont() ? 'Restart from Day 1' : 'Play again')}</button></div>
     <img id="card" alt="${lt('犯行現場写真', 'Crime scene photo')}" width="1200" height="630">
     <div class="row"><button class="btn t" id="bShare" type="button">${lt('シェア', 'Share')}</button><button class="btn w" id="bSave" type="button">${lt('保存', 'Save')}</button><a class="btn w" id="bX" href="${xUrl}" target="_blank" rel="noopener">${lt('Xに投稿', 'Post on X')}</a></div>
     <div class="row"><a class="btn" id="bLine" href="${lineUrl}" target="_blank" rel="noopener" style="background:#06c755;box-shadow:0 4px 0 #04963f">${lt('LINEで送る（文章とリンク）', 'Send on LINE (text + link)')}</a></div>
-    <div class="row"><button class="btn go" id="bAgain" type="button">${lt('もう一回', 'Play again')}</button></div>
     <div class="row"><button class="btn w" id="bChange" type="button">${lt('トップへ', 'Title')}</button><button class="btn w" id="bRk" type="button">${lt('ランキング', 'Ranking')}</button><button class="btn w" id="bZk" type="button">${lt('称号図鑑', 'Titles')}</button></div></div>`;
   $('bAgain').addEventListener('click', () => { audio(); startGame(); });
+  if ($('bCont')) $('bCont').addEventListener('click', () => { audio(); continueDay(); });
   $('bChange').addEventListener('click', showTitle);
   $('bZk').addEventListener('click', showZukan);
   $('bRk').addEventListener('click', () => showRank());
