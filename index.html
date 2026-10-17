@@ -238,7 +238,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.7.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.8.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -591,7 +591,7 @@ const TASKS = {
   mis:     { t: tx('落とす以外のいたずらをする', 'Do mischief besides knocking'), ok: () => true },
   ball:    { get t() { return lt(BALL[room].n + 'を当てて落とす', 'Knock one off with the ' + BALL[room].n); }, ok: () => !!ball && mains().length >= 2 },
   top:     { get t() { return room === 'kitchen' ? lt('吊り戸棚の上に乗る', 'Climb onto the cupboard') : room === 'garden' ? lt('パーゴラの上に乗る', 'Climb onto the pergola') : room === 'bath' ? lt('換気扇の上に乗る', 'Climb onto the vent fan') : lt('エアコンの上に乗る', 'Climb onto the AC'); }, ok: () => level >= 3 },
-  streak:  { t: tx('ノーマークで3連続落とす', '3 unseen knocks in a row'), ok: () => mains().length >= 3, need: 3 },
+  streak:  { t: tx('こっそり3連続で落とす', '3 sneaky knocks in a row'), ok: () => mains().length >= 3, need: 3 },
   ride:    { t: tx('お掃除ロボに3秒乗る', 'Ride the robot vacuum 3s'), ok: () => !!vac },
   snack:   { t: tx('冷蔵庫の上のにぼしを食べる', 'Eat the snack on the fridge'), ok: () => room === 'kitchen' },
   data:    { t: tx('パソコンのデータを消す', 'Wipe the computer data'), ok: () => room === 'study' },
@@ -1073,7 +1073,7 @@ function setupStage(L) {
     cuke = d >= 2 && normal && room !== 'bath' && Math.random() < 0.4 ? { x: 0, cd: 0 } : null;
     if (cuke) { for (let k = 0; k < 20; k++) { cuke.x = rnd(40, W - 60); if (Math.abs(cuke.x - BOX.x) > 50 && Math.abs(cuke.x - 255) > 40 && (!mouse || Math.abs(cuke.x - mouse.hole) > 30)) break; } }
     creaks = [];
-    if (d >= 2 && room !== 'garden' && room !== 'bath') { const nc = 1 + (Math.random() < 0.5 ? 1 : 0); for (let k = 0; k < nc; k++) { const x = rnd(30, W - 70); if (!creaks.some(q => Math.abs(q.x - x) < 60)) creaks.push({ x, w: 38, t: 0 }); } }
+    if (d >= 2 && ph.tod >= 2 && room !== 'garden' && room !== 'bath') { const nc = 1 + (Math.random() < 0.5 ? 1 : 0); for (let k = 0; k < nc; k++) { const x = rnd(30, W - 70); if (!creaks.some(q => Math.abs(q.x - x) < 60)) creaks.push({ x, w: 38, t: 0 }); } }
     lamp = d >= 2 && ['living', 'kitchen', 'study', 'kids', 'bed'].includes(room) ? { ax: 200, ay: 0, L: 235, th: 0, om: 0 } : null;
     tv = room === 'living' ? { on: 0, used: 0 } : null;
     if (tv && !items.some(o => o.t === 'remote')) {
@@ -1110,6 +1110,7 @@ function setupStage(L) {
   tank = room === 'kids' ? { fish: [{ x: 44, d: 0.6, vx: 14, sc: 0 }, { x: 76, d: 0.4, vx: -11, sc: 0 }], n: 0, anim: 0 } : null;
   rival = room === 'kids' || (L > NPH && room !== 'bath' && Math.random() < 0.35)
     ? { mode: 'wait', t: rnd(4, 7), x: 14, y: FLOOR, vx: 0, vy: 0, plat: PL.floor, face: 1, hp: 3, back: 1, cd: 0, stun: 0, anim: 0, punchT: 0, swipeT: 0, rest: 0, target: null, tt: 0, aim: 0, jumpBuf: 0, jump: 1, airX: null } : null;
+  pruneGimmicks(L, ph);
   tut.on = L === 1 && !tutDone; tut.broke = false;
   // 制限時間：もの1個につき7秒＋25秒
   // お題を3つ：部屋の仕掛けから1つ＋ほかから2つ（その面でできるものだけ）
@@ -1134,6 +1135,29 @@ function setupStage(L) {
   while (tasks.length < 3 && rest.length) tasks.push(rest.splice((Math.random() * rest.length) | 0, 1)[0]);
   tasks = tasks.map(id => ({ id, t: TASKS[id].t, need: TASKS[id].need || 1, n: 0, done: false }));
   rushShown = false; timeMax = timeLeft = Math.round(25 + mains().length * 7) + carryT; carryT = 0; lastTick = 99; bowl = null; feeds = 0; stageMaxSus = 0;
+}
+// 1面に出す仕掛けを絞る（消さずに、面ごとに入れ替える）
+// じゃまもの（罠・きゅうり・きしむ床・カメラ・犬・ネズミ・ボス猫）は 2 つまで、遊べるもの（ボール・吊り照明・お掃除ロボ）は 2 つまで（特別な夜はじゃまもの 1 つ）
+// 選ぶ順：まだ見たことのない仕掛け → 前の面に出なかった仕掛け → 残りから選ぶ。部屋の顔になっているもの（キッチンのネズミ、子ども部屋のボス猫など）は残す
+const G_HAZ = {
+  trap: { on: () => traps.length > 0, off: () => { traps = []; } }, cuke: { on: () => !!cuke, off: () => { cuke = null; } },
+  creak: { on: () => creaks.length > 0, off: () => { creaks = []; } }, cam: { on: () => cams.length > 0 && !phaseOf(level).special, off: () => { cams = []; } },
+  dog: { on: () => !!dog, off: () => { dog = null; } }, mouse: { on: () => !!mouse && room !== 'kitchen', off: () => { mouse = null; } },
+  rival: { on: () => !!rival && room !== 'kids', off: () => { rival = null; } }
+};
+const G_TOY = { ball: { on: () => !!ball, off: () => { ball = null; } }, lamp: { on: () => !!lamp, off: () => { lamp = null; } }, vac: { on: () => !!vac, off: () => { vac = null; } } };
+let lastGims = [];
+function pruneGimmicks(L, ph) {
+  const used = [];
+  const pick2 = (G, cap) => {
+    const here = Object.keys(G).filter(k => G[k].on());
+    const score = k => (learned.has('see_' + k) ? 0 : 2) + (lastGims.includes(k) ? 0 : 1) + Math.random() * 0.9;
+    const keep = here.sort((a, b) => score(b) - score(a)).slice(0, cap);
+    for (const k of here) if (!keep.includes(k)) G[k].off();
+    used.push(...keep);
+  };
+  pick2(G_HAZ, ph.special ? 1 : 2); pick2(G_TOY, 2);
+  lastGims = used;
 }
 function newRun() {
   run = { yen: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '', touched: false, stars: 0, escapes: 0,
@@ -1669,7 +1693,6 @@ function doPunch(strong) {
   if (hit) run.touched = true;
   if (bHit && !hit) sfx.pon(0.4);
   if (bHit) learn('ball');
-  if (hit && kaku) pops.push({ x: c.x, y: c.y - 60, text: lt('確信犯', 'Guilty!'), life: 1.2, col: '#2fb3a3', size: 18 });
   if (strong) { sfx.strong(); hearNoise(c.x, 0.5); } else sfx.weak();
   if (hit && !strong) sfx.thud();
   if (hit) buzz(strong ? 30 : 15);
@@ -1751,13 +1774,13 @@ function breakItem(it, plat) {
   pops.push({ x: it.x, y: plat.y - 30, text: lab + yen(d.yen), life: big ? 1.8 : 1.4, col: it.sunk ? '#1d6fa8' : '#e0362c', size: big ? 28 : 16 });
   if (big) { sfx.kaching(); happyHop(); addPart({ k: 'crack', x: it.x, y: plat.y - 10, life: 0.7, gy: 9999, c: '#fff', s: 26, rot: rnd(0, 6), vr: 0, vx: 0, vy: 0, landed: true }); }
   // 連鎖の数え上げ。上乗せのボーナス（連鎖・精神的ダメージ・ノーマーク・ストライク）は、1つの札にまとめて縦に並べる
-  const bon = [];
+  const bon = []; let chainN = 0, chainB = 0;
   if (it.chain) {
     const n = chains[it.chain] = (chains[it.chain] || 0) + 1;
     if (n >= 2) happyHop();
     if (n >= 3) spaceCat();
     if (n >= 2) hitStop = Math.max(hitStop, 0.04 + 0.02 * Math.min(n, 5));   // 連鎖の数はボーナスの札に書く（大きな「n!」は 4.7.1 でやめた）
-    if (n >= 2) { const b = Math.round(d.yen * 0.2); run.yen += b; run.maxChain = Math.max(run.maxChain, n); bon.push([lt(n + '連鎖 巻き添え +', n + 'x chain +') + yen(b), '#ff8a3d']); sfx.combo(n); }
+    if (n >= 2) { const b = Math.round(d.yen * 0.2); run.yen += b; run.maxChain = Math.max(run.maxChain, n); chainN = n; chainB += b; sfx.combo(n); }
   }
   // 確信犯：目が合ってから落とされた飼い主の、精神的ダメージ
   if (d.yen >= 100000) spaceCat();
@@ -1770,19 +1793,21 @@ function breakItem(it, plat) {
   if (stageT < 20) taskHit('quick');
   if (it.t === 'alarm') taskHit('alarm');
   if (owner.mode === 'busy') taskHit('busy');
-  if (it.kaku) { const b = Math.round(d.yen * 0.5); run.yen += b; bon.push([lt('精神的ダメージ +', 'Emotional damage +') + yen(b), '#1d8174']); }
+  if (it.kaku) { const b = Math.round(d.yen * 0.5); run.yen += b; bon.push([lt('確信犯 +', 'Guilty +') + yen(b), '#1d8174']); }
   // 腕前のボーナス（被害額に上乗せ）
   // ノーマーク：飼い主に動いているところを見られず、ネコも現行犯で見られていない落とし方が続くと、1個ごとに +10%（最大 +50%）
   if (!it.spotted && cat.mark <= 0) run.streak++; else run.streak = 0;
   run.maxStreak = Math.max(run.maxStreak, run.streak);
   const sk = tasks.find(k => k.id === 'streak' && !k.done); if (sk) { if (run.streak === 0) sk.n = 0; else { sk.n = Math.min(run.streak, sk.need) - 1; taskHit('streak'); } }
-  if (run.streak >= 2) { const b = Math.round(d.yen * 0.1 * Math.min(run.streak - 1, 5)); run.yen += b; run.skill += b; bon.push([lt('ノーマーク×', 'Unseen x') + run.streak + ' +' + yen(b), '#5d7a9a']); }
+  if (run.streak >= 2) { const b = Math.round(d.yen * 0.1 * Math.min(run.streak - 1, 5)); run.yen += b; run.skill += b; bon.push([lt('こっそり×', 'Sneaky x') + run.streak + ' +' + yen(b), '#5d7a9a']); }
   // てこで飛ばした（カタパルト）・転がるもので当てた（ストライク）：+30%
   if (it.launched || it.byBall || it.byChick || it.byCloth) {
     const b = Math.round(d.yen * 0.3); run.yen += b; run.skill += b;
     if (it.launched) run.launch++; else if (it.byCloth) {} else if (it.byChick) { run.chick++; taskHit('chick'); } else { run.ballHits++; taskHit('ball'); }
-    bon.push([(it.launched ? lt('カタパルト', 'Catapult') : it.byCloth ? lt('クロス引き', 'Yank') : it.byChick ? lt('コケッコー連携', 'Chicken combo') : lt('ストライク', 'Strike')) + ' +' + yen(b), '#9b5fc0']);
+    chainB += b;
   }
+  // 巻き添え・ボール・クロス引き・ニワトリで落ちた分は、まとめて「連鎖」
+  if (chainB > 0) bon.unshift([(chainN >= 2 ? lt(chainN + '連鎖 +', chainN + 'x chain +') : lt('連鎖 +', 'Chain +')) + yen(chainB), '#ff8a3d']);
   if (bon.length) pops.push({ x: it.x, y: plat.y - 58, text: bon.map(b => b[0]).join('\n'), cols: bon.map(b => b[1]), life: 1.8, col: bon[0][1], size: 16 });
   // ネコの解禁：重いもの（通算）・1回の被害額
   if (it.t === 'mug' || it.t === 'vase' || it.t === 'console') { heavyCount++; store.set('nekoHeavy', String(heavyCount)); if (heavyCount >= 5) openCat('maine'); }

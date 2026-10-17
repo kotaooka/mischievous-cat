@@ -59,7 +59,7 @@ Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. 
 - **Distract with a meow.** The owner looks where the cat is facing. Get up to mischief on the other side
 - **Wait until the owner is busy.** While they're on the phone, cooking, reading or brushing their teeth, they barely notice anything
 - **Stare at the camera, then knock it off.** Stand still next to an item and the cat stares at you. Punch now for a "Guilty!" bonus
-- **Keep knocking things off unseen for an "Unseen" streak bonus.** The bonus grows with every item
+- **Keep knocking things off unseen for a "Sneaky" streak bonus.** The bonus grows with every item
 - **Don't give up when you're spotted.** Once per stage, dive into the cardboard box, onto the cat tower, or up on top of the bookshelf or higher within 3 seconds to escape
 - **Sparkles, arrows or claw marks?** Something is there. There are no written instructions. Go and find out
 
@@ -81,6 +81,7 @@ Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. 
 - **Swing on the ceiling lamp.** Leap at it from the hanging shelf, pump left and right, and jump to let go
 - **Pile things at one end of the shelf, then stand there…** CLUNK! The shelf tips and dumps everything
 - **Creaky boards:** running makes them creak. Hold punch to tiptoe silently
+- **Gimmicks rotate every stage.** Each stage has at most two hazards (traps, cucumber, pet cam, dog…) and two toys (ball, hanging lamp, robot vacuum), with ones you haven't seen yet first
 - **From day 2, watch for traps** (noisy foil, sticky tape). From day 3, a pet cam sweeps the room
 - **Cucumbers** make the cat leap straight up. Use them as a springboard
 - **Churu!** When the owner shakes a churu, the cat gets pulled in. Eat it for time, or mash buttons to resist and leave the owner sulking
