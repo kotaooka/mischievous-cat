@@ -313,7 +313,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.28.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.28.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -863,7 +863,8 @@ const MODE = {
   nap:    { range: 0, rate: 0 },                  // 最後の夜：うたた寝
   chase:  { range: 0, rate: 0 }
 };
-const REACT = [tx('こらーっ!!', 'HEY!!'), tx('見〜た〜ぞ〜', 'I saw that!'), tx('またお前か!!', 'You again?!'), tx('ちょっと!?', 'Excuse me?!'), tx('何してんの!!', 'What are you doing?!'), tx('現行犯!!', 'Caught red-pawed!'), tx('ストップ!!', 'STOP!!'), tx('つかまえた!', 'Got you!')];
+const REACT = [tx('こらーっ!!', 'HEY!!'), tx('見〜た〜ぞ〜', 'I saw that!'), tx('またお前か!!', 'You again?!'), tx('ちょっと!?', 'Excuse me?!'), tx('何してんの!!', 'What are you doing?!'), tx('現行犯!!', 'Caught red-pawed!'), tx('ストップ!!', 'STOP!!'), tx('つかまえた!', 'Got you!'),
+  tx('はい、おしまい', 'Okay, that\'s it'), tx('ネコのくせに!!', 'You\'re a CAT!!'), tx('保険きかないんだよ!?', 'Insurance won\'t cover that!'), tx('ちょっと来なさい', 'Come here. Now'), tx('名前、呼ぶよ？', 'Don\'t make me say your name'), tx('見なかったことにはできない', 'I can\'t unsee that'), tx('はーい、犯人確保', 'Aaand the culprit is caught'), tx('その手、止めなさい', 'Put the paw down'), tx('……ため息', '……*sigh*'), tx('お前、わざとだろ', 'You did that on purpose')];
 // 時間切れのひとこと：時間帯ごと（朝・昼・夕方・夜）。寝る話は夜だけ
 const REACT_TIME = [
   [tx('もう出かける時間!', 'Time to head out!'), tx('遅刻しちゃう、おしまい', "I'll be late — that's it"), tx('はい、朝の運動おわり', 'Morning workout over'), tx('いってきまーす', "I'm off!")],
@@ -878,7 +879,11 @@ const CAUGHT_FACES = [
   { id: 'innocent', w: 2, cap: tx('ぼく、知らないよ？', 'Wasn\'t me?'), bg: '#ffb3c6' },
   { id: 'blep', w: 2, cap: tx('ぺろっ', 'Blep'), bg: '#ffd27a' },
   { id: 'scream', w: 2, cap: tx('ニャーッ!?', 'MRRAAH!?'), bg: '#ff6b5a' },
-  { id: 'cry', w: 2, cap: tx('ぐすん…', 'Sniff…'), bg: '#7fb0e0' }
+  { id: 'cry', w: 2, cap: tx('ぐすん…', 'Sniff…'), bg: '#7fb0e0' },
+  { id: 'sleepy', w: 1.5, cap: tx('Zzz…（寝たふり）', 'Zzz… (fake)'), bg: '#b9a0e0' },
+  { id: 'smirk', w: 1.5, cap: tx('ふふん', 'Heh'), bg: '#ffc94a' },
+  { id: 'angel', w: 1.5, cap: tx('いい子です', 'Good cat here'), bg: '#bfe6ff' },
+  { id: 'puff', w: 1.5, cap: tx('ぷいっ', 'Hmph'), bg: '#ff9a6a' }
 ];
 // 飼い主の1日：4ステージで1日。朝・昼・夕方は日替わりの部屋、夜は「特別な夜」（3日目の夜を越えるとエンディング、その後も続けられる）
 // 1日目：リビング → キッチン → 書斎 → お客さんが来た夜（リビング）
@@ -1037,7 +1042,7 @@ const TV_LINES = [
   [tx('かわいい!', 'So cute!'), tx('推しが映った!', 'My bias!'), tx('ダンスそろってる…', 'So in sync…')]
 ];
 const tvSay = () => pick(Math.random() < 0.7 && tv ? TV_LINES[tv.show || 0] : LINES.tv);
-LINES.chaseEnd = [tx('次はないよ!!', 'Next time you\'re done!!'), tx('今度やったら本気で怒るからね', 'Do that again and I mean it'), tx('……一回だけ、見逃してあげる', '……Just this once, I\'ll let it go'), tx('はぁ、はぁ……速い……', 'Huff… puff… too fast…'), tx('覚えてなさいよ', 'I won\'t forget this')];
+LINES.chaseEnd = [tx('次はないよ!!', 'Next time you\'re done!!'), tx('二度目はないからね!!', 'There won\'t be a second time!!'), tx('今度は許さないよ', 'Next time I won\'t forgive you'), tx('見逃すのは今回だけ', 'This is the only time I let it go'), tx('次に見つけたら、おしまいだからね', 'Catch you again and that\'s it'), tx('はぁ、はぁ……次は逃がさない', 'Huff… puff… you won\'t get away next time'), tx('一回だけだよ、一回だけ', 'Once. Just once')];
 LINES.churu = [tx('チュールだよ〜', 'Churu time~'), tx('おいで〜', 'Come here~'), tx('ほらほら〜', 'Look, look~')];
 LINES.churuNo = [tx('あれ…いらないの？', "Huh… you don't want it?"), tx('めずらしいね…', "That's unusual…")];
 LINES.rub = [tx('あら、甘えんぼ', 'Aww, so clingy'), tx('かわいいねえ', "Aren't you cute"), tx('よしよし', 'There, there'), tx('すりすりしてる〜', "You're rubbing on me~")];
@@ -3797,7 +3802,7 @@ function updChase(dt) {
   const o = owner; chaseT -= dt;
   const high = isHigh();
   if (cat.hidden || cat.safe || high) {
-    chaseT = 0; sus = 60; susCd = 6; run.escapes++; setMode('leave'); say(Math.random() < 0.5 ? pick(LINES.chaseEnd) : high ? lt('…届かない', "…Can't reach") : lt('…あれ？ いない', '…Huh? Gone'), 2); sfx.clear();
+    chaseT = 0; sus = 60; susCd = 6; run.escapes++; setMode('leave'); say(pick(LINES.chaseEnd), 2.4);   // 4.28.1：逃げ切ったら必ず「次はない」と言う sfx.clear();
     pops.push({ x: cat.x, y: cat.y - 60, text: lt('セーフ!', 'Safe!'), life: 1.6, col: '#1d8174', size: 26 }); return;
   }
   // 4.27.1：追いかけっこの 3 秒は丸ごと猶予。飼い主は追って走るが、近づいただけでは捕まえない（前は 26px で即アウトで、1 秒も持たないことが多かった）。3 秒たった時点で隠れていなければアウト
@@ -4172,12 +4177,24 @@ function drawCat(c, x, y, o) {
     c.fillStyle = '#7fc1f0'; const k = (t * 1.6) % 1;
     [[25, 0], [16.5, 0.5]].forEach(([ex, ph]) => { const q = (k + ph) % 1; c.globalAlpha = 1 - q; c.beginPath(); c.ellipse(ex, -26 + q * 14, 1.3, 1.9, 0, 0, TAU); c.fill(); }); c.globalAlpha = 1;
     c.strokeStyle = ink; c.lineWidth = 1; c.beginPath(); c.moveTo(27.5, -21.8); c.quadraticCurveTo(29.5, -23.5, 31.5, -21.8); c.stroke();
-  } else if (face === 'smug') {
+  } else if (face === 'sleepy') {
+    // 寝たふり：閉じた目（∩∩）と小さな口。まぶたがときどき少し開く
+    const peek = (t * 1.3) % 1 > 0.85 ? 1 : 0;
+    c.strokeStyle = ink; c.lineWidth = 1.8; c.beginPath(); c.arc(25, -27.5, 3, Math.PI * 1.1, Math.PI * 1.9); c.stroke(); c.beginPath(); c.arc(17, -27.5, 3, Math.PI * 1.1, Math.PI * 1.9); c.stroke();
+    if (peek) { c.fillStyle = ink; c.fillRect(24.3, -29, 1.4, 1.6); }
+    c.strokeStyle = ink; c.lineWidth = 1; c.beginPath(); c.arc(29.5, -22.5, 1.2, 0, Math.PI); c.stroke();
+  } else if (face === 'puff') {
+    // ぷいっ：目をそらしてほっぺをふくらませる
+    c.fillStyle = T.eye; c.beginPath(); c.ellipse(25, -29, 2.6, 2.6, 0, 0, TAU); c.ellipse(17, -29, 2.6, 2.6, 0, 0, TAU); c.fill();
+    c.fillStyle = ink; c.fillRect(22.8, -30, 1.4, 2.4); c.fillRect(14.8, -30, 1.4, 2.4);
+    c.fillStyle = 'rgba(255,140,120,.35)'; c.beginPath(); c.ellipse(13, -23, 4, 3, 0, 0, TAU); c.ellipse(29, -22, 4, 3, 0, 0, TAU); c.fill();
+    c.strokeStyle = ink; c.lineWidth = 1; c.beginPath(); c.moveTo(27.5, -21.5); c.lineTo(31, -22.5); c.stroke();
+  } else if (face === 'smug' || face === 'smirk') {
     c.strokeStyle = ink; c.lineWidth = 1.8;
     c.beginPath(); c.arc(25, -29, 3, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
     c.beginPath(); c.arc(17, -29, 3, Math.PI * 0.1, Math.PI * 0.9); c.stroke();
     c.beginPath(); c.arc(29, -24.5, 2.8, 0.1, Math.PI * 0.9); c.stroke();
-  } else if (face === 'happy') {
+  } else if (face === 'happy' || face === 'angel') {
     // にっこり：目を「^ ^」にして、口は ω
     c.strokeStyle = ink; c.lineWidth = 1.8;
     c.beginPath(); c.arc(25, -27.5, 3, Math.PI * 1.15, Math.PI * 1.85); c.stroke();
@@ -5410,6 +5427,9 @@ function drawCutscene() {
       else if (run.face === 'cry') rot = Math.sin(le * 9) * 0.05;
       else if (run.face === 'innocent') { rot = -0.12; for (let i = 0; i < 7; i++) { const k = (le * 0.8 + i / 7) % 1, x = 120 + (i * 53) % 280, y = 420 - k * 200; g.globalAlpha = 1 - k; g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 3 + (i % 3), 0, TAU); g.fill(); } g.globalAlpha = 1; }
       else if (run.face === 'blep') rot = 0.1 * Math.min(1, le * 5);
+      else if (run.face === 'puff') rot = -0.08 - 0.03 * Math.sin(le * 3);
+      else if (run.face === 'sleepy') { oy = Math.sin(le * 2.5) * 2; g.font = `800 ${22 + 10 * ((le * 0.8) % 1)}px ${FONT}`; g.textAlign = 'left'; g.textBaseline = 'middle'; g.lineWidth = 5; g.strokeStyle = '#fff'; g.fillStyle = '#5d7a9a'; const q = (le * 0.8) % 1; g.globalAlpha = 1 - q; g.strokeText('Zzz', 262 + 16 * q, 330 - 30 * q); g.fillText('Zzz', 262 + 16 * q, 330 - 30 * q); g.globalAlpha = 1; }
+      else if (run.face === 'angel') { g.strokeStyle = '#ffc94a'; g.lineWidth = 5; g.beginPath(); g.ellipse(190, 238 + Math.sin(le * 3) * 3, 34, 9, 0, 0, TAU); g.stroke(); g.fillStyle = '#fff6a8'; for (let i = 0; i < 5; i++) { const k = (le * 0.7 + i / 5) % 1, x = 90 + (i * 71) % 220, y = 430 - k * 180, r = 2 + 3 * Math.sin(k * Math.PI); g.globalAlpha = Math.sin(k * Math.PI); g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r * 0.35, y - r * 0.35); g.lineTo(x + r, y); g.lineTo(x + r * 0.35, y + r * 0.35); g.lineTo(x, y + r); g.lineTo(x - r * 0.35, y + r * 0.35); g.lineTo(x - r, y); g.lineTo(x - r * 0.35, y - r * 0.35); g.closePath(); g.fill(); } g.globalAlpha = 1; }
       g.save(); g.translate(190 + ox, 343 + oy); g.rotate(rot); g.translate(-190, -343);
       drawCat(g, 270, 455, { type: cat.type, face: -1, scale: 4, pose: run.face, t: le, acc: selAcc, ears: run.face === 'scream' || run.face === 'cry' ? 'back' : null });
       g.restore();
