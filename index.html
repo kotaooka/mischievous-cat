@@ -145,7 +145,10 @@
   .badge { background: var(--brn); color: var(--yel); font-weight: 800; border-radius: 999px; padding: 3px 12px; font-size: .9rem; }
   .badge.new { background: var(--red); color: #fff; }
   .panel img { width: 100%; height: auto; border-radius: 12px; display: block; margin: 6px 0; background: #f6e2c4; aspect-ratio: 1200 / 630; }
-  .stats { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; align-items: center; text-align: left; margin: 2px 4px 10px; font-weight: 800; font-size: .78rem; }
+  .stats { display: grid; grid-template-columns: auto auto; gap: 3px 12px; align-items: center; text-align: left; width: max-content; margin: 2px auto 10px; font-weight: 800; font-size: .78rem; }
+  .stats .pips i.up { background: var(--teal); }
+  .stats .pips i.dn { background: #fff; border: 2px solid var(--red); box-sizing: border-box; }
+  .stats .tag.acc { color: var(--ink2); font-weight: 500; font-size: .74rem; }
   .stats .pips { display: flex; gap: 4px; }
   .stats .pips i { width: 18px; height: 10px; border-radius: 5px; background: #f2e2c8; }
   .stats .pips i.on { background: var(--org); }
@@ -185,6 +188,7 @@
   .online.up, .online.err { padding: 6px 10px; }
   .zukan small { display: block; font-weight: 500; font-size: .7rem; color: var(--ink2); margin-top: 2px; line-height: 1.35; }
   /* いたずらカード：写真＋名前＋取り方 */
+  .cards[hidden] { display: none; }
   .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
   .cards div { border: 2px solid var(--line); border-radius: 12px; padding: 5px; background: #fff; display: flex; flex-direction: column; align-items: center; text-align: center; }
   .cards div.off { background: #fbf3e6; color: #c9b39a; }
@@ -304,7 +308,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.25.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.26.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -793,8 +797,29 @@ const CARDS = [
   { id: 'big_kids',    name: tx('二段ベッド崩壊', 'Bunk Bed Collapse'), desc: tx('子ども部屋：二段ベッドの上で5回ジャンプ', "Kid's room: jump 5 times on top of the bunk bed"), test: r => !!r.ev.big_kids },
   { id: 'big_bath',    name: tx('棚なだれ', 'Shelf Avalanche'),       desc: tx('お風呂場：床から棚を強パンチで3回', 'Bathroom: power-punch the shelf 3 times from the floor'), test: r => !!r.ev.big_bath }
 ];
+// 4.26.0：称号（被害額の t1〜t5 以外）はいたずらカードに統合した。TITLES の行動・通算の称号を 't_<id>' のカードとして足す（取り方は TDESC）
+const MERGED_T = ['foe4', 'nohit', 'idle', 'print', 'book', 'fast', 'zero', 'food', 'day', 'stars', 'streak', 'perfect', 'space', 'ghost', 'big5', 'guest', 'bowl', 'regular', 'million', 'cups', 'night', 'boxer', 'rooms', 'family', 'days3', 'wrecker7', 'endings'];
+for (const id of MERGED_T) { const t = TITLES.find(x => x.id === id); if (t) CARDS.push({ id: 't_' + id, name: t.name, desc: TDESC[id] || '', test: t.test || null, life: t.life || null }); }
 let cardsGot = new Set(), cardPics = {}, newCards = [], cardCd = 0;
 try { cardsGot = new Set(JSON.parse(store.get('nekoCards', '[]'))); } catch (e) {}
+// 一度だけ：これまでに取った称号をカードへ引き継ぐ（同じ内容のカードがあるものはそれに、統合したものは t_ のカードに）
+try {
+  if (store.get('nekoMerged', '') !== '1') {
+    const T2C = { phone: 'phone', water: 'water', kaku: 'kaku', ride: 'ride', chain: 'chain3', paper: 'tissue', dog: 'dog', data: 'data', alarm: 'alarm', escape: 'escape', mis: 'scratch', launch: 'scare', top: 'top', fish: 'fish', mouse: 'mouse', boss: 'boss', chick: 'chick', bath: 'bath', cloth: 'cloth', rub: 'rub', cuke: 'cuke', lamp: 'lamp', week2: 'lastnight' };
+    for (const id of unlocked) { const c = T2C[id] || (MERGED_T.includes(id) ? 't_' + id : null); if (c && CARDS.some(x => x.id === c)) cardsGot.add(c); }
+    store.set('nekoCards', JSON.stringify([...cardsGot])); store.set('nekoMerged', '1');
+  }
+} catch (e) {}
+// 通算のカード（life）：結果画面とエンディングで調べる
+function cardCheckLife() {
+  for (const cd of CARDS) {
+    if (!cd.life || cardsGot.has(cd.id)) continue;
+    let ok = false; try { ok = !!cd.life(LIFE); } catch (e) {}
+    if (!ok) continue;
+    cardsGot.add(cd.id); newCards.push(cd.name); store.set('nekoCards', JSON.stringify([...cardsGot]));
+    const pic = cardShot(); if (pic) { cardPics[cd.id] = pic; try { store.set('nekoCardPics', JSON.stringify(cardPics)); } catch (e) {} }
+  }
+}
 try { cardPics = JSON.parse(store.get('nekoCardPics', '{}')) || {}; } catch (e) {}
 // カードの絵：その瞬間の画面（犯行現場写真と同じ切り取り）を 128px にして保存する
 function cardShot() {
@@ -803,7 +828,7 @@ function cardShot() {
 function cardCheck() {
   if (state !== 'play' || !run || run.preview || run.test) return;
   for (const cd of CARDS) {
-    if (cardsGot.has(cd.id)) continue;
+    if (cardsGot.has(cd.id) || !cd.test) continue;
     let ok = false; try { ok = !!cd.test(run); } catch (e) {}
     if (!ok) continue;
     cardsGot.add(cd.id); newCards.push(cd.name); store.set('nekoCards', JSON.stringify([...cardsGot]));
@@ -1031,13 +1056,28 @@ const BUSY_ROOM = {
 const busyOf = () => BUSY_ROOM[room] || BUSY[phaseIx(level)];
 // きせかえ：称号をいくつ集めたかで増える
 const ACCS = [
-  { id: 'none', name: tx('なし', 'None'), need: 0 }, { id: 'bell', name: tx('鈴の首輪', 'Bell collar'), need: 2 }, { id: 'ribbon', name: tx('リボン', 'Ribbon'), need: 4 },
-  { id: 'scarf', name: tx('バンダナ', 'Bandana'), need: 6 }, { id: 'hat', name: tx('パーティ帽', 'Party hat'), need: 8 }, { id: 'glasses', name: tx('メガネ', 'Glasses'), need: 11 }, { id: 'crown', name: tx('王冠', 'Crown'), need: 15 },
+  { id: 'none', name: tx('なし', 'None'), need: 0 }, { id: 'bell', name: tx('鈴の首輪', 'Bell collar'), need: 4 }, { id: 'ribbon', name: tx('リボン', 'Ribbon'), need: 8 },
+  { id: 'scarf', name: tx('バンダナ', 'Bandana'), need: 14 }, { id: 'hat', name: tx('パーティ帽', 'Party hat'), need: 20 }, { id: 'glasses', name: tx('メガネ', 'Glasses'), need: 28 }, { id: 'crown', name: tx('王冠', 'Crown'), need: 40 },
   { id: 'medal', name: tx('金メダル', 'Gold medal'), need: 999, ending: true },   // エンディングを見るともらえる
   { id: 'star', name: tx('星のバッジ', 'Star badge'), need: 999, trueEnd: true },   // 7日目の夜を越えるともらえる
   { id: 'shades', name: tx('サングラス', 'Shades'), need: 999, secret: true }   // 隠しコマンド（タイトルで にゃー を10回）
 ];
-const accOk = a => a.ending ? store.get('nekoEnded', '') === '1' : a.trueEnd ? store.get('nekoTrueEnd', '') === '1' : a.secret ? store.get('nekoShades', '') === '1' : unlocked.size >= a.need;
+// きせかえの効き目（4.26.0）：どれも良い面と悪い面がある。「なし」は補正なし。pip は選択画面の目盛りに出す差（speed/jump/punch/sus=かくれ/food）
+const ACC_FX = {
+  none:    { note: tx('補正なし', 'No modifiers') },
+  bell:    { food: 1.3, noise: 1.25, pip: { food: 1 }, note: tx('ごはんが長持ち ／ 足音・物音が目立つ', 'Food lasts longer / louder noises') },
+  ribbon:  { sus: 0.9, punch: 0.9, pip: { sus: 1, punch: -1 }, note: tx('怪しまれにくい ／ パンチが弱い', 'Less suspicious / weaker punch') },
+  scarf:   { punch: 1.15, sus: 1.1, pip: { punch: 1, sus: -1 }, note: tx('パンチが強い ／ 怪しまれやすい', 'Stronger punch / more suspicious') },
+  hat:     { jump: 1.1, hide: 5, pip: { jump: 1 }, note: tx('ジャンプが高い ／ 隠れ場所で早くバレる（5秒）', 'Higher jump / found in hiding sooner (5s)') },
+  glasses: { sus: 0.85, speed: 0.92, pip: { sus: 1, speed: -1 }, note: tx('怪しまれにくい ／ 足が遅い', 'Less suspicious / slower') },
+  crown:   { yen: 1.1, sus: 1.2, pip: { sus: -1 }, note: tx('被害額 +10% ／ 怪しまれやすい', 'Damage +10% / more suspicious') },
+  medal:   { skill: 1.25, speed: 0.95, note: tx('腕前ボーナス +25% ／ 足が少し遅い', 'Skill bonus +25% / a bit slower') },
+  shades:  { stun: 0.5, food: 0.7, pip: { food: -1 }, note: tx('やられても半分の時間で立ち直る ／ ごはんが短い', 'Recover from hits twice as fast / food lasts less') },
+  star:    { carry: 25, sus: 1.05, note: tx('持ち越し時間の上限 +5秒 ／ 少し怪しまれやすい', 'Carry-over cap +5s / slightly more suspicious') }
+};
+const accFx = () => ACC_FX[selAcc] || ACC_FX.none;
+const catStat = k => (cat && cat.type ? cat.type : CATS[selCat])[k] * (accFx()[k] || 1);
+const accOk = a => a.ending ? store.get('nekoEnded', '') === '1' : a.trueEnd ? store.get('nekoTrueEnd', '') === '1' : a.secret ? store.get('nekoShades', '') === '1' : cardsGot.size >= a.need;   // 4.26.0：称号の数 → カードの枚数
 
 // ---------- 状態 ----------
 let state = 'title', level = 1, sus = 0, muted = store.get('nekoMute', '0') === '1';
@@ -1770,6 +1810,7 @@ function rush(x) {
 }
 function hearNoise(x, loud) {
   const o = owner;
+  loud *= accFx().noise || 1;   // 鈴の首輪：物音が目立つ
   if (ruleOf() === 'earphone' && o.mode !== 'away') loud *= 0.5;   // イヤホンの日：物音に鈍い
   if (fest) loud = Math.min(1, loud * (fest.show > 0 ? 0.5 : 1.4));   // お祭り：花火の間は音がまぎれ、合間は目立つ
   if (nap && nap.asleep) { sus = Math.max(sus, Math.min(sus + 10 * loud, 80)); nap.t -= loud * 2; return; }   // うたた寝：物音で目覚めが早まる
@@ -1915,7 +1956,7 @@ function updCat(dt) {
   if (c.pDown) c.pHeld += dt;
   if (c.stun > 0) c.stun -= dt;
   if (c.eatT > 0 && c.eatChuru) { c.eatT -= dt; c.vx = 0; if (c.eatT <= 0) c.eatChuru = false; }
-  else if (c.eatT > 0) { c.eatT -= dt; c.vx = 0; if (c.eatT <= 0) { const add = Math.round(10 * T.food); timeLeft += add; run.fed++; pops.push({ x: c.x, y: c.y - 50, text: lt('+' + add + '秒', '+' + add + 's'), life: 1.4, col: '#1d8174', size: 20 }); bowl = null; if (owner.mode !== 'away' && ownerSees(c.x)) taskHit('eatSeen'); } }
+  else if (c.eatT > 0) { c.eatT -= dt; c.vx = 0; if (c.eatT <= 0) { const add = Math.round(10 * catStat('food')); timeLeft += add; run.fed++; pops.push({ x: c.x, y: c.y - 50, text: lt('+' + add + '秒', '+' + add + 's'), life: 1.4, col: '#1d8174', size: 20 }); bowl = null; if (owner.mode !== 'away' && ownerSees(c.x)) taskHit('eatSeen'); } }
   let dir = (c.stun > 0 || c.eatT > 0) ? 0 : (keys.R ? 1 : 0) - (keys.L ? 1 : 0);
   if (c.grabCd > 0) c.grabCd -= dt; if (c.scareT > 0) c.scareT -= dt; if (c.creakCd > 0) c.creakCd -= dt;
   if (c.hang && lamp) {
@@ -1953,7 +1994,7 @@ function updCat(dt) {
     if (dir) vac.dir = dir;
     c.vx = 0; c.x = vac.x; c.y = VACP.y; c.face = vac.dir; run.rideT += dt;
   } else {
-    const sp = SPEED * T.speed * (c.pDown && c.pHeld > 0.12 ? 0.55 : 1) * (c.sticky ? 0.3 : 1) * (c.churuPull ? 0.7 : 1);
+    const sp = SPEED * catStat('speed') * (c.pDown && c.pHeld > 0.12 ? 0.55 : 1) * (c.sticky ? 0.3 : 1) * (c.churuPull ? 0.7 : 1);
     const onPud = !!c.plat && puddles.some(p => p.plat === c.plat && Math.abs(c.x - p.x) < p.w / 2);
     if (!c.plat) { if (!c.bathOut) c.vx += clamp(dir * sp * 1.15 - c.vx, -1400 * dt, 1400 * dt); }   // お風呂から飛び出す間は、向きを変えられない
     else if (onPud) { c.vx += dir * 300 * dt; c.vx *= Math.pow(0.4, dt); c.vx = clamp(c.vx, -sp * 1.4, sp * 1.4); c.wet = 6; }
@@ -1965,7 +2006,7 @@ function updCat(dt) {
   if (c.jumpBuf > 0 && (c.plat || c.coyote > 0) && c.stun <= 0) {
     const soft = c.plat && c.plat.soft;
     if (room === 'kids' && c.plat === PL.book) bigCount(c.x);
-    c.vy = -JUMP * T.jump * (soft ? 1.25 : 1) * (c.sticky ? 0.75 : 1); c.plat = null; c.coyote = 0; c.jumpBuf = 0; c.sq = 0.2; if (soft) sfx.boing(); else sfx.jump();
+    c.vy = -JUMP * catStat('jump') * (soft ? 1.25 : 1) * (c.sticky ? 0.75 : 1); c.plat = null; c.coyote = 0; c.jumpBuf = 0; c.sq = 0.2; if (soft) sfx.boing(); else sfx.jump();
   }
   if (c.plat && !riding) {
     if (c.x < c.plat.x0 - 4 || c.x > c.plat.x1 + 4) { c.plat = null; c.vy = 0; c.coyote = 0.1; }
@@ -2050,7 +2091,7 @@ function updCat(dt) {
   }
   // キッチン：冷蔵庫の上のおやつ
   if (snack && !snack.got && c.plat === PL.book && Math.abs(c.x - snack.x) < 18) {
-    snack.got = true; taskHit('snack'); const add = Math.round(8 * T.food); timeLeft += add; run.fed++; sfx.eat();
+    snack.got = true; taskHit('snack'); const add = Math.round(8 * catStat('food')); timeLeft += add; run.fed++; sfx.eat();
     pops.push({ x: c.x, y: c.y - 50, text: lt('おやつ +' + add + '秒', 'Snack +' + add + 's'), life: 1.4, col: '#1d8174', size: 20 });
   }
   c.hidden = c.plat === PL.floor && Math.abs(c.x - BOX.x) < BOX.w / 2 - 1;   // 箱の幅いっぱいで隠れられる
@@ -2147,7 +2188,7 @@ function autoNav(c, dt) {
     else if (goal.act === 'spot') c.autoScr = tg.spot;
     tapTarget = null; return 0;
   }
-  const st = navStep(c.plat, goal.plat, c.type.jump);
+  const st = navStep(c.plat, goal.plat, catStat('jump'));
   if (!st) { tapTarget = null; return 0; }
   if (st.kind === 'climb') {
     if (Math.abs(st.sx - c.x) > 4) return Math.sign(st.sx - c.x);
@@ -2250,13 +2291,13 @@ function doPunch(strong) {
   for (const it of items) {
     if (it.plat !== c.plat || it.state === 'fall') continue;
     const dx = (it.x - c.x) * c.face;
-    if (dx > -4 && dx < reach + IT[it.t].w / 2) { it.vx = c.face * force * T.punch / IT[it.t].m; it.state = 'slide'; it.chain = id; it.kaku = kaku; it.strong = strong; hit = true; if (it.t === 'remote') tvOn(); }
+    if (dx > -4 && dx < reach + IT[it.t].w / 2) { it.vx = c.face * force * catStat('punch') / IT[it.t].m; it.state = 'slide'; it.chain = id; it.kaku = kaku; it.strong = strong; hit = true; if (it.t === 'remote') tvOn(); }
   }
   // 転がるもの：軽い（質量 0.8）のでよく転がる。強パンチだと浮き上がる
   let bHit = false;
   if (ball && ball.plat === c.plat) {
     const dx = (ball.x - c.x) * c.face;
-    if (dx > -4 && dx < reach + ball.r) { ball.vx = c.face * force * T.punch / 0.8; ball.chain = id; ball.kaku = kaku; bHit = true; if (strong) { ball.vy = -320; ball.plat = null; } }
+    if (dx > -4 && dx < reach + ball.r) { ball.vx = c.face * force * catStat('punch') / 0.8; ball.chain = id; ball.kaku = kaku; bHit = true; if (strong) { ball.vy = -320; ball.plat = null; } }
   }
   // 水槽：水面近くの金魚に前足が届くと「タッチ」
   if (tank && c.plat === PL.tank) punchTank(c);
@@ -2348,9 +2389,10 @@ function breakItem(it, plat) {
     if (rival && owner.mode !== 'away' && ownerSees(it.x)) scoldRival(); else hearNoise(it.x, d.noise * 0.7);
     return;
   }
-  run.touched = true; run.yen += d.yen; run.broke[it.t] = (run.broke[it.t] || 0) + 1; run.lastBroke = it.t;
+  const yv = Math.round(d.yen * (accFx().yen || 1));   // 王冠：被害額 +10%
+  run.touched = true; run.yen += yv; run.broke[it.t] = (run.broke[it.t] || 0) + 1; run.lastBroke = it.t;
   if (!run.big || d.yen > run.big.y) run.big = { k: it.t, y: d.yen };
-  run.stageDrops.push(d.yen); run.todYen[phaseOf(level).tod] += d.yen; if (d.yen >= 30000) run.bigN++; run.lastDropT = tAnim;
+  run.stageDrops.push(yv); run.todYen[phaseOf(level).tod] += yv; if (d.yen >= 30000) run.bigN++; run.lastDropT = tAnim;
   if (plat === PL.floor && !IT[it.t].junk) { run.tape = run.tape || {}; const tp = run.tape[room] = run.tape[room] || []; if (tp.length < 14 && !tp.some(q => Math.abs(q.x - it.x) < 22)) tp.push({ x: clamp(it.x, 14, W - 14), r: rnd(-0.3, 0.3), L: level }); }   // 養生テープの跡（次にこの部屋へ来たとき）
   if (it.t === 'alarm' && nap) { nap.asleep = false; sus = 100; susCd = 0; chaseUsed = true; run.lastBy = 'owner'; owner.face = Math.sign(it.x - owner.x) || 1; setMode('look', 9); say(lt('ジリリリリ!!', 'RIIIING!!'), 1.5); }   // 最後の夜：目覚まし時計で飛び起きる（即アウト）
   else if (it.t === 'alarm') rush(it.x);
@@ -2361,7 +2403,7 @@ function breakItem(it, plat) {
   // 手ごたえ：割れた瞬間に一瞬止めて、少し寄る（高いものほど長く・強く）
   hitStop = Math.max(hitStop, big ? 0.09 : 0.045); zoomK = Math.max(zoomK, big ? 1 : 0.5); zoomX = it.x; zoomY = plat.y - 20;
   const lab = it.sunk ? (d.snd === 'elec' ? lt('水没 +', 'Drowned +') : lt('ぽちゃん +', 'Plop +')) : '+';
-  pops.push({ x: it.x, y: plat.y - 30, text: lab + yen(d.yen), life: big ? 1.8 : 1.4, col: it.sunk ? '#1d6fa8' : '#e0362c', size: big ? 28 : 16 });
+  pops.push({ x: it.x, y: plat.y - 30, text: lab + yen(yv), life: big ? 1.8 : 1.4, col: it.sunk ? '#1d6fa8' : '#e0362c', size: big ? 28 : 16 });
   cardCd = 0;
   if (big) { sfx.kaching(); happyHop(); addPart({ k: 'crack', x: it.x, y: plat.y - 10, life: 0.7, gy: 9999, c: '#fff', s: 26, rot: rnd(0, 6), vr: 0, vx: 0, vy: 0, landed: true }); }
   // 連鎖の数え上げ。上乗せのボーナス（連鎖・精神的ダメージ・ノーマーク・ストライク）は、1つの札にまとめて縦に並べる
@@ -2755,7 +2797,7 @@ function makeFoe(kind) {
 // 相手にやられた：しばらく動けず、押し出される。物音で飼い主がそちらを見る（見られていれば怪しまれる）
 function foeHitCat(dir, stunT, label) {
   const c = cat; if (c.stun > 0 || c.hidden || c.bathT > 0 || chaseT > 0 || state !== 'play') return false;
-  c.stun = stunT; c.vx = dir * 320; tapTarget = null; c.autoScr = null; c.scratch = null; shake = Math.max(shake, 0.15); buzz(40); sfx.bump(); sfx.yowl();
+  c.stun = stunT * (accFx().stun || 1); c.vx = dir * 320; tapTarget = null; c.autoScr = null; c.scratch = null; shake = Math.max(shake, 0.15); buzz(40); sfx.bump(); sfx.yowl();
   pops.push({ x: c.x, y: c.y - 52, text: label, life: 0.9, col: '#e0362c', size: 16 });
   fur(c.x, c.y - 20); hearNoise(c.x, 0.35); run.ev.foeHit = (run.ev.foeHit || 0) + 1; return true;
 }
@@ -3456,7 +3498,8 @@ function showEnding() {
   const firstTrue = tr && store.get('nekoTrueEnd', '') !== '1'; if (tr) store.set('nekoTrueEnd', '1'); endingsSeen.add(et); store.set('nekoEndings', JSON.stringify([...endingsSeen]));
   const newSiam = !catsOpen.has('siam'); openCat('siam');
   const gotTitles = [];
-  for (const t of TITLES) { let got = false; try { got = t.tier != null ? run.yen >= t.tier : t.life ? !!t.life(LIFE) : t.test(run); } catch (e) {} if (got && !unlocked.has(t.id)) { unlocked.add(t.id); gotTitles.push(t.name); } }
+  for (const t of TITLES) { if (t.tier == null) continue; if (run.yen >= t.tier && !unlocked.has(t.id)) { unlocked.add(t.id); gotTitles.push(t.name); } }
+  cardCheckLife(); cardCheck(true);
   store.set('nekoTitles', JSON.stringify([...unlocked]));
   run.stage = level; if (onlineOn() && myName && run.yen > 0) { run.sent = false; sendScore().then(() => { run.sent = false; }); }
   sfx.combo(6); setTimeout(() => sfx.kaching(), 250); buzz([60, 40, 60, 40, 120]);
@@ -3642,9 +3685,9 @@ function updSus(dt) {
   // 怪しまれるのは「いたずら」だけ。床を歩く・跳ぶ・鳴く・食べるのはネコとして普通なので上がらない
   let gain = 0;
   if (seen) {
-    if (cat.punchT > 0) { gain += rate * cat.type.sus; cat.mark = 0.4; }   // パンチの現行犯
-    else if (cat.scratch) { gain += rate * 0.9 * cat.type.sus; cat.mark = 0.4; }   // 爪とぎ・ゴミ箱あさりの現行犯（床の上でも）
-    else if (cat.onFurn && !isHigh()) { gain += rate * (Math.abs(cat.vx) > 6 ? 0.35 : 0.2) * cat.type.sus; cat.mark = 0.4; }   // 乗ってはいけない所にいる（隠れ場所の高い所でじっとしているのは別）
+    if (cat.punchT > 0) { gain += rate * catStat('sus'); cat.mark = 0.4; }   // パンチの現行犯
+    else if (cat.scratch) { gain += rate * 0.9 * catStat('sus'); cat.mark = 0.4; }   // 爪とぎ・ゴミ箱あさりの現行犯（床の上でも）
+    else if (cat.onFurn && !isHigh()) { gain += rate * (Math.abs(cat.vx) > 6 ? 0.35 : 0.2) * catStat('sus'); cat.mark = 0.4; }   // 乗ってはいけない所にいる（隠れ場所の高い所でじっとしているのは別）
     if (cat.mark > 0) run.streak = 0;   // 現行犯で見られたら、ノーマークの連続は切れる
     if (cat.onFurn && !isHigh() && !cat.punchT && !(o.sayT > 0) && o.mode !== 'search' && Math.random() < dt * 0.6) say(pick(LINES.down), 1.5);
   }
@@ -3661,9 +3704,9 @@ function updSus(dt) {
     if (guestSees(cat.x)) { ex.push(guest.mode === 'chat' ? 30 : 15); exBy = exBy || 'guest'; }
     for (const cm of cams) if (camSees(cm, cat.x)) { ex.push(22); cm.rec = 0.6; exBy = 'cam'; }   // 4.23.3：28 → 22
     for (const r of ex) {
-      if (cat.punchT > 0) { gain += r * cat.type.sus; cat.mark = 0.4; }
-      else if (cat.scratch) { gain += r * 0.9 * cat.type.sus; cat.mark = 0.4; }
-      else if (cat.onFurn && !isHigh()) { gain += r * 0.25 * cat.type.sus; cat.mark = 0.4; }
+      if (cat.punchT > 0) { gain += r * catStat('sus'); cat.mark = 0.4; }
+      else if (cat.scratch) { gain += r * 0.9 * catStat('sus'); cat.mark = 0.4; }
+      else if (cat.onFurn && !isHigh()) { gain += r * 0.25 * catStat('sus'); cat.mark = 0.4; }
     }
     if (ex.length) { seen = true; exSeen = true; }
   }
@@ -3676,7 +3719,7 @@ function updSus(dt) {
   if (hiding && state === 'play') {
     const key = cat.hidden ? 'box' : cat.safe ? 'tower' : cat.plat === PL.book ? 'book' : 'rail';
     if (cat.hideKey !== key) { cat.hideKey = key; cat.hideT = 0; } cat.hideT += dt;
-    if (cat.hideT > 8 && o.mode !== 'away' && o.mode !== 'chase' && o.mode !== 'leave' && o.mode !== 'churu') {
+    if (cat.hideT > (accFx().hide || 8) && o.mode !== 'away' && o.mode !== 'chase' && o.mode !== 'leave' && o.mode !== 'churu') {
       if (o.mode !== 'search') { setMode('search', 5); say(lt('…あそこ、あやしい', '…Something\'s off over there'), 1.6); }
       const sx = cat.hidden ? BOX.x : cat.x; o.gx = clamp(sx, 20, 335); o.searchRetarget = 1; o.t = Math.max(o.t, 2);
       if (Math.abs(o.x - clamp(sx, 20, 335)) < 40) evictHide(sx);
@@ -3816,7 +3859,7 @@ function checkClear() {
   // 手際：残り時間の割合 × 40%。完全犯罪：最大の怪しまれ度が 30% 未満なら 30%（50% 未満なら こっそり 15%）
   const sy = run.yen - stageYen0, perfect = stageMaxSus < 30;
   const close = timeLeft <= 10 ? Math.round(sy * 0.15) : 0;   // ギリギリ：残り10秒以内のクリアは +15%
-  const quick = Math.round(sy * 0.4 * clamp(timeLeft / timeMax, 0, 1)) + close, sneaky = Math.round(sy * (perfect ? 0.3 : stageMaxSus < 50 ? 0.15 : 0));
+  const sk = accFx().skill || 1, quick = Math.round((Math.round(sy * 0.4 * clamp(timeLeft / timeMax, 0, 1)) + close) * sk), sneaky = Math.round(sy * (perfect ? 0.3 : stageMaxSus < 50 ? 0.15 : 0) * sk);   // 金メダル：腕前ボーナス +25%
   run.yen += quick + sneaky; run.skill += quick + sneaky; if (perfect) run.perfect++;
   if (stageMaxSus < 10 && sy > 0) run.ghost++; if (phaseOf(level).special === 'guest' && stageMaxSus < 50) run.guestClear = true;
   if (phaseOf(level).special) run.ev['night_' + phaseOf(level).special] = true;
@@ -3829,7 +3872,7 @@ function checkClear() {
   // 1日の最後の面：まずふつうのクリア画面を 1.6 秒見せてから、おしまいの画面（3日目の夜ならエンディング）へ
   if (level % NPH === 0) { dayEndNext = true; lastCarry = carryT = 0; state = 'clear'; clearT = 1.6; sfx.clear(); setPulse(null); setMode('away', 99); owner.warned = true; owner.lureT = 0; return; }
   // 残り時間の半分を次のステージへ持ち越す（最大20秒）
-  lastCarry = carryT = Math.min(20, Math.round(Math.max(0, timeLeft) * 0.5));
+  lastCarry = carryT = Math.min(accFx().carry || 20, Math.round(Math.max(0, timeLeft) * 0.5));
   state = 'clear'; clearT = 2.4; sfx.clear(); setPulse(null);
   setMode('away', 99); owner.warned = true; owner.lureT = 0;
 }
@@ -3976,10 +4019,11 @@ function gameOver() {
   }
   newTitles = [];
   for (const t of TITLES) {
-    const got = t.tier != null ? run.yen >= t.tier : t.life ? !!t.life(LIFE) : t.test(run);
-    if (got && !unlocked.has(t.id)) { unlocked.add(t.id); newTitles.push(t.name); }
+    if (t.tier == null) continue;   // 4.26.0：行動・通算の称号はカードになった
+    if (run.yen >= t.tier && !unlocked.has(t.id)) { unlocked.add(t.id); newTitles.push(t.name); }
   }
-  newAccs = ACCS.filter(a => a.need > 0 && a.need <= unlocked.size && a.need > unlocked.size - newTitles.length).map(a => a.name);
+  const nc0 = cardsGot.size; cardCheckLife();
+  newAccs = ACCS.filter(a => a.need > 0 && a.need <= cardsGot.size && a.need > nc0 - (newCards.length - (cardsGot.size - nc0))).map(a => a.name);
   store.set('nekoTitles', JSON.stringify([...unlocked]));
   worldNow = null;
   showOver();
@@ -4475,8 +4519,8 @@ function drawRoom() {
   g.strokeStyle = '#4a2f1d'; g.lineWidth = 2.5; g.lineCap = 'round'; g.beginPath(); g.moveTo(ckx, 90); g.lineTo(ckx + Math.cos(ha) * 10, 90 + Math.sin(ha) * 10); g.moveTo(ckx, 90); g.lineTo(ckx, 74); g.stroke();
   // 第2週の痕跡：5日目から「ネコ注意」の貼り紙、6日目から書斎に犯人ボード（ボス猫の写真に赤い×）、7日目から「監視中」の札
   { const d = dayOf(level);
-    if (d >= 5) { g.save(); g.translate(120, 134); g.rotate(0.04); g.fillStyle = '#fff6c8'; g.fillRect(-22, -14, 44, 28); g.fillStyle = '#e0362c'; g.fillRect(-22, -14, 44, 5); g.fillStyle = '#4a2f1d'; g.font = `800 9px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('ネコ注意', 'CAT ALERT'), 0, 2); g.fillText(lt('ネコ注意', 'CAT ALERT'), 0, 2); g.fillStyle = '#9aa0a6'; g.beginPath(); g.arc(0, -11, 1.6, 0, TAU); g.fill(); g.restore(); }
-    if (d >= 7) { g.save(); g.translate(300, 136); g.fillStyle = '#e0362c'; rr(g, -26, -9, 52, 18, 4); g.fill(); g.fillStyle = '#fff'; g.font = `800 9px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('監視中', 'WATCHING'), 0, 1); g.fillStyle = (tAnim * 2) % 1 < 0.5 ? '#fff' : '#ffc94a'; g.beginPath(); g.arc(-20, 0, 2, 0, TAU); g.fill(); g.restore(); }
+    if (d >= 5) { g.save(); g.translate(120, 178); g.rotate(0.04); g.fillStyle = '#fff6c8'; g.fillRect(-22, -14, 44, 28); g.fillStyle = '#e0362c'; g.fillRect(-22, -14, 44, 5); g.fillStyle = '#4a2f1d'; g.font = `800 9px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('ネコ注意', 'CAT ALERT'), 0, 2); g.fillText(lt('ネコ注意', 'CAT ALERT'), 0, 2); g.fillStyle = '#9aa0a6'; g.beginPath(); g.arc(0, -11, 1.6, 0, TAU); g.fill(); g.restore(); }
+    if (d >= 7) { g.save(); g.translate(300, 172); g.fillStyle = '#e0362c'; rr(g, -26, -9, 52, 18, 4); g.fill(); g.fillStyle = '#fff'; g.font = `800 9px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('監視中', 'WATCHING'), 0, 1); g.fillStyle = (tAnim * 2) % 1 < 0.5 ? '#fff' : '#ffc94a'; g.beginPath(); g.arc(-20, 0, 2, 0, TAU); g.fill(); g.restore(); }
     if (d >= 6 && room === 'study') {
       // 犯人ボード：コルクボードにボス猫の写真、赤い×、「犯人」のメモ、糸
       g.fillStyle = '#c99a62'; rr(g, 180, 56, 70, 58, 3); g.fill(); g.strokeStyle = '#8a5a34'; g.lineWidth = 3; g.strokeRect(180, 56, 70, 58);
@@ -4532,7 +4576,7 @@ function drawRoom() {
 // 養生テープの跡：前にこの部屋で割った場所（run.tape[room]）。その面で割った分は次に来たときから見える
 function drawTape() {
   const tp = run && run.tape && run.tape[room]; if (!tp) return;
-  for (const t of tp) { if (t.L === level) continue; g.save(); g.translate(t.x, FLOOR + 14); g.rotate(t.r); g.fillStyle = 'rgba(255,214,130,.85)'; g.fillRect(-9, -2.5, 18, 5); g.rotate(Math.PI / 2); g.fillRect(-9, -2.5, 18, 5); g.restore(); }
+  for (const t of tp) { if (t.L === level) continue; g.save(); g.translate(t.x, FLOOR + 14); g.rotate(t.r); g.fillStyle = 'rgba(255,214,130,.9)'; g.fillRect(-12, -3, 24, 6); g.rotate(Math.PI / 2); g.fillRect(-12, -3, 24, 6); g.restore(); }
 }
 function drawGardenBg() {
   const ph = phaseOf(level);
@@ -5682,7 +5726,7 @@ function showTitle() {
     <div class="big-logo">${lt('こっそり<span>ネコ</span>', 'Mischievous <span>Cat</span>')}</div><p class="sub">${lt('MISCHIEVOUS CAT', 'こっそりネコ')}</p>
     <div class="cats" role="group" aria-label="${lt('ネコをえらぶ', 'Choose a cat')}">${CATS.map((c, i) => { const ok = catsOpen.has(c.id); return `<button type="button" data-i="${i}" aria-pressed="${i === selCat}" ${ok ? '' : 'disabled'}><canvas width="144" height="108"></canvas><b>${ok ? c.name : '？？？'}</b><span>${ok ? c.note : CAT_LOCK[c.id]}</span></button>`; }).join('')}</div>
     <div class="stats" id="stats"></div>
-    <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : a.ending ? lt('エンディング', 'Ending') : a.trueEnd ? lt('7日目', 'Day 7') : a.secret ? '？？？' : '★' + a.need}</button>`; }).join('')}</div>
+    <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : a.ending ? lt('エンディング', 'Ending') : a.trueEnd ? lt('7日目', 'Day 7') : a.secret ? '？？？' : a.need + lt('枚', ' cards')}</button>`; }).join('')}</div>
     <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
     ${keysBox()}
     <div class="row"><button class="btn w" id="recBtn" type="button">${lt('きろく', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('せってい', 'Settings')}</button></div>
@@ -5693,7 +5737,7 @@ function showTitle() {
     ov.querySelectorAll('.cats button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); setupStage(1); showStats();
   }));
   ov.querySelectorAll('.accs button').forEach(b => b.addEventListener('click', () => {
-    selAcc = b.dataset.a; store.set('nekoAcc', selAcc); audio(); sfx.bowl();
+    selAcc = b.dataset.a; store.set('nekoAcc', selAcc); audio(); sfx.bowl(); showStats();
     ov.querySelectorAll('.accs button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
     ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.setTransform(2, 0, 0, 2, 0, 0); c2.clearRect(0, 0, 72, 54); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
   }));
@@ -5868,17 +5912,21 @@ function catLook(i) {
 }
 function showStats() {
   const T = CATS[selCat], el = $('stats'); if (!el) return;
-  el.innerHTML = PIPS.map((n, i) => `<span>${n}</span><span class="pips">${[1, 2, 3, 4, 5].map(k => `<i class="${k <= T.pip[i] ? 'on' : ''}"></i>`).join('')}</span>`).join('') + (T.tag ? `<span class="tag">${T.tag}</span>` : '');
+  const fx = ACC_FX[selAcc] || ACC_FX.none, keys = ['speed', 'jump', 'punch', 'sus', 'food'], acc = ACCS.find(a => a.id === selAcc);
+  el.innerHTML = PIPS.map((n, i) => {
+    const d = (fx.pip && fx.pip[keys[i]]) || 0, base = T.pip[i], v = clamp(base + d, 1, 5);
+    return `<span>${n}</span><span class="pips">${[1, 2, 3, 4, 5].map(k => `<i class="${k <= v ? (d > 0 && k > base ? 'on up' : 'on') : (d < 0 && k <= base ? 'dn' : '')}"></i>`).join('')}</span>`;
+  }).join('') + (T.tag ? `<span class="tag">${T.tag}</span>` : '') + (selAcc !== 'none' && acc ? `<span class="tag acc">${acc.name}：${fx.note}</span>` : '');
 }
 // きろく：ランキング・称号図鑑・通算記録を、上のタブで切り替える（もどるは、開いた画面＝タイトルか結果へ）
 function recTabs(cur) {
   const b = (id, lab) => `<button type="button" data-rt="${id}" aria-pressed="${id === cur}">${lab}</button>`;
-  return `<div class="tabs rec-tabs">${b('rank', lt('ランキング', 'Ranking'))}${b('zukan', lt('称号', 'Titles'))}${b('cards', lt('いたずら', 'Cards'))}${b('life', lt('通算', 'Stats'))}</div>`;
+  return `<div class="tabs rec-tabs">${b('rank', lt('ランキング', 'Ranking'))}${b('cards', lt('いたずら図鑑', 'Cards'))}${b('life', lt('通算', 'Stats'))}</div>`;
 }
-function bindRecTabs() { ov.querySelectorAll('.rec-tabs button').forEach(bt => bt.addEventListener('click', () => { const t = bt.dataset.rt; if (t === 'rank') showRank(); else if (t === 'zukan') showZukan(0); else if (t === 'cards') showCards(0); else showLife(0); })); }
+function bindRecTabs() { ov.querySelectorAll('.rec-tabs button').forEach(bt => bt.addEventListener('click', () => { const t = bt.dataset.rt; if (t === 'rank') showRank(); else if (t === 'cards') showCards(0); else showLife(0); })); }
 const recBack = () => state === 'over' ? showOver : showTitle;
 // ページ送り：◀ ▶ と左右のスワイプでページを変える（称号図鑑・通算記録）
-let zkPage = 0, lfPage = 0, cdPage = 0;
+let lfPage = 0, cdPage = 0;
 const pagedH = () => Math.max(380, Math.min(640, (ov.clientHeight || 600) - 28));   // ページ送りの画面の高さ（どのページでも同じ。ボタンの位置が動かない）
 function pagerNav(i, n) {
   return `<div class="pager-nav"><button type="button" class="btn w pg-prev" ${i <= 0 ? 'disabled' : ''} aria-label="${lt('前のページ', 'Previous page')}">◀</button><span class="pg-dots">${Array.from({ length: n }, (_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}<b>${i + 1} / ${n}</b></span><button type="button" class="btn w pg-next" ${i >= n - 1 ? 'disabled' : ''} aria-label="${lt('次のページ', 'Next page')}">▶</button></div>`;
@@ -5892,26 +5940,14 @@ function bindPager(i, n, go) {
   pg.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; });
   pg.addEventListener('pointerup', e => { if (x0 == null) return; const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null; if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) { if (dx < 0 && i < n - 1) go(i + 1); else if (dx > 0 && i > 0) go(i - 1); } });
 }
-function showZukan(page) {
-  const PER = ov.clientHeight && ov.clientHeight < 560 ? 6 : 8, n = Math.ceil(TITLES.length / PER); zkPage = clamp(page == null ? zkPage : page, 0, n - 1);
-  const list = TITLES.slice(zkPage * PER, zkPage * PER + PER);
-  ov.hidden = false;
-  ov.innerHTML = `<div class="panel paged" style="height:${pagedH()}px">${recTabs('zukan')}
-    <div class="big-logo" style="font-size:1.5rem">${lt('称号図鑑', 'Titles')}</div><p class="sub">${unlocked.size} / ${TITLES.length}</p>
-    <div class="pager"><div class="zukan">${list.map(t => `<div class="${unlocked.has(t.id) ? '' : 'off'}">${unlocked.has(t.id) ? t.name : '？？？'}<small>${TDESC[t.id] ? String(TDESC[t.id]) : ''}</small></div>`).join('')}</div></div>
-    ${zkPage === n - 1 ? `<div class="zukan" style="margin-top:0">${Object.entries(ENDINGS).map(([k, E]) => `<div class="${endingsSeen.has(k) ? '' : 'off'}">ENDING ${endingsSeen.has(k) ? E.n : '？？？'}<small>${E.how}</small></div>`).join('')}</div>` : ''}
-    ${pagerNav(zkPage, n)}
-    <button class="btn go" id="zkBack" type="button">${lt('もどる', 'Back')}</button></div>`;
-  $('zkBack').addEventListener('click', recBack()); bindRecTabs(); bindPager(zkPage, n, showZukan);
-}
 // いたずらカード図鑑：1ページ6枚（低い画面は4枚）。取ったカードは写真つき、まだのカードは取り方だけ
 function showCards(page) {
-  const PER = ov.clientHeight && ov.clientHeight < 560 ? 4 : 6, n = Math.ceil(CARDS.length / PER); cdPage = clamp(page == null ? cdPage : page, 0, n - 1);
-  const list = CARDS.slice(cdPage * PER, cdPage * PER + PER);
+  const PER = ov.clientHeight && ov.clientHeight < 560 ? 4 : 6, n = Math.ceil(CARDS.length / PER) + 1; cdPage = clamp(page == null ? cdPage : page, 0, n - 1);   // 最後のページは被害額の称号とエンディング
+  const list = CARDS.slice(cdPage * PER, cdPage * PER + PER), last = cdPage === n - 1;
   ov.hidden = false;
   ov.innerHTML = `<div class="panel paged" style="height:${pagedH()}px">${recTabs('cards')}
     <div class="big-logo" style="font-size:1.5rem">${lt('いたずら図鑑', 'Mischief Cards')}</div><p class="sub">${cardsGot.size} / ${CARDS.length}</p>
-    <div class="pager"><div class="cards">${list.map(cd => { const ok = cardsGot.has(cd.id), pic = ok && cardPics[cd.id]; return `<div class="${ok ? '' : 'off'}">${pic ? `<img src="${pic}" alt="" width="128" height="128">` : `<i>${ok ? '🐾' : '？'}</i>`}<b>${ok ? cd.name : '？？？'}</b><small>${cd.desc}</small></div>`; }).join('')}</div></div>
+    <div class="pager">${last ? `<div class="zukan">${TITLES.filter(t => t.tier != null).map(t => `<div class="${unlocked.has(t.id) ? '' : 'off'}">${unlocked.has(t.id) ? t.name : '？？？'}<small>${TDESC[t.id] ? String(TDESC[t.id]) : ''}</small></div>`).join('')}${Object.entries(ENDINGS).map(([k, E]) => `<div class="${endingsSeen.has(k) ? '' : 'off'}">ENDING ${endingsSeen.has(k) ? E.n : '？？？'}<small>${E.how}</small></div>`).join('')}</div>` : ''}<div class="cards"${last ? ' hidden' : ''}>${list.map(cd => { const ok = cardsGot.has(cd.id), pic = ok && cardPics[cd.id]; return `<div class="${ok ? '' : 'off'}">${pic ? `<img src="${pic}" alt="" width="128" height="128">` : `<i>${ok ? '🐾' : '？'}</i>`}<b>${ok ? cd.name : '？？？'}</b><small>${cd.desc}</small></div>`; }).join('')}</div></div>
     ${pagerNav(cdPage, n)}
     <button class="btn go" id="cdBack" type="button">${lt('もどる', 'Back')}</button></div>`;
   $('cdBack').addEventListener('click', recBack()); bindRecTabs(); bindPager(cdPage, n, showCards);
@@ -6153,9 +6189,9 @@ function nextGoal() {
   if (!newRec && bestYen > y) cands.push({ gap: bestYen - y, text: lt(`あと ${yen(bestYen - y)} でベスト更新`, `${yen(bestYen - y)} to your best`) });
   if (tt) cands.push({ gap: tt.tier - y, text: lt(`あと ${yen(tt.tier - y)} で「${tt.name}」`, `${yen(tt.tier - y)} to "${tt.name}"`) });
   cands.sort((a, b) => a.gap - b.gap); if (cands.length) rows.push(cands[0].text);
-  const acc = ACCS.filter(a => a.need > 0 && !a.ending && !a.trueEnd && !a.secret && a.need > unlocked.size).sort((a, b) => a.need - b.need)[0];
+  const acc = ACCS.filter(a => a.need > 0 && !a.ending && !a.trueEnd && !a.secret && a.need > cardsGot.size).sort((a, b) => a.need - b.need)[0];
   const left = CARDS.length - cardsGot.size;
-  if (acc && acc.need - unlocked.size <= 3) rows.push(lt(`称号あと ${acc.need - unlocked.size} 個で きせかえ「${acc.name}」`, `${acc.need - unlocked.size} more title${acc.need - unlocked.size > 1 ? 's' : ''} for "${acc.name}"`));
+  if (acc && acc.need - cardsGot.size <= 4) rows.push(lt(`カードあと ${acc.need - cardsGot.size} 枚で きせかえ「${acc.name}」`, `${acc.need - cardsGot.size} more card${acc.need - cardsGot.size > 1 ? 's' : ''} for "${acc.name}"`));
   else if (left > 0 && cardsGot.size > 0) { const nb = Object.keys(BIG).find(k => !cardsGot.has('big_' + k)); rows.push(nb && cardsGot.size >= 5 ? lt(`大技「${BIG[nb].n}」：${BIG[nb].how}`, `Big one "${BIG[nb].n}": ${BIG[nb].how}`) : lt(`いたずらカード あと ${left} 枚`, `${left} mischief card${left > 1 ? 's' : ''} to go`)); }
   if (!rows.length) return '';
   return `<p class="goal">${rows.map(r => `<span>${r}</span>`).join('')}</p>`;

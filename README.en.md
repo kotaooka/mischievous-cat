@@ -121,16 +121,17 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 | Calico | Lucky cat (pricey items show up more) | Over ¥100,000 damage in a single run |
 | Siamese | Light-footed (best jumper, quiet steps) | Reach the ending |
 
-## 🏆 Rankings and titles
+## 🏆 Rankings and mischief cards
 
 - **World ranking (All-time)**: register a nickname on the result screen to join the top 50 of all players (one entry per device). A record is sent only when you beat your personal best, and a new nickname appears the next time you do
 - **Today's ranking**: a ranking for today only (Japan time). Each run is sent to both All-time and Today whenever it beats your best there
 - **Send on LINE**: sends the text and the link (the image share sends only the picture on LINE). On PC, Share copies the image to the clipboard and opens the X post window, so paste it into the post
-- **Records**: one screen from the title with tabs for Ranking, Titles, Cards and Stats
+- **Records**: one screen from the title with tabs for Ranking, Cards and Stats
 - **Big ones**: each room has one way to bring a whole piece of furniture down (bookshelf avalanche, fridge avalanche…). Everything on top falls and the owner freezes for a moment. The Cards tab tells you how
-- **Mischief cards**: 45 kinds of mischief, each collected as a card with a photo of the moment you first pulled it off. The Cards tab also shows how to get the ones you are missing
+- **Mischief cards**: 72 cards (some per run, some lifetime), each collected with a photo of the moment you first pulled it off. The Cards tab also shows how to get the ones you are missing
 - **This device**: your own top 10
-- **Titles**: 54 of them (some per run, some lifetime). The Titles list shows how to earn even the ones you don't have yet. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
+- **Accessories**: every accessory has an upside and a downside (the bell collar makes food last longer but your noises louder; the crown adds 10% damage but makes you more suspicious). "None" has no modifiers. Switching one on the title screen changes the stat pips and shows what it does
+- **Titles**: the title on the result screen is decided by one run's damage (five ranks)
 - **Crime scene photo**: a close-up of the cat at the moment you're caught becomes a Polaroid (no HUD in the shot), with a one-line pitch and where to play. Share it with `#MischievousCat`
 - **Day restarts**: from Day 2 on, the result screen offers "Continue from Day N morning". Damage, stars and charms go back to that morning, and the ranking shows how many restarts you used
 - **Bad records**: unsigned records and impossible scores don't appear in the ranking
