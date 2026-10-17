@@ -11,7 +11,7 @@ Cups, vases, smartphones. You're just an adorable cat. …Probably.
 
 - Just open it in your browser. No install, no sign-up (phone or PC)
 - Add it to your home screen to launch it like an app. Once opened, it also works offline
-- The game switches to English automatically when your device isn't set to Japanese. You can also switch languages on the title or pause screen
+- The game switches to English automatically when your device isn't set to Japanese. You can also switch languages under Settings (from the title or pause screen)
 - Compete with everyone on the world ranking
 
 ## 📸 What it looks like
@@ -51,7 +51,7 @@ Walking, jumping, meowing and eating are all "normal cat things", so you won't g
 
 Gamepads work on PC too (D-pad/stick move, A jump, X or B punch, Y meow, START pause). Volume, vibration and mirrored buttons are under **Settings**.
 
-Want to play one-handed? Turn on **One-hand** on the title screen. Tap a spot or an item and the cat **finds its own way there, jumping as needed**, then punches the item (long tap for a power punch). Tap the boss cat, the chicken, a mouse or the fish tank to paw at it. Swipe up to jump; pressing any button takes back manual control.
+Want to play one-handed? Turn on **One-hand** under **Settings**. Tap a spot or an item and the cat **finds its own way there, jumping as needed**, then punches the item (long tap for a power punch). Tap the boss cat, the chicken, a mouse or the fish tank to paw at it. Swipe up to jump; pressing any button takes back manual control.
 
 ## 💡 Tips
 
