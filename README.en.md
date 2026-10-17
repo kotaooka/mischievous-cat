@@ -124,9 +124,10 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 - **World ranking (All-time)**: register a nickname on the result screen to join the top 50 of all players (one entry per device). A record is sent only when you beat your personal best, and a new nickname appears the next time you do
 - **Today's ranking**: a ranking for today only (Japan time). Each run is sent to both All-time and Today whenever it beats your best there
 - **Send on LINE**: sends the text and the link (the image share sends only the picture on LINE)
-- **Records**: one screen from the title with tabs for Ranking, Titles and Stats
+- **Records**: one screen from the title with tabs for Ranking, Titles, Cards and Stats
+- **Mischief cards**: 30 kinds of mischief, each collected as a card with a photo of the moment you first pulled it off. The Cards tab also shows how to get the ones you are missing
 - **This device**: your own top 10
-- **Titles**: 40 of them. The Titles list shows how to earn even the ones you don't have yet. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
+- **Titles**: 51 of them (some per run, some lifetime). The Titles list shows how to earn even the ones you don't have yet. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
 - **Crime scene photo**: a close-up of the cat at the moment you're caught becomes a Polaroid (no HUD in the shot), with a one-line pitch and where to play. Share it with `#MischievousCat`
 - **Day restarts**: from Day 2 on, the result screen offers "Continue from Day N morning". Damage, stars and charms go back to that morning, and the ranking shows how many restarts you used
 - **Bad records**: unsigned records and impossible scores don't appear in the ranking

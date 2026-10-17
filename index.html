@@ -178,6 +178,15 @@
   .pg-dots b { margin-left: 6px; font-weight: 800; }
   .online.up, .online.err { padding: 6px 10px; }
   .zukan small { display: block; font-weight: 500; font-size: .7rem; color: var(--ink2); margin-top: 2px; line-height: 1.35; }
+  /* いたずらカード：写真＋名前＋取り方 */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
+  .cards div { border: 2px solid var(--line); border-radius: 12px; padding: 5px; background: #fff; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .cards div.off { background: #fbf3e6; color: #c9b39a; }
+  .cards img, .cards i { width: 100%; aspect-ratio: 1; border-radius: 8px; object-fit: cover; background: #e9d7b8; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: 1.6rem; color: #b39a80; }
+  .cards b { font-size: .74rem; line-height: 1.25; margin-top: 4px; }
+  .cards small { display: block; font-weight: 500; font-size: .62rem; color: var(--ink2); line-height: 1.3; margin-top: 2px; }
+  .cards div.off small { color: #b39a80; }
+  .rec-tabs button { font-size: .8rem; padding: 5px 2px; }
   .zukan div.off small { color: #b39a80; }
   .a2hs { border: 2px dashed var(--line); border-radius: 12px; padding: 8px 10px; margin: 8px 0; font-size: .82rem; text-align: left; background: #fff; line-height: 1.5; }
   .a2hs .row { margin-top: 6px; }
@@ -289,7 +298,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.17.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.18.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -395,6 +404,7 @@ let catsOpen = new Set(['saba', 'cha']);
 try { JSON.parse(store.get('nekoCats', '[]')).forEach(id => catsOpen.add(id)); } catch (e) {}
 let heavyCount = +store.get('nekoHeavy', 0) || 0, newCats = [], stageMaxSus = 0, carryT = 0, lastCarry = 0;
 function taskHit(id, inc) {
+  if (run && state === 'play') { run.ev[id] = (run.ev[id] || 0) + (inc || 1); cardCheck(); }
   const k = tasks.find(t => t.id === id && !t.done); if (!k || state !== 'play') return;
   k.n += inc || 1; if (k.n < k.need) return;
   k.done = true; run.stars++; sfx.combo(3); buzz(30);
@@ -539,7 +549,19 @@ const TITLES = [
   { id: 'rub', name: tx('あざといネコ', 'Shameless Charmer'), test: r => r.rubT >= 5 },
   { id: 'cuke', name: tx('きゅうり恐怖症', 'Cucumber Phobia'), test: r => r.cuke >= 1 },
   { id: 'lamp', name: tx('空中ブランコ', 'Trapeze Cat'), test: r => r.lamp >= 1 },
-  { id: 'ending', name: tx('自称いい子', 'A "Good" Cat'), test: r => !!r.ended }
+  { id: 'ending', name: tx('自称いい子', 'A "Good" Cat'), test: r => !!r.ended },
+  // 行動・通算の称号（life は通算記録 LIFE で判定）
+  { id: 'ghost', name: tx('幽霊ネコ', 'Ghost Cat'), test: r => r.ghost >= 1 },
+  { id: 'big5', name: tx('大物狙い', 'Big Game Hunter'), test: r => r.bigN >= 5 },
+  { id: 'guest', name: tx('社交的なネコ', 'Social Butterfly'), test: r => r.guestClear },
+  { id: 'regular', name: tx('常連ネコ', 'Regular'), life: L => (L.plays || 0) >= 10 },
+  { id: 'million', name: tx('賠償金100万', 'Million-Yen Menace'), life: L => (L.yen || 0) >= 1000000 },
+  { id: 'cups', name: tx('コップ専門', 'Cup Specialist'), life: L => ((L.broke && L.broke.cup) || 0) >= 30 },
+  { id: 'night', name: tx('夜行性', 'Nocturnal'), life: L => (L.nightYen || 0) >= 100000 },
+  { id: 'boxer', name: tx('ダンボールの住人', 'Box Dweller'), life: L => (L.hides || 0) >= 10 },
+  { id: 'rooms', name: tx('家じゅう制覇', 'Whole-House Tour'), life: L => Object.keys(L.rooms || {}).length >= Object.keys(ROOM_NAME).length },
+  { id: 'family', name: tx('ネコ一家', 'The Whole Family'), life: () => catsOpen.size >= CATS.length },
+  { id: 'days3', name: tx('三日坊主卒業', 'Three-Day Streak'), life: L => (L.dayStreak || 0) >= 3 }
 ];
 // 称号の取り方（図鑑に出す）。「1回で」は、あそぶ を押してから見つかるまでの1回のこと
 const TDESC = {
@@ -562,10 +584,68 @@ const TDESC = {
   chick: tx('1回でニワトリにものを2回落とさせる', 'Get the chicken to knock things off twice in one run'), bath: tx('お風呂に落ちる', 'Fall into the bath'),
   cloth: tx('テーブルクロスを引く', 'Yank the tablecloth'), rub: tx('1回で飼い主の足に合計5秒すりすり', 'Rub against the owner for 5 seconds total in one run'),
   cuke: tx('きゅうりで飛び上がる', 'Jump at a cucumber'), lamp: tx('吊り照明にぶら下がって飛ぶ', 'Swing from the hanging lamp'),
-  ending: tx('3日目の夜を越える', 'Get through the third night')
+  ending: tx('3日目の夜を越える', 'Get through the third night'),
+  ghost: tx('怪しまれ度10%未満のまま1面クリア', 'Clear a stage with suspicion under 10%'), big5: tx('1回で ¥30,000 以上のものを5つ落とす', 'Knock off 5 items worth ¥30,000+ in one run'),
+  guest: tx('お客さんの夜を怪しまれ度50%未満でクリア', 'Clear Guest Night with suspicion under 50%'), regular: tx('10回遊ぶ', 'Play 10 times'),
+  million: tx('通算の被害額 ¥1,000,000', 'Reach ¥1,000,000 total damage'), cups: tx('通算でコップを30個割る', 'Break 30 cups in total'),
+  night: tx('夜の面の被害額が通算 ¥100,000', 'Deal ¥100,000 total damage at night'), boxer: tx('通算でダンボールに10回かくれてやりすごす', 'Hide in the box from the owner 10 times in total'),
+  rooms: tx('7つの部屋ぜんぶでいたずらする', 'Make mischief in all 7 rooms'), family: tx('ネコを6匹そろえる', 'Unlock all 6 cats'), days3: tx('3日続けて遊ぶ', 'Play 3 days in a row')
 };
 let unlocked = new Set();
 try { unlocked = new Set(JSON.parse(store.get('nekoTitles', '[]'))); } catch (e) {}
+// ---------- いたずらカード：初めて成功したいたずらを、その瞬間の写真つきで集める ----------
+// test は 1回のプレイの記録 run で判定（ev はできごとの回数）。取れた瞬間にゲーム画面を写して、カードの絵にする
+const CARDS = [
+  { id: 'first',  name: tx('はじめての一撃', 'First Strike'),      desc: tx('何かを落とす', 'Knock something off'), test: r => r.yen > 0 },
+  { id: 'chain3', name: tx('ピタゴラ装置', 'Chain Reaction'),     desc: tx('3つ以上をまとめて落とす', 'Make a 3x chain'), test: r => r.maxChain >= 3 },
+  { id: 'phone',  name: tx('スマホ、床へ', 'Phone, Meet Floor'),   desc: tx('スマホを落とす', 'Knock off a phone'), test: r => !!r.broke.phone },
+  { id: 'water',  name: tx('水びたし', 'Flooded'),                desc: tx('水の入ったものをこぼす', 'Spill a drink'), test: r => r.water >= 1 },
+  { id: 'tissue', name: tx('紙吹雪', 'Confetti'),                 desc: tx('ティッシュを落とす', 'Knock off the tissues'), test: r => !!r.broke.tissue },
+  { id: 'cloth',  name: tx('テーブルクロス引き', 'Tablecloth Pull'), desc: tx('テーブルクロスを引く', 'Yank the tablecloth'), test: r => r.cloth >= 1 },
+  { id: 'lamp',   name: tx('空中ブランコ', 'Trapeze'),             desc: tx('吊り照明にぶら下がって飛ぶ', 'Swing from the hanging lamp'), test: r => r.lamp >= 1 },
+  { id: 'bath',   name: tx('ざぶん', 'Splash'),                   desc: tx('お風呂に落ちる', 'Fall into the bath'), test: r => r.bathFall >= 1 },
+  { id: 'sink',   name: tx('水没', 'Drowned'),                    desc: tx('お風呂にものを落とす', 'Drop something in the tub'), test: r => !!r.ev.sink },
+  { id: 'cuke',   name: tx('きゅうり!?', 'Cucumber!?'),            desc: tx('きゅうりで飛び上がる', 'Jump at a cucumber'), test: r => r.cuke >= 1 },
+  { id: 'ride',   name: tx('ロボ乗り', 'Robo Rider'),             desc: tx('お掃除ロボに乗る', 'Ride the robot vacuum'), test: r => r.rideT >= 3 },
+  { id: 'snack',  name: tx('にぼし泥棒', 'Snack Thief'),           desc: tx('冷蔵庫の上のにぼしを食べる', 'Eat the snack on the fridge'), test: r => !!r.ev.snack },
+  { id: 'data',   name: tx('データ消去', 'Data Wipe'),             desc: tx('パソコンのデータを消す', 'Wipe the computer data'), test: r => !!r.broke.data },
+  { id: 'alarm',  name: tx('目覚まし係', 'Wake-Up Call'),          desc: tx('目覚まし時計を鳴らす', 'Set off the alarm clock'), test: r => !!r.broke.alarm },
+  { id: 'bounce', name: tx('ベッドトランポリン', 'Bed Trampoline'), desc: tx('ベッドで3回はねる', 'Bounce on the bed 3 times'), test: r => (r.ev.bounce || 0) >= 3 },
+  { id: 'chick',  name: tx('ニワトリ使い', 'Chicken Whisperer'),   desc: tx('ニワトリにものを落とさせる', 'Get the chicken to knock one off'), test: r => r.chick >= 1 },
+  { id: 'fish',   name: tx('金魚ハント', 'Goldfish Hunt'),         desc: tx('金魚にタッチする', 'Paw at a goldfish'), test: r => r.fish >= 1 },
+  { id: 'boss',   name: tx('ボス猫撃退', 'Boss Beaten'),           desc: tx('ボス猫を追い払う', 'Chase off the boss cat'), test: r => r.boss >= 1 },
+  { id: 'mouse',  name: tx('ネズミ退治', 'Mouse Buster'),          desc: tx('ネズミをパンチで退治する', 'Bop the mouse'), test: r => r.mice >= 1 },
+  { id: 'scare',  name: tx('ネズミ作戦', 'Mouse Op'),              desc: tx('ネズミで飼い主を驚かす', 'Scare the owner with the mouse'), test: r => r.scare >= 1 },
+  { id: 'hide',   name: tx('ダンボールの中', 'Inside the Box'),     desc: tx('ダンボールで見張りをやりすごす', 'Hide in the box while watched'), test: r => !!r.ev.hide },
+  { id: 'lure',   name: tx('にゃー作戦', 'Meow Decoy'),            desc: tx('鳴いて飼い主をふり向かせる', 'Meow to make the owner turn'), test: r => !!r.ev.lure },
+  { id: 'kaku',   name: tx('目が合ったまま', 'Eye Contact'),        desc: tx('飼い主と目が合ったまま落とす', 'Knock one off while staring at the owner'), test: r => r.kakushin >= 1 },
+  { id: 'scratch', name: tx('爪とぎ', 'Scratch'),                  desc: tx('落とす以外のいたずらをする', 'Do mischief besides knocking'), test: r => r.mis >= 1 },
+  { id: 'rub',    name: tx('すりすり', 'Rub Rub'),                 desc: tx('飼い主の足に2秒すりすり', 'Rub against the owner for 2 seconds'), test: r => r.rubT >= 2 },
+  { id: 'escape', name: tx('逃げ切り', 'Clean Getaway'),           desc: tx('追いかけっこから逃げ切る', 'Escape a chase'), test: r => r.escapes >= 1 },
+  { id: 'top',    name: tx('天井の住人', 'Ceiling Dweller'),        desc: tx('エアコンの上に登る', 'Climb on top of the air conditioner'), test: r => !!r.top },
+  { id: 'tv',     name: tx('テレビ係', 'TV Operator'),             desc: tx('テレビをつける', 'Turn on the TV'), test: r => r.tv >= 1 },
+  { id: 'churu',  name: tx('チュールに釣られる', 'Treat Trap'),     desc: tx('チュールを食べる', 'Eat the treat'), test: r => r.churu >= 1 },
+  { id: 'dog',    name: tx('犬に吠えられる', 'Barked At'),          desc: tx('犬に吠えられる', 'Get barked at by the dog'), test: r => r.barks >= 1 }
+];
+let cardsGot = new Set(), cardPics = {}, newCards = [], cardCd = 0;
+try { cardsGot = new Set(JSON.parse(store.get('nekoCards', '[]'))); } catch (e) {}
+try { cardPics = JSON.parse(store.get('nekoCardPics', '{}')) || {}; } catch (e) {}
+// カードの絵：その瞬間の画面（犯行現場写真と同じ切り取り）を 128px にして保存する
+function cardShot() {
+  try { const sn = takeSnap(); if (!sn) return null; const c = document.createElement('canvas'); c.width = c.height = 128; c.getContext('2d').drawImage(sn, 0, 0, 128, 128); return c.toDataURL('image/jpeg', 0.6); } catch (e) { return null; }
+}
+function cardCheck() {
+  if (state !== 'play' || !run || run.preview) return;
+  for (const cd of CARDS) {
+    if (cardsGot.has(cd.id)) continue;
+    let ok = false; try { ok = !!cd.test(run); } catch (e) {}
+    if (!ok) continue;
+    cardsGot.add(cd.id); newCards.push(cd.name); store.set('nekoCards', JSON.stringify([...cardsGot]));
+    const pic = cardShot(); if (pic) { cardPics[cd.id] = pic; store.set('nekoCardPics', JSON.stringify(cardPics)); }
+    pops.push({ x: W / 2, y: 150, text: lt('カード「' + cd.name + '」', 'Card: ' + cd.name), life: 2.2, col: '#1d8174', size: 20 });
+    sfx.combo(4); buzz([20, 30, 40]);
+  }
+}
 
 // ---------- 飼い主のモード ----------
 const MODE = {
@@ -1087,6 +1167,7 @@ function setupStage(L) {
 function setupStageCore(L) {
   level = L; stageT = 0; chains = {};
   applyLayout(L);
+  if (run) { run.stageDrops = []; if (!run.rooms.includes(room)) run.rooms.push(room); }
   // その日の朝（各日の1面目）の状態を覚えておく（見つかったら、ここから続けられる）
   if (run && (L - 1) % DAY_LEN === 0) run.ck = { level: L, run: JSON.parse(JSON.stringify(Object.assign({}, run, { ck: null, res: null, sent: false }))) };
   items = []; puddles = []; prints = []; parts = []; pops = []; coins = [];
@@ -1272,8 +1353,9 @@ function pruneGimmicks(L, ph) {
 }
 function newRun() {
   run = { yen: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '', touched: false, stars: 0, escapes: 0,
-    mis: 0, launch: 0, ballHits: 0, top: false, streak: 0, maxStreak: 0, perfect: 0, skill: 0, space: 0, huh: false, huhStep: 0, fish: 0, mice: 0, boss: 0, chick: 0, bathFall: 0, scare: 0, cloth: 0, rubT: 0, cuke: 0, lamp: 0, churu: 0, tv: 0, ended: false };
-  sus = 0; snap = null; carryT = 0; newCats = []; dayEndNext = false; setupStage(1);
+    mis: 0, launch: 0, ballHits: 0, top: false, streak: 0, maxStreak: 0, perfect: 0, skill: 0, space: 0, huh: false, huhStep: 0, fish: 0, mice: 0, boss: 0, chick: 0, bathFall: 0, scare: 0, cloth: 0, rubT: 0, cuke: 0, lamp: 0, churu: 0, tv: 0, ended: false,
+    ev: {}, stageDrops: [], chainN: 0, chainT: -9, todYen: [0, 0, 0, 0], ghost: 0, bigN: 0, rooms: [], guestClear: false };   // ev：お題の有無にかかわらず数えるできごと（カード・称号用）。stageDrops：この面で落としたものの値段
+  sus = 0; snap = null; carryT = 0; newCats = []; newCards = []; dayEndNext = false; setupStage(1);
 }
 
 // ---------- 飼い主 ----------
@@ -1515,7 +1597,7 @@ function updCat(dt) {
     lamp.om += dir * 1.1 * dt; c.x = bx; c.y = by + 42; c.vx = 0; c.vy = 0; c.plat = null; if (dir) c.face = dir;
     c.onFurn = true; c.acting = true; c.still = 0; c.stare = false; c.hidden = false; c.safe = false;
     if (c.jumpBuf > 0) {
-      const v = lamp.om * lamp.L; c.vx = clamp(v * Math.cos(lamp.th), -520, 520); c.vy = -v * Math.sin(lamp.th) - 430; c.hang = false; c.grabCd = 0.5; c.jumpBuf = 0; c.bathOut = true; run.lamp++; sfx.jump();
+      const v = lamp.om * lamp.L; c.vx = clamp(v * Math.cos(lamp.th), -520, 520); c.vy = -v * Math.sin(lamp.th) - 430; c.hang = false; run.lamp++; c.grabCd = 0.5; c.jumpBuf = 0; c.bathOut = true; run.lamp++; sfx.jump();
       pops.push({ x: c.x, y: c.y - 60, text: lt('ビューン!', 'Wheee!'), life: 1, col: '#9b5fc0', size: 16 });
     }
     return;
@@ -1929,6 +2011,7 @@ function breakItem(it, plat) {
   }
   run.touched = true; run.yen += d.yen; run.broke[it.t] = (run.broke[it.t] || 0) + 1; run.lastBroke = it.t;
   if (!run.big || d.yen > run.big.y) run.big = { k: it.t, y: d.yen };
+  run.stageDrops.push(d.yen); run.todYen[phaseOf(level).tod] += d.yen; if (d.yen >= 30000) run.bigN++;
   if (it.t === 'alarm') rush(it.x);
   if (it.t === 'remote') tvOn();
   if (it.home === 'book') run.bookBroke++;
@@ -1938,6 +2021,7 @@ function breakItem(it, plat) {
   hitStop = Math.max(hitStop, big ? 0.09 : 0.045); zoomK = Math.max(zoomK, big ? 1 : 0.5); zoomX = it.x; zoomY = plat.y - 20;
   const lab = it.sunk ? (d.snd === 'elec' ? lt('水没 +', 'Drowned +') : lt('ぽちゃん +', 'Plop +')) : '+';
   pops.push({ x: it.x, y: plat.y - 30, text: lab + yen(d.yen), life: big ? 1.8 : 1.4, col: it.sunk ? '#1d6fa8' : '#e0362c', size: big ? 28 : 16 });
+  cardCd = 0;
   if (big) { sfx.kaching(); happyHop(); addPart({ k: 'crack', x: it.x, y: plat.y - 10, life: 0.7, gy: 9999, c: '#fff', s: 26, rot: rnd(0, 6), vr: 0, vx: 0, vy: 0, landed: true }); }
   // 連鎖の数え上げ。上乗せのボーナス（連鎖・精神的ダメージ・ノーマーク・ストライク）は、1つの札にまとめて縦に並べる
   const bon = []; let chainN = 0, chainB = 0;
@@ -1946,7 +2030,7 @@ function breakItem(it, plat) {
     if (n >= 2) happyHop();
     if (n >= 3) spaceCat();
     if (n >= 2) hitStop = Math.max(hitStop, 0.04 + 0.02 * Math.min(n, 5));   // 連鎖の数はボーナスの札に書く（大きな「n!」は 4.7.1 でやめた）
-    if (n >= 2) { const b = Math.round(d.yen * 0.2); run.yen += b; run.maxChain = Math.max(run.maxChain, n); chainN = n; chainB += b; sfx.combo(n); }
+    if (n >= 2) { const b = Math.round(d.yen * 0.2); run.yen += b; run.maxChain = Math.max(run.maxChain, n); chainN = n; chainB += b; run.chainN = n; run.chainT = tAnim; sfx.combo(n); }
   }
   // 確信犯：目が合ってから落とされた飼い主の、精神的ダメージ
   if (d.yen >= 100000) spaceCat();
@@ -2836,12 +2920,37 @@ function takeSnap() {
     c.drawImage(cv, sx * DPR, (sy + OY) * DPR, S * DPR, S * DPR, 0, 0, 640, 640); return s;
   } catch (e) { snapMode = false; return null; }
 }
+// 捕まり方で変わる飼い主の一言（怒るより、呆れ・感心・笑い）。8割の確率でふつうの台詞と差しかえる
+const SP_LINES = {
+  hidden: [tx('……どこにいたの？', '…Where were you?'), tx('ずっとそこにいた？', 'Were you in there the whole time?'), tx('かくれんぼは終わりだよ', 'Hide and seek is over')],
+  perfect: [tx('……犯人いないじゃん', '…There\'s no culprit here'), tx('誰がやったの、これ', 'Who did this?'), tx('お前じゃ…ないよな？', 'It wasn\'t… you, right?'), tx('まあ、証拠ないし', 'Well, no proof')],
+  chain: [tx('…なんで全部？', '…Why ALL of them?'), tx('連鎖とか覚えなくていいから', 'You don\'t need to learn combos'), tx('ピタゴラかよ…', 'A chain reaction, really…'), tx('器用だね!?（怒）', 'So talented!? (angry)')],
+  fast: [tx('はやっ!!', 'That was fast!!'), tx('入った瞬間に!?', 'The second I walked in?!'), tx('せめて挨拶してから!!', 'At least say hi first!!')],
+  zero: [tx('未遂!!', 'Attempted mischief!!'), tx('今やろうとしたでしょ', 'You were about to, weren\'t you'), tx('手、止まってるよ', 'Your paw is still up')],
+  pricey: [tx('目利きかよ', 'You\'ve got an eye for value'), tx('安いのは落とさないんだ？', 'Only the expensive ones, huh?'), tx('高いの選んでる!?', 'Are you picking the pricey ones?!')],
+  blame: null
+};
+function specialReact(timeup) {
+  if (Math.random() > 0.8) return null;
+  if (timeup) {
+    if (cat.hidden) return pick(SP_LINES.hidden);
+    if (run.yen - stageYen0 > 0 && stageMaxSus < 30) return pick(SP_LINES.perfect);
+    return null;
+  }
+  if (run.chainN >= 3 && tAnim - run.chainT < 5) return pick(SP_LINES.chain);
+  if (stageT < 5) return pick(SP_LINES.fast);
+  if (run.yen - stageYen0 === 0) return pick(SP_LINES.zero);
+  const k = run.lastBroke; if (k && IT[k] && (run.broke[k] || 0) >= 5) return lt(`また${IT[k].n}か…`, `${IT[k].n} AGAIN?!`);
+  const sd = run.stageDrops; if (sd.length >= 2 && Math.min(...sd) >= 10000) return pick(SP_LINES.pricey);
+  return null;
+}
 function caught(timeup) {
   run.revive = !timeup && run.charm > 0;
   run.blame = !timeup && !!dog && dog.barkT <= 0 && Math.random() < 0.5;   // ネタ：寝ている犬のせいにする
   run.cause = timeup ? 'time' : (run.lastBy || watcherOf()); run.where = level; if (!run.revive) run.caughtOver = true;   // お守りを持っていれば、演出のあとで続きから
   snap = takeSnap();
   state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.face = timeup ? 'deadpan' : pickW(CAUGHT_FACES, f => f.w).id; if (run.blame) run.face = 'innocent'; run.huh = run.face === 'huh'; run.huhStep = 0; spaceT = 0; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME[phaseOf(level).tod] || REACT_TIME[3]) : room === 'kids' && Math.random() < 0.6 ? pick(LINES.kid) : room === 'garden' && Math.random() < 0.7 ? pick(LINES.granny) : room === 'study' && Math.random() < 0.7 ? pick(LINES.dad) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35; slowT = 0;
+  { const sp = specialReact(!!timeup); if (sp) run.react = sp; }
   bgmStop(); if (timeup) sfx.timeup(); else { sfx.watch(); sfx.caught(); } buzz(timeup ? 80 : [60, 40, 120]); setPulse(null);
   if (owner.mode === 'away') { owner.x = clamp(cat.x - 70, 20, 330); owner.face = 1; }
   setMode('look', 9); owner.lureT = 0; owner.face = Math.sign(cat.x - owner.x) || 1; owner.up = false; chaseT = 0;
@@ -2864,6 +2973,7 @@ function checkClear() {
   const close = timeLeft <= 10 ? Math.round(sy * 0.15) : 0;   // ギリギリ：残り10秒以内のクリアは +15%
   const quick = Math.round(sy * 0.4 * clamp(timeLeft / timeMax, 0, 1)) + close, sneaky = Math.round(sy * (perfect ? 0.3 : stageMaxSus < 50 ? 0.15 : 0));
   run.yen += quick + sneaky; run.skill += quick + sneaky; if (perfect) run.perfect++;
+  if (stageMaxSus < 10 && sy > 0) run.ghost++; if (phaseOf(level).special === 'guest' && stageMaxSus < 50) run.guestClear = true;
   stageBonus = { quick, sneaky, perfect, close };
   if (run.yen >= 100000) openCat('mike');
   if (stageMaxSus < 50) openCat('kuro');
@@ -3018,7 +3128,7 @@ function gameOver() {
   }
   newTitles = [];
   for (const t of TITLES) {
-    const got = t.tier != null ? run.yen >= t.tier : t.test(run);
+    const got = t.tier != null ? run.yen >= t.tier : t.life ? !!t.life(LIFE) : t.test(run);
     if (got && !unlocked.has(t.id)) { unlocked.add(t.id); newTitles.push(t.name); }
   }
   newAccs = ACCS.filter(a => a.need > 0 && a.need <= unlocked.size && a.need > unlocked.size - newTitles.length).map(a => a.name);
@@ -4496,6 +4606,7 @@ function update(dt) {
   if (slowT > 0 && state === 'play') { slowT -= dt; dt *= 0.3; }   // 高額品が割れたときのスロー
   if (state === 'play') {
     stageT += dt; run.time = (run.time || 0) + dt; if (introT > 0) introT -= dt;
+    cardCd -= dt; if (cardCd <= 0) { cardCd = 0.5; cardCheck(); }
     if (introT <= 0 && escT > 0) escT -= dt;
     else if (introT <= 0 && spot.length) { spotT += dt; if (spotT > 1.5) { learn('see_' + spot[0].k); spot.shift(); spotT = 0; } } updLamp(dt); updCat(dt); updTalk(dt);
     if (chaseT > 0) { updChase(dt); updItems(dt); updBall(dt); updVac(dt); }
@@ -4819,12 +4930,12 @@ function showStats() {
 // きろく：ランキング・称号図鑑・通算記録を、上のタブで切り替える（もどるは、開いた画面＝タイトルか結果へ）
 function recTabs(cur) {
   const b = (id, lab) => `<button type="button" data-rt="${id}" aria-pressed="${id === cur}">${lab}</button>`;
-  return `<div class="tabs rec-tabs">${b('rank', lt('ランキング', 'Ranking'))}${b('zukan', lt('称号', 'Titles') + ' ' + unlocked.size + '/' + TITLES.length)}${b('life', lt('通算', 'Stats'))}</div>`;
+  return `<div class="tabs rec-tabs">${b('rank', lt('ランキング', 'Ranking'))}${b('zukan', lt('称号', 'Titles'))}${b('cards', lt('いたずら', 'Cards'))}${b('life', lt('通算', 'Stats'))}</div>`;
 }
-function bindRecTabs() { ov.querySelectorAll('.rec-tabs button').forEach(bt => bt.addEventListener('click', () => { const t = bt.dataset.rt; if (t === 'rank') showRank(); else if (t === 'zukan') showZukan(0); else showLife(0); })); }
+function bindRecTabs() { ov.querySelectorAll('.rec-tabs button').forEach(bt => bt.addEventListener('click', () => { const t = bt.dataset.rt; if (t === 'rank') showRank(); else if (t === 'zukan') showZukan(0); else if (t === 'cards') showCards(0); else showLife(0); })); }
 const recBack = () => state === 'over' ? showOver : showTitle;
 // ページ送り：◀ ▶ と左右のスワイプでページを変える（称号図鑑・通算記録）
-let zkPage = 0, lfPage = 0;
+let zkPage = 0, lfPage = 0, cdPage = 0;
 const pagedH = () => Math.max(380, Math.min(640, (ov.clientHeight || 600) - 28));   // ページ送りの画面の高さ（どのページでも同じ。ボタンの位置が動かない）
 function pagerNav(i, n) {
   return `<div class="pager-nav"><button type="button" class="btn w pg-prev" ${i <= 0 ? 'disabled' : ''} aria-label="${lt('前のページ', 'Previous page')}">◀</button><span class="pg-dots">${Array.from({ length: n }, (_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}<b>${i + 1} / ${n}</b></span><button type="button" class="btn w pg-next" ${i >= n - 1 ? 'disabled' : ''} aria-label="${lt('次のページ', 'Next page')}">▶</button></div>`;
@@ -4848,6 +4959,18 @@ function showZukan(page) {
     ${pagerNav(zkPage, n)}
     <button class="btn go" id="zkBack" type="button">${lt('もどる', 'Back')}</button></div>`;
   $('zkBack').addEventListener('click', recBack()); bindRecTabs(); bindPager(zkPage, n, showZukan);
+}
+// いたずらカード図鑑：1ページ6枚（低い画面は4枚）。取ったカードは写真つき、まだのカードは取り方だけ
+function showCards(page) {
+  const PER = ov.clientHeight && ov.clientHeight < 560 ? 4 : 6, n = Math.ceil(CARDS.length / PER); cdPage = clamp(page == null ? cdPage : page, 0, n - 1);
+  const list = CARDS.slice(cdPage * PER, cdPage * PER + PER);
+  ov.hidden = false;
+  ov.innerHTML = `<div class="panel paged" style="height:${pagedH()}px">${recTabs('cards')}
+    <div class="big-logo" style="font-size:1.5rem">${lt('いたずら図鑑', 'Mischief Cards')}</div><p class="sub">${cardsGot.size} / ${CARDS.length}</p>
+    <div class="pager"><div class="cards">${list.map(cd => { const ok = cardsGot.has(cd.id), pic = ok && cardPics[cd.id]; return `<div class="${ok ? '' : 'off'}">${pic ? `<img src="${pic}" alt="" width="128" height="128">` : `<i>${ok ? '🐾' : '？'}</i>`}<b>${ok ? cd.name : '？？？'}</b><small>${cd.desc}</small></div>`; }).join('')}</div></div>
+    ${pagerNav(cdPage, n)}
+    <button class="btn go" id="cdBack" type="button">${lt('もどる', 'Back')}</button></div>`;
+  $('cdBack').addEventListener('click', recBack()); bindRecTabs(); bindPager(cdPage, n, showCards);
 }
 function showSettings(back) {
   ov.hidden = false;
@@ -4894,6 +5017,10 @@ function addLife() {
   inc('cuke', r.cuke); inc('mis', r.mis); inc('mess', r.mess); inc('revive', r.revives); inc('stars', r.stars); inc(r.timeup ? 'timeups' : 'caught', 1); if (r.ended) inc('endings', 1);
   L.maxDay = Math.max(L.maxDay || 0, dayOf(level)); L.maxStage = Math.max(L.maxStage || 0, level); L.maxChain = Math.max(L.maxChain || 0, r.maxChain || 0); L.best = Math.max(L.best || 0, Math.round(r.yen));
   L.broke = L.broke || {}; for (const [k, v] of Object.entries(r.broke)) if (IT[k]) L.broke[k] = (L.broke[k] || 0) + v;
+  // 行動の称号用：夜の被害額、ダンボールでやりすごした回数、行った部屋、何日続けて遊んだか
+  inc('nightYen', Math.round(r.todYen[3] || 0)); inc('hides', (r.ev && r.ev.hide) || 0);
+  L.rooms = L.rooms || {}; (r.rooms || []).forEach(k => { L.rooms[k] = 1; });
+  { const today = jstDay(), last = L.lastDay || ''; if (today !== last) { const y = new Date(Date.now() + 9 * 3600e3 - 86400e3); const yk = y.getUTCFullYear() + '-' + String(y.getUTCMonth() + 1).padStart(2, '0') + '-' + String(y.getUTCDate()).padStart(2, '0'); L.dayStreak = last === yk ? (L.dayStreak || 0) + 1 : 1; L.lastDay = today; } }
   store.set('nekoLife', JSON.stringify(L));
 }
 function showLife(page) {
@@ -4957,7 +5084,7 @@ function continueDay() {
   const ck = run && run.ck; if (!ck) return;
   const k = (run.conts || 0) + 1;
   run = JSON.parse(JSON.stringify(ck.run)); run.conts = k;
-  ov.hidden = true; sus = 0; snap = null; carryT = 0; newCats = []; newTitles = []; newAccs = [];
+  ov.hidden = true; sus = 0; snap = null; carryT = 0; newCats = []; newTitles = []; newAccs = []; newCards = [];
   setupStage(ck.level); state = 'play'; bgmStart();
   if (LIFE) { LIFE.conts = (LIFE.conts || 0) + 1; store.set('nekoLife', JSON.stringify(LIFE)); }
 }
@@ -5052,7 +5179,7 @@ async function showOver() {
     <p class="best" style="font-size:.8rem;font-weight:500;margin-top:2px">★${run.stars}${run.skill > 0 ? lt(`　・　腕前 +${yen(run.skill)}`, ` · Skill +${yen(run.skill)}`) : ''}</p>
     ${newRec ? `<p class="best" style="color:var(--red-d)">${lt('ベスト更新!', 'New best!')}</p>` : ''}
     ${onlineBox()}
-    <div class="badges">${newTitles.includes(titleOf(run.yen)) ? '' : `<span class="badge">${titleOf(run.yen)}</span>`}${newTitles.map(n => `<span class="badge new">NEW ${n}</span>`).join('')}${newAccs.map(n => `<span class="badge new" style="background:var(--teal)">${lt('きせかえ', 'NEW')} ${n}</span>`).join('')}${newCats.map(n => `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ', 'NEW CAT')} ${n}</span>`).join('')}</div>
+    <div class="badges">${newTitles.includes(titleOf(run.yen)) ? '' : `<span class="badge">${titleOf(run.yen)}</span>`}${newTitles.map(n => `<span class="badge new">NEW ${n}</span>`).join('')}${newCards.map(n => `<span class="badge new" style="background:var(--teal-d)">${lt('カード', 'CARD')} ${n}</span>`).join('')}${newAccs.map(n => `<span class="badge new" style="background:var(--teal)">${lt('きせかえ', 'NEW')} ${n}</span>`).join('')}${newCats.map(n => `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ', 'NEW CAT')} ${n}</span>`).join('')}</div>
     ${canPostEnd() ? `<div class="row"><button class="btn go" id="bNext" type="button">${lt(dayName(run.stage + 1) + 'からつづける', 'Continue to ' + dayName(run.stage + 1))}</button></div>` : ''}
     ${canCont() ? `<div class="row"><button class="btn go" id="bCont" type="button">${lt(dayName(run.ck.level) + 'の朝からつづける', 'Continue from ' + dayName(run.ck.level) + ' morning')}</button></div><p class="best" style="margin:0 0 6px;font-weight:500;font-size:.78rem">${lt('被害額は朝の時点に戻ります。続けた回数はランキングに載ります', 'Damage goes back to that morning. Restarts are shown in the ranking')}</p>` : ''}
     <div class="row"><button class="btn ${canCont() || canPostEnd() ? 'w' : 'go'}" id="bAgain" type="button">${lt(canCont() || canPostEnd() ? '1日目からやりなおす' : 'もう一回', canCont() || canPostEnd() ? 'Restart from Day 1' : 'Play again')}</button></div>
