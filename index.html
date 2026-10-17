@@ -148,6 +148,16 @@
   .cert { border: 2px dashed var(--line); border-radius: 14px; padding: 10px 12px; margin: 8px 0; background: #fffaf0; }
   .end-panel .big-logo { color: var(--org-d); }
   .online[hidden] { display: none; }
+  .pager { touch-action: pan-y; }
+  .stat-list h4 { grid-column: 1 / -1; }
+  .pg-title { margin: 4px 0 6px; text-align: center; color: var(--org-d); }
+  .pager-nav { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+  .pager-nav .btn { flex: none; width: 52px; padding: 8px 0; }
+  .pager-nav .btn[disabled] { opacity: .35; }
+  .pg-dots { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: .8rem; color: var(--ink2); }
+  .pg-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+  .pg-dots i.on { background: var(--org); }
+  .pg-dots b { margin-left: 6px; font-weight: 800; }
   .online.up, .online.err { padding: 6px 10px; }
   .zukan small { display: block; font-weight: 500; font-size: .7rem; color: var(--ink2); margin-top: 2px; line-height: 1.35; }
   .zukan div.off small { color: #b39a80; }
@@ -197,7 +207,7 @@
   .set-row { display: grid; grid-template-columns: 7.5em 1fr 2.6em; align-items: center; gap: 8px; margin: 8px 0; font-weight: 800; font-size: .9rem; text-align: left; }
   .set-row input[type=range] { width: 100%; accent-color: var(--org); }
   .stat-list { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; text-align: left; font-weight: 800; font-size: .86rem; margin: 8px 4px; }
-  .stat-list span:nth-child(2n) { color: var(--org-d); text-align: right; }
+  .stat-list span:nth-of-type(2n) { color: var(--org-d); text-align: right; }
   .stat-list h4 { grid-column: 1 / -1; margin: 8px 0 2px; font-size: .8rem; color: var(--ink2); }
   @media (max-height: 640px) { #pad button { height: 56px; } #pad { margin-top: 6px; } }
 </style>
@@ -246,7 +256,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.14.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.14.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -4750,15 +4760,32 @@ function recTabs(cur) {
   const b = (id, lab) => `<button type="button" data-rt="${id}" aria-pressed="${id === cur}">${lab}</button>`;
   return `<div class="tabs rec-tabs">${b('rank', lt('ランキング', 'Ranking'))}${b('zukan', lt('称号', 'Titles') + ' ' + unlocked.size + '/' + TITLES.length)}${b('life', lt('通算', 'Stats'))}</div>`;
 }
-function bindRecTabs() { ov.querySelectorAll('.rec-tabs button').forEach(bt => bt.addEventListener('click', () => { const t = bt.dataset.rt; if (t === 'rank') showRank(); else if (t === 'zukan') showZukan(); else showLife(); })); }
+function bindRecTabs() { ov.querySelectorAll('.rec-tabs button').forEach(bt => bt.addEventListener('click', () => { const t = bt.dataset.rt; if (t === 'rank') showRank(); else if (t === 'zukan') showZukan(0); else showLife(0); })); }
 const recBack = () => state === 'over' ? showOver : showTitle;
-function showZukan() {
+// ページ送り：◀ ▶ と左右のスワイプでページを変える（称号図鑑・通算記録）
+let zkPage = 0, lfPage = 0;
+function pagerNav(i, n) {
+  return `<div class="pager-nav"><button type="button" class="btn w pg-prev" ${i <= 0 ? 'disabled' : ''} aria-label="${lt('前のページ', 'Previous page')}">◀</button><span class="pg-dots">${Array.from({ length: n }, (_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}<b>${i + 1} / ${n}</b></span><button type="button" class="btn w pg-next" ${i >= n - 1 ? 'disabled' : ''} aria-label="${lt('次のページ', 'Next page')}">▶</button></div>`;
+}
+function bindPager(i, n, go) {
+  const pv = ov.querySelector('.pg-prev'), nx = ov.querySelector('.pg-next');
+  if (pv) pv.addEventListener('click', () => { if (i > 0) go(i - 1); });
+  if (nx) nx.addEventListener('click', () => { if (i < n - 1) go(i + 1); });
+  const pg = ov.querySelector('.pager'); if (!pg) return;
+  let x0 = null, y0 = 0;
+  pg.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; });
+  pg.addEventListener('pointerup', e => { if (x0 == null) return; const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null; if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) { if (dx < 0 && i < n - 1) go(i + 1); else if (dx > 0 && i > 0) go(i - 1); } });
+}
+function showZukan(page) {
+  const PER = ov.clientHeight && ov.clientHeight < 560 ? 6 : 8, n = Math.ceil(TITLES.length / PER); zkPage = clamp(page == null ? zkPage : page, 0, n - 1);
+  const list = TITLES.slice(zkPage * PER, zkPage * PER + PER);
   ov.hidden = false;
   ov.innerHTML = `<div class="panel">${recTabs('zukan')}
     <div class="big-logo" style="font-size:1.5rem">${lt('称号図鑑', 'Titles')}</div><p class="sub">${unlocked.size} / ${TITLES.length}</p>
-    <div class="zukan">${TITLES.map(t => `<div class="${unlocked.has(t.id) ? '' : 'off'}">${unlocked.has(t.id) ? t.name : '？？？'}<small>${TDESC[t.id] ? String(TDESC[t.id]) : ''}</small></div>`).join('')}</div>
-    <button class="btn" id="zkBack" type="button">${lt('もどる', 'Back')}</button></div>`;
-  $('zkBack').addEventListener('click', recBack()); bindRecTabs();
+    <div class="pager"><div class="zukan">${list.map(t => `<div class="${unlocked.has(t.id) ? '' : 'off'}">${unlocked.has(t.id) ? t.name : '？？？'}<small>${TDESC[t.id] ? String(TDESC[t.id]) : ''}</small></div>`).join('')}</div></div>
+    ${pagerNav(zkPage, n)}
+    <button class="btn go" id="zkBack" type="button">${lt('もどる', 'Back')}</button></div>`;
+  $('zkBack').addEventListener('click', recBack()); bindRecTabs(); bindPager(zkPage, n, showZukan);
 }
 function showSettings(back) {
   ov.hidden = false;
@@ -4800,29 +4827,29 @@ function addLife() {
   L.broke = L.broke || {}; for (const [k, v] of Object.entries(r.broke)) if (IT[k]) L.broke[k] = (L.broke[k] || 0) + v;
   store.set('nekoLife', JSON.stringify(L));
 }
-function showLife() {
+function showLife(page) {
   const L = LIFE, n = v => (v || 0).toLocaleString('ja-JP'), row = (a, b) => `<span>${a}</span><span>${b}</span>`;
   const top = Object.entries(L.broke || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
   const brokeN = Object.values(L.broke || {}).reduce((a, b) => a + b, 0), m = Math.floor((L.sec || 0) / 60);
+  const none = `<p class="best" style="font-weight:500">${lt('まだ記録がありません', 'No records yet')}</p>`;
+  const pages = [
+    [lt('きほん', 'Basics'), row(lt('遊んだ回数', 'Runs'), n(L.plays)) + row(lt('遊んだ時間', 'Time played'), lt(m + '分', m + ' min')) + row(lt('通算の被害額', 'Total damage'), yen(L.yen || 0)) + row(lt('最高の被害額', 'Best damage'), yen(L.best || 0))
+      + row(lt('いちばん進んだ日', 'Furthest day'), L.maxDay ? dayName((L.maxDay - 1) * DAY_LEN + 1) : '-') + row(lt('エンディング', 'Endings'), n(L.endings)) + row(lt('割ったもの', 'Things broken'), n(brokeN)) + row(lt('最大の連鎖', 'Best chain'), n(L.maxChain))],
+    [lt('いたずら', 'Mischief'), row(lt('お題の★', 'Task stars'), n(L.stars)) + row(lt('落とす以外のいたずら', 'Other mischief'), n(L.mis)) + row(lt('散らかした小物', 'Clutter scattered'), n(L.mess)) + row(lt('退治したネズミ', 'Mice bopped'), n(L.mice))
+      + row(lt('追い払ったボス猫', 'Boss cats chased off'), n(L.boss)) + row(lt('金魚タッチ', 'Fish taps'), n(L.fish)) + row(lt('テーブルクロス引き', 'Tablecloth yanks'), n(L.cloth)) + row(lt('きゅうりで飛び上がった', 'Cucumber jumps'), n(L.cuke)) + row(lt('お風呂に落ちた', 'Bath plunges'), n(L.bath))],
+    [lt('見つかった', 'Caught'), row(lt('見つかった', 'Caught'), n(L.caught)) + row(lt('時間切れ', 'Time ups'), n(L.timeups)) + row(lt('お守りで復活', 'Charm revivals'), n(L.revive)) + row(lt('朝からつづけた', 'Day restarts'), n(L.conts))
+      + (L.cause ? `<h4>${lt('見つかった原因', 'Caught by')}</h4>` + Object.entries(L.cause).sort((a, b) => b[1] - a[1]).map(([k, v]) => row(String(CAUSE_N[k] || k), n(v))).join('') : '')
+      + (L.where ? `<h4>${lt('よく見つかった場所', 'Where you got caught')}</h4>` + Object.entries(L.where).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s2, v]) => { const ph = phaseOf(+s2); return row(dayName(+s2) + lt('・', ' · ') + (ph.special ? String(ph.spTitle) : ph.name + lt('の', ' · ') + ph.roomName), n(v)); }).join('') : '')],
+    [lt('よく割ったもの', 'Most broken'), top.length ? top.map(([k, v]) => row(String(IT[k].n), n(v))).join('') : none]
+  ];
+  lfPage = clamp(page == null ? lfPage : page, 0, pages.length - 1);
+  const [ttl, body] = pages[lfPage];
   ov.hidden = false;
   ov.innerHTML = `<div class="panel">${recTabs('life')}<div class="big-logo" style="font-size:1.5rem">${lt('通算記録', 'Stats')}</div><p class="sub">${lt('この端末での記録', 'On this device')}</p>
-    <div class="stat-list">
-      ${row(lt('遊んだ回数', 'Runs'), n(L.plays))}${row(lt('遊んだ時間', 'Time played'), lt(m + '分', m + ' min'))}
-      ${row(lt('通算の被害額', 'Total damage'), yen(L.yen || 0))}${row(lt('最高の被害額', 'Best damage'), yen(L.best || 0))}
-      ${row(lt('いちばん進んだ日', 'Furthest day'), L.maxDay ? dayName((L.maxDay - 1) * DAY_LEN + 1) : '-')}${row(lt('エンディング', 'Endings'), n(L.endings))}
-      ${row(lt('割ったもの', 'Things broken'), n(brokeN))}${row(lt('最大の連鎖', 'Best chain'), n(L.maxChain))}
-      ${row(lt('お題の★', 'Task stars'), n(L.stars))}${row(lt('落とす以外のいたずら', 'Other mischief'), n(L.mis))}
-      ${row(lt('散らかした小物', 'Clutter scattered'), n(L.mess))}${row(lt('退治したネズミ', 'Mice bopped'), n(L.mice))}
-      ${row(lt('追い払ったボス猫', 'Boss cats chased off'), n(L.boss))}${row(lt('金魚タッチ', 'Fish taps'), n(L.fish))}
-      ${row(lt('テーブルクロス引き', 'Tablecloth yanks'), n(L.cloth))}${row(lt('きゅうりで飛び上がった', 'Cucumber jumps'), n(L.cuke))}
-      ${row(lt('お風呂に落ちた', 'Bath plunges'), n(L.bath))}${row(lt('お守りで復活', 'Charm revivals'), n(L.revive))}
-      ${row(lt('見つかった', 'Caught'), n(L.caught))}${row(lt('時間切れ', 'Time ups'), n(L.timeups))}
-      ${row(lt('朝からつづけた', 'Day restarts'), n(L.conts))}
-      ${L.cause ? `<h4>${lt('見つかった原因', 'Caught by')}</h4>` + Object.entries(L.cause).sort((a, b) => b[1] - a[1]).map(([k, v]) => row(String(CAUSE_N[k] || k), n(v))).join('') : ''}
-      ${L.where ? `<h4>${lt('よく見つかった場所', 'Where you got caught')}</h4>` + Object.entries(L.where).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s, v]) => { const ph = phaseOf(+s); return row(dayName(+s) + lt('・', ' · ') + (ph.special ? String(ph.spTitle) : ph.name + lt('の', ' · ') + ph.roomName), n(v)); }).join('') : ''}
-      ${top.length ? `<h4>${lt('よく割ったもの', 'Most broken')}</h4>` + top.map(([k, v]) => row(String(IT[k].n), n(v))).join('') : ''}
-    </div><button class="btn go" id="lfBack" type="button">${lt('もどる', 'Back')}</button></div>`;
-  $('lfBack').addEventListener('click', recBack()); bindRecTabs();
+    <div class="pager"><h4 class="pg-title">${ttl}</h4><div class="stat-list">${body}</div></div>
+    ${pagerNav(lfPage, pages.length)}
+    <button class="btn go" id="lfBack" type="button">${lt('もどる', 'Back')}</button></div>`;
+  $('lfBack').addEventListener('click', recBack()); bindRecTabs(); bindPager(lfPage, pages.length, showLife);
 }
 // ---------- ゲームパッド（Gamepad API） ----------
 let padPrev = {};
