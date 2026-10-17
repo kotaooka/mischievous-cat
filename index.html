@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.23.5', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.24.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -659,6 +659,10 @@ const TITLES = [
   { id: 't4', name: tx('リビング崩壊請負猫', "Living Room Wrecker"), tier: 200000 },
   { id: 't5', name: tx('伝説の食器破壊者', "Legendary Smasher"), tier: 500000 },
   { id: 'phone', name: tx('スマホ破壊神', "Phone Breaker"), test: r => (r.broke.phone || 0) >= 2 },
+  { id: 'foe1', name: tx('ネコパンチ道場', 'Cat Punch Dojo'), test: r => (r.foes || 0) >= 1 },
+  { id: 'foe4', name: tx('退治屋', 'The Exterminator'), test: r => ['vacbot', 'crow', 'toybot', 'drone'].every(k => r.ev && r.ev['foe_' + k]) },
+  { id: 'week2', name: tx('7日間の支配者', 'Ruler of the Week'), test: r => !!r.trueEnded },
+  { id: 'nohit', name: tx('無傷の夜', 'Untouched'), test: r => !!r.trueEnded && !(r.ev && r.ev.foeHit) },
   { id: 'water', name: tx('水難の相', "Water Woes"), test: r => r.water >= 3 },
   { id: 'kaku', name: tx('確信犯', "Guilty as Charged"), test: r => r.kakushin >= 3 },
   { id: 'ride', name: tx('お掃除ロボ乗り', "Robo Rider"), test: r => r.rideT >= 8 },
@@ -743,6 +747,14 @@ try { unlocked = new Set(JSON.parse(store.get('nekoTitles', '[]'))); } catch (e)
 // test は 1回のプレイの記録 run で判定（ev はできごとの回数）。取れた瞬間にゲーム画面を写して、カードの絵にする
 const CARDS = [
   { id: 'first',  name: tx('はじめての一撃', 'First Strike'),      desc: tx('何かを落とす', 'Knock something off'), test: r => r.yen > 0 },
+  { id: 'foe_vacbot', name: tx('ロボ、裏返る', 'Robo-Vac, Flipped'), desc: tx('4日目：暴走ロボ掃除機をたおす', 'Day 4: beat the rogue robo-vac'), test: r => !!r.ev.foe_vacbot },
+  { id: 'foe_crow',   name: tx('カラス番長', 'Crow Boss'),           desc: tx('5日目：カラスを2羽ともたおす', 'Day 5: beat both crows'), test: r => !!r.ev.foe_crow },
+  { id: 'foe_toybot', name: tx('背後から失礼', 'Backstab'),           desc: tx('6日目：おもちゃのロボットをたおす', 'Day 6: beat the toy robot'), test: r => !!r.ev.foe_toybot },
+  { id: 'foe_drone',  name: tx('撃墜', 'Shot Down'),                  desc: tx('7日目：見張りドローンを落とす', 'Day 7: bring down the patrol drone'), test: r => !!r.ev.foe_drone },
+  { id: 'festival',   name: tx('たまやー', 'Fireworks'),              desc: tx('お祭りの夜を越える', 'Get through Festival Night'), test: r => !!r.ev.night_festival },
+  { id: 'dognight',   name: tx('犬にも骨を', 'A Bone for the Dog'),    desc: tx('犬が起きている夜に骨を投げる', 'Toss a bone on Dog Awake Night'), test: r => !!r.ev.bone },
+  { id: 'bossnight',  name: tx('連携プレー', 'Teamwork'),              desc: tx('ボス猫の夜に連携で落とす', 'Combo with the boss cat'), test: r => !!r.ev.combo },
+  { id: 'lastnight',  name: tx('おやすみなさい', 'Good Night'),        desc: tx('最後の夜を越える', 'Get through the Last Night'), test: r => !!r.ev.night_lastnight },
   { id: 'chain3', name: tx('ピタゴラ装置', 'Chain Reaction'),     desc: tx('3つ以上をまとめて落とす', 'Make a 3x chain'), test: r => r.maxChain >= 3 },
   { id: 'phone',  name: tx('スマホ、床へ', 'Phone, Meet Floor'),   desc: tx('スマホを落とす', 'Knock off a phone'), test: r => !!r.broke.phone },
   { id: 'water',  name: tx('水びたし', 'Flooded'),                desc: tx('水の入ったものをこぼす', 'Spill a drink'), test: r => r.water >= 1 },
@@ -817,6 +829,8 @@ const MODE = {
   tv:     { range: 50, rate: 20, omni: true },   // テレビに夢中
   churu:  { range: 600, rate: 40 },               // チュールでネコを呼んでいる（ネコの方を見ている）
   sad:    { range: 40, rate: 20, omni: true },    // チュールを断られてしょんぼり   // 片付け中：下を向いていて、すぐそばしか見えない
+  sky:    { range: 0, rate: 0 },                  // お祭り：花火を見上げている
+  nap:    { range: 0, rate: 0 },                  // 最後の夜：うたた寝
   chase:  { range: 0, rate: 0 }
 };
 const REACT = [tx('こらーっ!!', 'HEY!!'), tx('見〜た〜ぞ〜', 'I saw that!'), tx('またお前か!!', 'You again?!'), tx('ちょっと!?', 'Excuse me?!'), tx('何してんの!!', 'What are you doing?!'), tx('現行犯!!', 'Caught red-pawed!'), tx('ストップ!!', 'STOP!!'), tx('つかまえた!', 'Got you!')];
@@ -840,7 +854,17 @@ const CAUGHT_FACES = [
 // 1日目：リビング → キッチン → 書斎 → お客さんが来た夜（リビング）
 // 2日目：庭 → 子ども部屋 → お風呂場 → 停電の夜（寝室）
 // 3日目：リビング → キッチン → 書斎 → ペットカメラ作戦の夜（キッチン）
-const DAY_LEN = 4, NPH = DAY_LEN, END_DAY = 3;
+const DAY_LEN = 4, NPH = DAY_LEN, END_DAY = 3, TRUE_DAY = 7;
+// 4〜7日目（第2週）：昼は日替わりの部屋に「その日のルール」がかかり、1面だけ攻撃してくる相手（foe）が出る。夜は新しい特別な夜。7日目の夜を越えると「ほんとうのおしまい」。8日目からは3日目までの夜をくり返す
+const WEEK2 = {
+  4: { rooms: ['living', 'kitchen', 'study'], foe: ['vacbot', 0], special: 'festival', rule: 'earphone' },
+  5: { rooms: ['kids', 'garden', 'bath'], foe: ['crow', 1], special: 'dognight', rule: 'dogday' },
+  6: { rooms: ['kitchen', 'bed', 'kids'], foe: ['toybot', 2], special: 'bossnight', rule: 'bossday' },
+  7: { rooms: ['study', 'garden', 'living'], foe: ['drone', 0], special: 'lastnight', rule: 'twocam' }
+};
+// その日のルール：earphone 飼い主がイヤホン（物音に鈍いが、振り向くまでが長い）、dogday 犬がどの部屋にもいる、bossday ボス猫がどの部屋にも来る、twocam ペットカメラが2台
+const RULE_NAME = { earphone: tx('イヤホンの日', 'Earphone Day'), dogday: tx('犬がいる日', 'Dog Day'), bossday: tx('ボス猫の日', 'Boss Cat Day'), twocam: tx('カメラ2台の日', 'Two-Camera Day') };
+const ruleOf = () => phaseOf(level).rule;
 const SLOT_ROOMS = [['living', 'garden'], ['kitchen', 'kids'], ['study', 'bath']];
 const ROOM_NAME = { living: tx('リビング', 'Living Room'), garden: tx('庭', 'Garden'), kitchen: tx('キッチン', 'Kitchen'), kids: tx('子ども部屋', "Kid's Room"), study: tx('書斎', 'Study'), bath: tx('お風呂場', 'Bathroom'), bed: tx('寝室', 'Bedroom') };
 const SLOT_TIME = [
@@ -855,12 +879,19 @@ const SPECIALS = [
   { id: 'blackout', room: 'bed', title: tx('停電の夜', 'Blackout Night') },
   { id: 'camera', room: 'kitchen', title: tx('ペットカメラ作戦の夜', 'Pet Cam Night') }
 ];
+// 第2週の夜：festival お祭り（花火の間は飼い主が空を見る）、dognight 犬が起きている（床に近づくと吠える。骨を投げると夢中になる）、bossnight ボス猫と共闘（ボスが落とした分もネコのもの。飼い主はボスを先に疑う）、lastnight 最後の夜（飼い主は出て行かず、うたた寝をくり返す）
+const SPECIALS2 = [
+  { id: 'festival', room: 'garden', title: tx('お祭りの夜', 'Festival Night') },
+  { id: 'dognight', room: 'living', title: tx('犬が起きている夜', 'Dog Awake Night') },
+  { id: 'bossnight', room: 'living', title: tx('ボス猫の夜', 'Boss Cat Night') },
+  { id: 'lastnight', room: 'bed', title: tx('最後の夜', 'The Last Night') }
+];
 const phaseCache = {};
 function phaseOf(L) {
   if (phaseCache[L]) return phaseCache[L];
-  const d = Math.floor((L - 1) / DAY_LEN) + 1, i = (L - 1) % DAY_LEN, T = SLOT_TIME[i];
-  const sp = i === 3 ? SPECIALS[(d - 1) % SPECIALS.length] : null, rm = sp ? sp.room : SLOT_ROOMS[i][(d - 1) % 2];
-  return (phaseCache[L] = Object.assign({}, T, { room: rm, roomName: ROOM_NAME[rm], special: sp ? sp.id : null, spTitle: sp ? sp.title : null }));
+  const d = Math.floor((L - 1) / DAY_LEN) + 1, i = (L - 1) % DAY_LEN, T = SLOT_TIME[i], wk = WEEK2[d];
+  const sp = i === 3 ? (wk ? SPECIALS2.find(q => q.id === wk.special) : SPECIALS[(d - 1) % SPECIALS.length]) : null, rm = sp ? sp.room : wk ? wk.rooms[i] : SLOT_ROOMS[i][(d - 1) % 2];
+  return (phaseCache[L] = Object.assign({}, T, { room: rm, roomName: ROOM_NAME[rm], special: sp ? sp.id : null, spTitle: sp ? sp.title : null, foe: wk && !sp && wk.foe[1] === i ? wk.foe[0] : null, rule: wk && !sp ? wk.rule : null }));
 }
 const phaseIx = L => phaseOf(L).tod, dayOf = L => Math.floor((L - 1) / DAY_LEN) + 1;
 const dayName = L => lt(dayOf(L) + '日目', 'Day ' + dayOf(L));
@@ -919,13 +950,14 @@ const TASKS = {
   ride:    { t: tx('お掃除ロボに3秒乗る', 'Ride the robot vacuum 3s'), ok: () => !!vac },
   snack:   { t: tx('冷蔵庫の上のにぼしを食べる', 'Eat the snack on the fridge'), ok: () => room === 'kitchen' },
   data:    { t: tx('パソコンのデータを消す', 'Wipe the computer data'), ok: () => room === 'study' },
-  alarm:   { t: tx('目覚まし時計を鳴らす', 'Set off the alarm clock'), ok: () => items.some(i => i.t === 'alarm') },
+  alarm:   { t: tx('目覚まし時計を鳴らす', 'Set off the alarm clock'), ok: () => items.some(i => i.t === 'alarm') && !nap },
   bounce:  { t: tx('ベッドで3回はねる', 'Bounce on the bed 3 times'), ok: () => room === 'bed', need: 3 },
   chick:   { t: tx('ニワトリにものを落とさせる', 'Get the chicken to knock one off'), ok: () => room === 'garden' },
   fish:    { t: tx('金魚にタッチする', 'Paw at a goldfish'), ok: () => room === 'kids', need: 2 },
   rival:   { t: tx('ボス猫を追い払う', 'Chase off the boss cat'), ok: () => room === 'kids' },
   sink:    { t: tx('お風呂にものを落とす', 'Drop something in the tub'), ok: () => room === 'bath' },
-  mouse:   { t: tx('ネズミをパンチで退治する', 'Bop the mouse'), ok: () => !!mouse }
+  mouse:   { t: tx('ネズミをパンチで退治する', 'Bop the mouse'), ok: () => !!mouse },
+  foe:     { get t() { return foe ? lt(FOES[foe.kind].n + 'をたおす', 'Beat the ' + FOES[foe.kind].n) : ''; }, ok: () => !!foe }
 };
 // 見張り役のセリフ
 Object.assign(LINES.enterRoom, {
@@ -967,9 +999,10 @@ const ACCS = [
   { id: 'none', name: tx('なし', 'None'), need: 0 }, { id: 'bell', name: tx('鈴の首輪', 'Bell collar'), need: 2 }, { id: 'ribbon', name: tx('リボン', 'Ribbon'), need: 4 },
   { id: 'scarf', name: tx('バンダナ', 'Bandana'), need: 6 }, { id: 'hat', name: tx('パーティ帽', 'Party hat'), need: 8 }, { id: 'glasses', name: tx('メガネ', 'Glasses'), need: 11 }, { id: 'crown', name: tx('王冠', 'Crown'), need: 15 },
   { id: 'medal', name: tx('金メダル', 'Gold medal'), need: 999, ending: true },   // エンディングを見るともらえる
+  { id: 'star', name: tx('星のバッジ', 'Star badge'), need: 999, trueEnd: true },   // 7日目の夜を越えるともらえる
   { id: 'shades', name: tx('サングラス', 'Shades'), need: 999, secret: true }   // 隠しコマンド（タイトルで にゃー を10回）
 ];
-const accOk = a => a.ending ? store.get('nekoEnded', '') === '1' : a.secret ? store.get('nekoShades', '') === '1' : unlocked.size >= a.need;
+const accOk = a => a.ending ? store.get('nekoEnded', '') === '1' : a.trueEnd ? store.get('nekoTrueEnd', '') === '1' : a.secret ? store.get('nekoShades', '') === '1' : unlocked.size >= a.need;
 
 // ---------- 状態 ----------
 let state = 'title', level = 1, sus = 0, muted = store.get('nekoMute', '0') === '1';
@@ -1415,6 +1448,7 @@ function setupStageCore(L) {
   const lucky = CATS[selCat].lucky;
   if (ph.special === 'guest') pool.push('wine', 'wine', 'bottle', 'cuptower', 'plate');   // お客さん：グラスとお皿が多い
   if (ph.special === 'camera') pool.push('dishes', 'dishes', 'cuptower');
+  if (ph.special === 'festival') pool.push('glamp', 'glamp', 'wine', 'plate', 'cuptower');   // お祭り：屋台のもの
   if (lucky) [['wine', 1], ['vase', 2], ['phone', 3], ['tablet', 4], ['console', 5]].forEach(([t, lv]) => { if (L >= lv) pool.push(t, t); });
   const n = Math.min(2 + L, 8);
   const makeSet = () => {
@@ -1484,6 +1518,7 @@ function setupStageCore(L) {
     }
     cams = [];
     if (sp0 === 'camera') cams = [{ mx: 90, period: 8, ph: 0, w: 70, cx: 0, rec: 0 }, { mx: 360, period: 10, ph: 2.2, w: 70, cx: 0, rec: 0 }];   // 4.11.0：首振り 5.5/7.5 → 8/10 秒、罠 3 → 2（4.7.0 で見る幅 90 → 70）
+    else if (ph.rule === 'twocam') cams = [{ mx: 90, period: 8, ph: 0, w: 70, cx: 0, rec: 0 }, { mx: 360, period: 10, ph: 2.2, w: 70, cx: 0, rec: 0 }];
     else if (normal && d >= 3) cams = [{ mx: 60, period: 7.5, ph: 1, w: 70, cx: 0, rec: 0 }];
     cuke = d >= 2 && normal && room !== 'bath' && Math.random() < 0.4 ? { x: 0, cd: 0 } : null;
     if (cuke) { for (let k = 0; k < 20; k++) { cuke.x = rnd(40, W - 60); if (Math.abs(cuke.x - BOX.x) > 50 && Math.abs(cuke.x - 255) > 40 && (!mouse || Math.abs(cuke.x - mouse.hole) > 30)) break; } }
@@ -1514,7 +1549,9 @@ function setupStageCore(L) {
   owner.mode = 'away'; owner.t = L === 1 ? 5 : rnd(2.5, 4.5); owner.range = 0; owner.lureT = 0; owner.warned = false; owner.hint = null; owner.say = ''; owner.x = -60; owner.scareT = 0;
   sus = Math.min(sus, 25);
   dog = L >= 4 && (room === 'living' || room === 'bed') ? { x: 60, alertT: 0, cd: 0, barkT: 0 } : null;
-  vac = L >= 2 && (room === 'living' || room === 'kitchen') ? { x: rnd(160, 300), dir: pick([-1, 1]), t: rnd(3, 6), cd: 0 } : null;
+  if (ph.rule === 'dogday' && room !== 'garden' && room !== 'bath') dog = { x: 60, alertT: 0, cd: 0, barkT: 0, keep: true };
+  if (ph.special === 'lastnight') dog = null;
+  vac = L >= 2 && ph.foe !== 'vacbot' && (room === 'living' || room === 'kitchen') ? { x: rnd(160, 300), dir: pick([-1, 1]), t: rnd(3, 6), cd: 0 } : null;
   // 部屋の仕掛け：書斎はキーボード、キッチンは冷蔵庫の上のおやつ、寝室はふかふかのベッド
   kb = room === 'study' ? { x0: 196, x1: 252, t: 0, done: false, typing: 0, keyT: 0 } : null;
   snack = room === 'kitchen' ? { x: 425, got: false } : null;
@@ -1524,8 +1561,15 @@ function setupStageCore(L) {
   mouse = L >= 2 && room !== 'bath' && (room === 'kitchen' || (L > DAY_LEN && Math.random() < 0.4)) ? { hole: room === 'garden' ? 392 : 112, x: 0, mode: 'hide', t: rnd(8, 14), dir: 1, face: 1, gx: 200, runT: 0, scareCd: 0, anim: 0 } : null;
   if (mouse) mouse.x = mouse.hole;
   tank = room === 'kids' ? { fish: [{ x: 44, d: 0.6, vx: 14, sc: 0 }, { x: 76, d: 0.4, vx: -11, sc: 0 }], n: 0, anim: 0 } : null;
-  rival = room === 'kids' || (L > NPH && room !== 'bath' && Math.random() < 0.35)
+  rival = room === 'kids' || ph.rule === 'bossday' || ph.special === 'bossnight' || (L > NPH && room !== 'bath' && Math.random() < 0.35)
     ? { mode: 'wait', t: rnd(4, 7), x: 14, y: FLOOR, vx: 0, vy: 0, plat: PL.floor, face: 1, hp: 3, back: 1, cd: 0, stun: 0, anim: 0, punchT: 0, swipeT: 0, rest: 0, target: null, tt: 0, aim: 0, jumpBuf: 0, jump: 1, airX: null } : null;
+  if (rival && ph.rule === 'bossday') rival.keep = true;
+  if (rival && ph.special === 'bossnight') Object.assign(rival, { keep: true, ally: true, t: 2.5, back: 3 });   // ボス猫の夜：味方。叱られても3回まで戻ってくる
+  // 第2週：攻撃してくる相手と、新しい特別な夜
+  foe = ph.foe ? makeFoe(ph.foe) : null; fest = null; bones = []; nap = null;
+  if (ph.special === 'festival') fest = { t: 3.5, show: 0, bursts: [], n: 0 };
+  if (ph.special === 'dognight') { dog = { x: 300, alertT: 0, cd: 0, barkT: 0, keep: true, roam: true, dir: -1, t: 2, chewT: 0, target: null }; bones = [{ x: 150, vx: 0 }, { x: 330, vx: 0 }].map(b => (Math.abs(b.x - BOX.x) < 40 ? Object.assign(b, { x: b.x - 50 }) : b)); }
+  if (ph.special === 'lastnight') { nap = { asleep: true, t: 6, cyc: 0, sayT: 0 }; owner.x = 62; owner.face = 1; owner.up = false; setMode('nap', 99); }
   pruneGimmicks(L, ph);
   tut.on = L === 1 && !tutDone; tut.broke = false;
   // 制限時間：もの1個につき7秒＋25秒
@@ -1545,23 +1589,26 @@ function setupStageCore(L) {
     if (chick) add('chick', chick.x, FLOOR - 16);
     if (tank) add('tank', 60, 420);
     if (guest) add('guest', guest.x, FLOOR - 70);
+    if (foe) add('foe_' + foe.kind, foe.kind === 'crow' ? foe.birds[0].x : foe.x, foe.kind === 'crow' ? foe.birds[0].y + 10 : foe.kind === 'drone' ? foe.y + 10 : FLOOR - 16);
+    if (bones.length) add('bone', bones[0].x, FLOOR - 8);
   }
   const rts = ROOM_TASK[room].filter(id => TASKS[id].ok()); if (rts.length) tasks.push(pick(rts));
   const rest = Object.keys(TASKS).filter(id => !Object.values(ROOM_TASK).flat().includes(id) && TASKS[id].ok());
   // 簡単なお題（鳴いてふり向かせる・飼い主の前で食べる・ダンボールでやりすごす・「ながら」中に落とす）は1面に1つまで
   const EASY = ['lure', 'eatSeen', 'hide', 'busy'];
   while (tasks.length < 3 && rest.length) { const id = rest.splice((Math.random() * rest.length) | 0, 1)[0]; if (EASY.includes(id) && tasks.some(t => EASY.includes(t)) && rest.some(r => !EASY.includes(r))) continue; tasks.push(id); }
+  if (foe && !tasks.includes('foe')) { tasks.pop(); tasks.unshift('foe'); }   // 相手がいる面は「たおす」を必ずお題に入れる
   tasks = tasks.map(id => ({ id, t: TASKS[id].t, need: TASKS[id].need || 1, n: 0, done: false }));
-  rushShown = false; timeMax = timeLeft = Math.round(25 + mains().length * 7) + carryT; carryT = 0; lastTick = 99; bowl = null; feeds = 0; stageMaxSus = 0;
+  rushShown = false; timeMax = timeLeft = Math.round(25 + mains().length * 7) + carryT + (foe ? 10 : 0); carryT = 0;   // 相手がいる面は +10秒 lastTick = 99; bowl = null; feeds = 0; stageMaxSus = 0;
 }
 // 1面に出す仕掛けを絞る（消さずに、面ごとに入れ替える）
 // じゃまもの（罠・きゅうり・きしむ床・カメラ・犬・ネズミ・ボス猫）は 2 つまで、遊べるもの（ボール・吊り照明・お掃除ロボ）は 2 つまで（特別な夜はじゃまもの 1 つ）
 // 選ぶ順：まだ見たことのない仕掛け → 前の面に出なかった仕掛け → 残りから選ぶ。部屋の顔になっているもの（キッチンのネズミ、子ども部屋のボス猫など）は残す
 const G_HAZ = {
   trap: { on: () => traps.length > 0, off: () => { traps = []; } }, cuke: { on: () => !!cuke, off: () => { cuke = null; } },
-  creak: { on: () => creaks.length > 0, off: () => { creaks = []; } }, cam: { on: () => cams.length > 0 && !phaseOf(level).special, off: () => { cams = []; } },
-  dog: { on: () => !!dog, off: () => { dog = null; } }, mouse: { on: () => !!mouse && room !== 'kitchen', off: () => { mouse = null; } },
-  rival: { on: () => !!rival && room !== 'kids', off: () => { rival = null; } }
+  creak: { on: () => creaks.length > 0, off: () => { creaks = []; } }, cam: { on: () => cams.length > 0 && !phaseOf(level).special && phaseOf(level).rule !== 'twocam', off: () => { cams = []; } },
+  dog: { on: () => !!dog && !dog.keep, off: () => { dog = null; } }, mouse: { on: () => !!mouse && room !== 'kitchen', off: () => { mouse = null; } },
+  rival: { on: () => !!rival && room !== 'kids' && !rival.keep, off: () => { rival = null; } }
 };
 const G_TOY = { ball: { on: () => !!ball, off: () => { ball = null; } }, lamp: { on: () => !!lamp, off: () => { lamp = null; } }, vac: { on: () => !!vac, off: () => { vac = null; } } };
 let lastGims = [];
@@ -1587,7 +1634,7 @@ function newRun() {
 // ---------- 飼い主 ----------
 // 難しさに使う面の数（4.11.0）：1日目はそのまま、2〜3日目は 0.65 倍のペースで上がり、エンディングのあと（13面目から）は元のペースで上がり続ける
 const diffL = L => L <= 4 ? L : L <= 12 ? 4 + (L - 4) * 0.65 : 9.2 + (L - 12);
-const postK = () => dayOf(level) > END_DAY ? 1 + 0.1 * (dayOf(level) - END_DAY) : 1;   // エンディング後の厳しさ
+const postK = () => { const ex = dayOf(level) - END_DAY; return ex <= 0 ? 1 : ex <= TRUE_DAY - END_DAY ? 1 + 0.05 * ex : 1.2 + 0.1 * (ex - (TRUE_DAY - END_DAY)); };   // 4.24.0：4〜7日目は +5%/日（相手が出るぶん）、8日目から +10%/日
 const awayRange = L0 => { const L = diffL(L0), ex = Math.max(0, dayOf(L0) - END_DAY), f = L0 > 12 ? [Math.max(2.2, 3 - 0.2 * ex), Math.max(3.5, 4.5 - 0.25 * ex)] : [3.5, 5]; return [Math.max(f[0], 5.5 - 0.35 * L), Math.max(f[1], 8.5 - 0.5 * L)]; };   // 飼い主のいない時間（下限：3日目まで 3.5〜5 秒、エンディング後 3〜4.5 秒）
 const warnTime = L0 => Math.max(L0 > 12 ? 0.7 : 0.75, 0.95 - 0.04 * diffL(L0));   // 「？」から振り向くまで（4.7.0 で下限を 0.5 → 0.7 秒に）
 const lookTime = L => Math.min(2.8, 1.4 + 0.11 * diffL(L));   // 4.19.0：3.2/1.6/0.12 → 2.8/1.4/0.11（じっとしている時間を1割ほど短く）
@@ -1643,10 +1690,10 @@ function enter() {
 }
 function nextStop() {
   owner.up = false;
-  if (owner.si < owner.stops.length) { const s = owner.stops[owner.si++]; owner.gx = s.x; owner.cur = s; setMode('walk'); }
+  if (owner.stops && owner.si < owner.stops.length) { const s = owner.stops[owner.si++]; owner.gx = s.x; owner.cur = s; setMode('walk'); }
   else setMode('leave');
 }
-function goAway() { const r = awayRange(level); setMode('away', rnd(r[0], r[1]) * (weather === 'rain' ? 0.75 : 1)); owner.warned = false; }   // 雨の日は出かけないので、戻ってくるのが早い
+function goAway() { if (nap) { napSleep(); return; } const r = awayRange(level); setMode('away', rnd(r[0], r[1]) * (weather === 'rain' ? 0.75 : 1)); owner.warned = false; }   // 雨の日は出かけないので、戻ってくるのが早い
 function arrive() {
   const s = owner.cur;
   if (s.kind === 'feed') { setMode('feed', 1.1); return; }
@@ -1665,7 +1712,7 @@ function arrive() {
     const it = s.guard && items.includes(s.guard) ? s.guard : pickW(items, o => Math.sqrt(IT[o.t].yen));
     owner.face = it ? (Math.sign(it.x - owner.x) || 1) : 1;
     owner.up = s.kind === 'shelf';
-    setMode('warn', s.quick ? 0.35 : warnTime(level)); sfx.alert();
+    setMode('warn', s.quick ? 0.35 : warnTime(level) * (ruleOf() === 'earphone' ? 1.4 : 1)); sfx.alert();   // イヤホンの日：振り向くまでが長い
   }
 }
 function startSearch() {
@@ -1677,6 +1724,7 @@ function startSearch() {
 }
 function rush(x) {
   const o = owner;
+  if (nap) { if (nap.asleep) nap.t -= 2; return; }   // 最後の夜：物音で目覚めが早まる
   if (o.mode === 'away') { o.t = Math.min(o.t, 0.5); o.hint = x; return; }
   if (o.mode === 'search' || o.mode === 'chase') return;
   o.stops.splice(o.si, 0, { kind: 'check', x: clamp(x, 40, 330), quick: true });
@@ -1684,6 +1732,9 @@ function rush(x) {
 }
 function hearNoise(x, loud) {
   const o = owner;
+  if (ruleOf() === 'earphone' && o.mode !== 'away') loud *= 0.5;   // イヤホンの日：物音に鈍い
+  if (fest) loud = Math.min(1, loud * (fest.show > 0 ? 0.5 : 1.4));   // お祭り：花火の間は音がまぎれ、合間は目立つ
+  if (nap && nap.asleep) { sus = Math.max(sus, Math.min(sus + 10 * loud, 80)); nap.t -= loud * 2; return; }   // うたた寝：物音で目覚めが早まる
   if (guest && loud >= 0.6) guestHear(x);
   if (room === 'kids' && loud >= 0.5 && o.mode !== 'away' && !talkQ.length && Math.random() < 0.5) talkQ = [{ who: 'owner', text: lt('ママー！', 'MOM!'), at: stageT + 0.6 }, { who: 'off', text: lt('なにー？ どうしたのー？', 'What is it, honey?'), at: stageT + 1.6 }];
   // 物音だけ（見られていない）では見つからない：部屋にいないときは 55%、いても見ていないときは 80% までしか上げない
@@ -1702,6 +1753,7 @@ function placeBowl(x) {
 function alertOwner(x) {
   // いたずらではない物音（ロボにぶつかった など）：怪しまれ度は上げず、飼い主が気にしてそちらを見るだけ
   const o = owner;
+  if (nap) { if (nap.asleep) nap.t -= 1; return; }
   if (o.mode === 'away') { o.t = Math.min(o.t, 0.8); o.hint = x; return; }
   if (o.mode === 'search') return;
   o.face = Math.sign(x - o.x) || o.face; o.lureT = Math.max(o.lureT, 1.2); say(pick(LINES.unseen), 1.2);
@@ -1711,7 +1763,8 @@ function meow() {
   const c = cat; if (c.meowCd > 0 || state !== 'play') return;
   const v = pickVoice(); c.meowTxt = v.txt; c.meowT = Math.max(0.6, v.dur * (v.rep || 1) + 0.25); c.meowCd = 3.5; sfx.meow(c.type.voice, v);
   const o = owner;
-  if (o.mode === 'away' || o.mode === 'search' || o.mode === 'chase' || o.mode === 'busy') return;
+  if (nap) { if (nap.asleep) nap.t -= 1.2; return; }
+  if (o.mode === 'away' || o.mode === 'search' || o.mode === 'chase' || o.mode === 'busy' || o.mode === 'sky') return;
   // 飼い主のそばで、怪しまれていないときに鳴くと「おねだり」になる
   if (Math.abs(c.x - o.x) < 90 && sus < 35 && !bowl && feeds < 2 && o.mode !== 'feed') {
     say(lt('しょうがないなあ', 'Oh, all right'), 1.4); o.stops.splice(o.si, 0, { kind: 'feed', x: o.x }); o.lureT = 0; nextStop(); return;
@@ -1730,6 +1783,13 @@ function updOwner(dt) {
     return;
   }
   if (o.stunT > 0) { o.stunT -= dt; return; }   // 大技で固まっている
+  if (nap) {
+    // 最後の夜：部屋から出ない。出ようとしたらうたた寝に戻る。目覚めている間（look）は時間がきたらまた寝る
+    if (o.mode === 'leave' || o.mode === 'away') { o.x = clamp(o.x, 40, 330); napSleep(); return; }
+    if (o.mode === 'look') { o.t -= dt; if (o.t <= 0) napSleep(); return; }
+    if (o.mode === 'nap') return;
+    if (o.mode !== 'search' && o.mode !== 'chase') { setMode('look', 1.5); o.omni = true; o.range = 600; return; }   // ほかの行動（写真を撮る など）はしない
+  }
   if (o.lureT > 0) { o.lureT -= dt; return; }
   if (o.mode === 'walk' && !(o.sayT > 0) && cat.plat === PL.floor && Math.abs(cat.x - o.x) < 40 && sus < 20 && Math.random() < dt * 0.25) say(pick(LINES.pet), 1.5);   // そばでおとなしくしていると
   const step = (gx, sp) => { const d = gx - o.x; if (Math.abs(d) <= sp * dt) { o.x = gx; return true; } o.x += Math.sign(d) * sp * dt; o.face = Math.sign(d); o.step += dt; return false; };
@@ -1748,6 +1808,8 @@ function updOwner(dt) {
       if (o.t <= 0) nextStop();
       break;
     case 'chase': break;
+    case 'sky': o.t -= dt; o.up = true; if (o.t <= 0) nextStop(); break;   // 花火を見上げている
+    case 'nap': break;
     case 'tv': o.t -= dt; o.face = Math.sign(308 - o.x) || 1; if (o.t <= 0 || !tv || tv.on <= 0) nextStop(); break;
     case 'sad': o.t -= dt; if (o.t <= 0) nextStop(); break;
     case 'churu':
@@ -2165,7 +2227,9 @@ function doPunch(strong) {
   // ネズミ：床で前足が届くと退治
   if (mouse && mouse.mode === 'run' && c.plat === PL.floor) { const dx = (mouse.x - c.x) * c.face; if (dx > -6 && dx < reach + 10) mouseHit(); }
   // ボス猫：当たると押し返す。体力が0になると逃げていく
-  if (rival && rival.plat && rival.plat === c.plat && (rival.mode === 'roam' || rival.mode === 'fight')) { const dx = (rival.x - c.x) * c.face; if (dx > -4 && dx < reach + 14) hitRival(strong); }
+  if (rival && rival.plat && rival.plat === c.plat && (rival.mode === 'roam' || rival.mode === 'fight') && !rival.ally) { const dx = (rival.x - c.x) * c.face; if (dx > -4 && dx < reach + 14) hitRival(strong); }
+  if (foe) punchFoe(strong, reach);
+  if (bones.length && punchBones(strong, reach)) run.ev.bone = (run.ev.bone || 0) + 1;
   if (hit) run.touched = true;
   if (bHit && !hit) sfx.pon(0.4);
   if (bHit) learn('ball');
@@ -2232,6 +2296,14 @@ function landJunk(it, plat) {
 function addPart(o) { if (parts.length < 320) parts.push(o); }
 function breakItem(it, plat) {
   const d = IT[it.t];
+  if (it.byRival && rival && rival.ally) {
+    // ボス猫の夜：ボスが落とした分もネコのもの。ネコが落とした直後（2.5秒以内）なら「連携」で5割増し。飼い主が見ていればボスが叱られる
+    breakFx(it, plat); run.touched = true; run.broke[it.t] = (run.broke[it.t] || 0) + 1; run.stageDrops.push(d.yen); run.todYen[phaseOf(level).tod] += d.yen;
+    const combo = tAnim - (run.lastDropT || -9) < 2.5, b = combo ? Math.round(d.yen * 0.5) : 0; run.yen += d.yen + b; if (combo) { run.ev.combo = (run.ev.combo || 0) + 1; happyHop(); sfx.combo(2); }
+    pops.push({ x: it.x, y: plat.y - 30, text: (combo ? lt('連携! +', 'Teamwork! +') : lt('ボスの手柄 +', 'Boss assist +')) + yen(d.yen + b), life: 1.6, col: combo ? '#9b5fc0' : '#5d7a9a', size: combo ? 22 : 16 });
+    if (owner.mode !== 'away' && ownerSees(it.x)) scoldRival();
+    return;
+  }
   if (it.byRival) {
     // ボス猫が落とした：被害額はネコのものにならない。飼い主が見ていればボスが叱られ、見ていなければネコが疑われる
     breakFx(it, plat); pops.push({ x: it.x, y: plat.y - 30, text: lt('ボスに取られた…', 'Boss got it…'), life: 1.4, col: '#8a8f96', size: 15 });
@@ -2240,8 +2312,9 @@ function breakItem(it, plat) {
   }
   run.touched = true; run.yen += d.yen; run.broke[it.t] = (run.broke[it.t] || 0) + 1; run.lastBroke = it.t;
   if (!run.big || d.yen > run.big.y) run.big = { k: it.t, y: d.yen };
-  run.stageDrops.push(d.yen); run.todYen[phaseOf(level).tod] += d.yen; if (d.yen >= 30000) run.bigN++;
-  if (it.t === 'alarm') rush(it.x);
+  run.stageDrops.push(d.yen); run.todYen[phaseOf(level).tod] += d.yen; if (d.yen >= 30000) run.bigN++; run.lastDropT = tAnim;
+  if (it.t === 'alarm' && nap) { nap.asleep = false; sus = 100; susCd = 0; chaseUsed = true; run.lastBy = 'owner'; owner.face = Math.sign(it.x - owner.x) || 1; setMode('look', 9); say(lt('ジリリリリ!!', 'RIIIING!!'), 1.5); }   // 最後の夜：目覚まし時計で飛び起きる（即アウト）
+  else if (it.t === 'alarm') rush(it.x);
   if (it.t === 'remote') tvOn();
   if (it.home === 'book') { run.bookBroke++; if (room === 'living') bigCount(it.x); }
   if (it.kaku) run.kakushin++;
@@ -2363,6 +2436,16 @@ function dogBark() {
 function updDog(dt) {
   if (!dog) return;
   if (dog.cd > 0) dog.cd -= dt; if (dog.barkT > 0) dog.barkT -= dt;
+  if (dog.roam) {
+    // 犬が起きている夜：床を歩き回る。投げた骨があればそこへ走って4秒かじる。床のネコが 90px に入ると吠える（高い所にいれば届かない）
+    const d = dog, bone = bones.find(b => !b.eaten && b.thrown);
+    if (d.chewT > 0) { d.chewT -= dt; if (d.chewT <= 0 && d.target) { d.target.eaten = true; d.target = null; } return; }
+    if (bone) { const dx = bone.x - d.x; if (Math.abs(dx) > 10) { d.x += Math.sign(dx) * 130 * dt; d.dir = Math.sign(dx); } else { d.chewT = 4; d.target = bone; bone.thrown = false; bone.vx = 0; pops.push({ x: d.x, y: FLOOR - 40, text: lt('ガジガジ', 'Nom nom'), life: 1.2, col: '#c98a4f', size: 14 }); } return; }
+    d.t -= dt; if (d.t <= 0) { d.t = rnd(1.5, 3); d.dir = cat.plat === PL.floor && !cat.hidden && Math.random() < 0.7 ? Math.sign(cat.x - d.x) || 1 : pick([-1, 1]); }
+    d.x += d.dir * 42 * dt; if (d.x < 40) { d.x = 40; d.dir = 1; } else if (d.x > 335) { d.x = 335; d.dir = -1; }
+    if (cat.plat === PL.floor && !cat.hidden && Math.abs(cat.x - d.x) < 90 && d.cd <= 0 && stageT > 2.5) { dogBark(); d.cd = 5; }
+    return;
+  }
   const near = cat.plat === PL.floor && Math.abs(cat.x - dog.x) < 60 && Math.abs(cat.vx) > 20;
   if (near) dog.alertT += dt; else dog.alertT = Math.max(0, dog.alertT - dt);
   if (dog.alertT > 0.6 && dog.cd <= 0) dogBark();
@@ -2555,7 +2638,7 @@ function updRival(dt) {
   r.anim += dt; if (r.cd > 0) r.cd -= dt; if (r.stun > 0) r.stun -= dt; if (r.punchT > 0) r.punchT -= dt;
   if (r.mode === 'wait') {
     r.t -= dt;
-    if (r.t <= 0) { Object.assign(r, { mode: 'roam', x: 14, y: FLOOR, plat: PL.floor, vx: 0, vy: 0, hp: 3, rest: 1, target: null, airX: null }); sfx.yowl(); pops.push({ x: 50, y: FLOOR - 70, text: lt('ボス猫だ!', 'Boss cat!'), life: 1.6, col: '#5d7a9a', size: 18 }); }
+    if (r.t <= 0) { Object.assign(r, { mode: 'roam', x: 14, y: FLOOR, plat: PL.floor, vx: 0, vy: 0, hp: 3, rest: 1, target: null, airX: null }); sfx.yowl(); pops.push({ x: 50, y: FLOOR - 70, text: r.ally ? lt('ボス「手伝ってやるよ」', 'Boss: "I\'ll give you a paw"') : lt('ボス猫だ!', 'Boss cat!'), life: 1.6, col: '#5d7a9a', size: 18 }); }
     return;
   }
   let dir = 0;
@@ -2563,11 +2646,11 @@ function updRival(dt) {
     // 逃げる：床に降りて、左の端から出ていく（一度だけ戻ってくる）
     dir = r.plat && r.plat !== PL.floor ? (r.x < (r.plat.x0 + r.plat.x1) / 2 ? -1 : 1) : -1;
     bodyStep(r, r.stun > 0 ? 0 : dir, 190, dt);
-    if (r.plat === PL.floor && r.x <= 14) { if (r.back > 0) { r.back--; r.mode = 'wait'; r.t = rnd(14, 20); } else r.mode = 'gone'; }
+    if (r.plat === PL.floor && r.x <= 14) { if (r.back > 0) { r.back--; r.mode = 'wait'; r.t = r.ally ? rnd(6, 9) : rnd(14, 20); } else r.mode = 'gone'; }   // 味方のボスは早めに戻る
     return;
   }
   const same = !!cat.plat && r.plat === cat.plat && !cat.hidden && cat.plat !== VACP && cat.bathT <= 0, dx = cat.x - r.x;
-  if (r.mode === 'roam' && same && Math.abs(dx) < 44 && r.cd <= 0) {
+  if (r.mode === 'roam' && same && Math.abs(dx) < 44 && r.cd <= 0 && !r.ally) {
     r.mode = 'fight'; r.t = rnd(2.6, 3.6); r.swipeT = 0.45; sfx.hiss();
     pops.push({ x: r.x, y: r.y - 56, text: lt('シャーッ!', 'HISS!'), life: 1, col: '#5d7a9a', size: 16 });
   }
@@ -2605,6 +2688,312 @@ function updRival(dt) {
   const o = owner;
   if (r.mode === 'roam' && (r.plat !== PL.floor || r.punchT > 0) && ['walk', 'warn', 'look', 'up', 'search'].includes(o.mode) && ownerSees(r.x)) scoldRival();
 }
+// ---------- 第2週（4〜7日目）：攻撃してくる相手（foe）と、新しい特別な夜 ----------
+// foe：昼の1面に出る相手。ぶつかると「よろけ」（しばらく動けない＋物音）。ネコパンチで倒すと +5秒と、壊れた相手の被害額（カラスは盗んだ光りものを落とす）
+// vacbot 暴走ロボ掃除機（床を突進。強パンチ3回で裏返り、暴走して台のものを落としてくれる）
+// crow   カラス2羽（空から急降下。降りた瞬間だけ殴れる。倒すと光りものを落とす）
+// toybot おもちゃのロボット（弾を撃つ。ジャンプでかわす。背後から3回）
+// drone  見張りドローン（空中を巡回。見つかると怪しまれ度 +30。高い所からパンチ2回で落とす。落ちると床を暴走）
+let foe = null, fest = null, bones = [], nap = null;
+const FOES = {
+  vacbot: { n: tx('暴走ロボ掃除機', 'Rogue Robo-Vac'), hp: 3, yen: 38000 },
+  crow:   { n: tx('カラス', 'Crow'), hp: 2, yen: 0 },
+  toybot: { n: tx('おもちゃのロボット', 'Toy Robot'), hp: 3, yen: 30000 },
+  drone:  { n: tx('見張りドローン', 'Patrol Drone'), hp: 2, yen: 45000 }
+};
+Object.assign(LINES.item, { vacbot: tx('ロボがーっ!! 高かったのに!!', 'My robo-vac!! That was expensive!!'), toybot: tx('ぼくのロボがーっ!!', 'My robot!!'), drone: tx('ドローンがーっ!! 買ったばかり!!', 'My drone!! I just bought it!!') });
+LINES.nap = [tx('ムニャ…ネコ…', 'Mmm… kitty…'), tx('…もう食べられない…', '…can\'t eat another bite…'), tx('スースー', 'Zzz…'), tx('…落とさないで…', '…don\'t knock it…')];
+LINES.napCaught = [tx('寝たふりだよ', 'I was only pretending'), tx('見てたよ、ずっと', 'I saw everything'), tx('最後の夜くらい静かに…', 'At least on the last night…')];
+function makeFoe(kind) {
+  const F = { kind, hp: FOES[kind].hp, anim: 0, stun: 0, cd: 2.5, t: rnd(2, 4), dead: false, deadT: 0, mode: 'idle', face: -1, dir: -1, x: 330, y: FLOOR, vx: 0, vy: 0, intro: 2.4, bumped: {} };
+  if (kind === 'vacbot') Object.assign(F, { mode: 'patrol', x: 340, dir: -1 });
+  else if (kind === 'crow') Object.assign(F, { birds: [0, 1].map(i => ({ i, mode: 'fly', x: 120 + i * 200, y: 150 + i * 30, hp: 2, t: rnd(3, 5) + i * 4, ph: i * 2, tx: 0, ty: 0, tp: null, sx: 0, sy: 0, plat: null, face: 1, dead: false, vx: 0, vy: 0, anim: 0 })) });
+  else if (kind === 'toybot') Object.assign(F, { mode: 'walk', x: 100, dir: 1, face: 1, darts: [] });
+  else if (kind === 'drone') Object.assign(F, { mode: 'fly', x: 200, y: 205, dir: 1, seeT: 0, beepT: 0 });
+  return F;
+}
+// 相手にやられた：しばらく動けず、押し出される。物音で飼い主がそちらを見る（見られていれば怪しまれる）
+function foeHitCat(dir, stunT, label) {
+  const c = cat; if (c.stun > 0 || c.hidden || c.bathT > 0 || chaseT > 0 || state !== 'play') return false;
+  c.stun = stunT; c.vx = dir * 320; tapTarget = null; c.autoScr = null; c.scratch = null; shake = Math.max(shake, 0.15); buzz(40); sfx.bump(); sfx.yowl();
+  pops.push({ x: c.x, y: c.y - 52, text: label, life: 0.9, col: '#e0362c', size: 16 });
+  fur(c.x, c.y - 20); hearNoise(c.x, 0.35); run.ev.foeHit = (run.ev.foeHit || 0) + 1; return true;
+}
+function hurtFoe(n, x, y) {
+  const F = foe; F.hp -= n; sfx.thud2(); shake = Math.max(shake, 0.1); buzz(25); hearNoise(cat.x, 0.3);
+  for (let k = 0; k < 5; k++) addPart({ k: 'drop', x: x + rnd(-6, 6), y: y - 6, vx: rnd(-120, 120), vy: rnd(-200, -60), life: 0.5, gy: FLOOR, c: pick(['#ffc94a', '#ffffff']), s: rnd(1.5, 3), rot: 0, vr: 0 });
+  pops.push({ x, y: y - 46, text: lt('ガツン', 'WHACK'), life: 0.7, col: '#4a2f1d', size: 15 });
+  if (F.hp <= 0) foeDown(x, y);
+}
+function foeDown(x, y) {
+  const F = foe, D = FOES[F.kind]; F.dead = true; F.deadT = 0; F.hp = 0; F.stun = 0;
+  timeLeft += 5; run.foes = (run.foes || 0) + 1; run.ev['foe_' + F.kind] = true; taskHit('foe'); happyHop(); sfx.combo(4); buzz([30, 30, 60]); shake = Math.max(shake, 0.25); learn('foe');
+  for (let k = 0; k < 12; k++) addPart({ k: 'drop', x: x + rnd(-10, 10), y: y - 10, vx: rnd(-160, 160), vy: rnd(-260, -80), life: 0.7, gy: FLOOR, c: pick(['#ffc94a', '#ff5a5a', '#ffffff']), s: rnd(2, 4), rot: 0, vr: 0 });
+  pops.push({ x: W / 2, y: 190, text: lt(D.n + 'をたおした! +5秒', D.n + ' down! +5s'), life: 1.8, col: '#1d8174', size: 20 });
+  if (D.yen) damage(D.yen, F.kind, x, y, 0.8);
+}
+// 裏返ったロボ・落ちたドローンの暴走：壁から壁へすべり、サイドテーブルとテーブルの脚にぶつかって上のものをゆらす。床のネコもはね飛ばす
+function rampage(F, dt, sp) {
+  F.x += F.dir * sp * dt; if (F.x < 26) { F.x = 26; F.dir = 1; } else if (F.x > 335) { F.x = 335; F.dir = -1; }
+  for (const p of [PL.side, PL.table]) {
+    if (!PLS.includes(p)) continue;
+    const key = p === PL.side ? 'side' : 'table', inside = F.x > p.x0 + 8 && F.x < p.x1 - 8;
+    if (inside && !F.bumped[key]) {
+      F.bumped[key] = true; shake = Math.max(shake, 0.2); sfx.gatan(); const id = ++chainSeq;
+      for (const o of items) if (o.plat === p && o.state === 'rest') { const d = o.x < (p.x0 + p.x1) / 2 ? -1 : 1; o.vx = d * rnd(100, 170) / IT[o.t].m; o.state = 'slide'; o.chain = id; }
+      pops.push({ x: (p.x0 + p.x1) / 2, y: p.y - 30, text: lt('ガタッ!', 'RATTLE!'), life: 0.8, col: '#ff8a3d', size: 16 });
+    } else if (!inside) F.bumped[key] = false;
+  }
+  const c = cat; if (c.plat === PL.floor && Math.abs(c.x - F.x) < 30) foeHitCat(Math.sign(c.x - F.x) || 1, 0.6, lt('ドンッ', 'BUMP'));
+}
+function updVacbot(F, dt) {
+  const c = cat, onFloor = c.plat === PL.floor && !c.hidden && c.bathT <= 0;
+  if (F.dead) { F.deadT += dt; if (F.deadT > 8) { F.mode = 'wreck'; return; } rampage(F, dt, 170); return; }
+  if (F.stun > 0) { F.stun -= dt; F.vx *= 1 - 6 * dt; F.x = clamp(F.x + F.vx * dt, 26, 335); return; }
+  if (F.cd > 0) F.cd -= dt;
+  if (F.mode === 'patrol') {
+    F.x += F.dir * 70 * dt; if (F.x < 26) { F.x = 26; F.dir = 1; } else if (F.x > 335) { F.x = 335; F.dir = -1; }
+    F.t -= dt; if (F.t <= 0) { F.t = rnd(2, 4); if (Math.random() < 0.4) F.dir = -F.dir; }
+    if (F.intro <= 0 && F.cd <= 0 && onFloor && c.stun <= 0 && Math.abs(c.x - F.x) < 180) { F.mode = 'charge'; F.t = 1.3; F.dir = Math.sign(c.x - F.x) || 1; sfx.alert(); pops.push({ x: F.x, y: FLOOR - 36, text: lt('ウィーン!!', 'VRRRR!!'), life: 0.8, col: '#e0362c', size: 15 }); }
+  } else if (F.mode === 'charge') {
+    F.t -= dt; F.x += F.dir * 240 * dt;
+    if (F.x < 26 || F.x > 335) { F.x = clamp(F.x, 26, 335); F.t = 0; }
+    if (onFloor && Math.abs(c.x - F.x) < 30 && foeHitCat(F.dir, 1.0, lt('ドンッ!', 'WHAM!'))) F.t = 0;
+    if (F.t <= 0) { F.mode = 'rest'; F.t = 1.4; F.cd = 2.2; }
+  } else if (F.mode === 'rest') { F.t -= dt; if (F.t <= 0) F.mode = 'patrol'; }
+  F.face = F.dir;
+}
+function updCrow(F, dt) {
+  const c = cat; let alive = 0;
+  for (const b of F.birds) {
+    b.anim += dt;
+    if (b.dead) { b.x += b.vx * dt; b.y += b.vy * dt; continue; }
+    alive++; b.t -= dt;
+    if (b.mode === 'fly') {
+      b.ph += dt; b.x = clamp(b.x + Math.cos(b.ph * 0.9) * 70 * dt, 40, W - 40); b.y = 150 + b.i * 30 + Math.sin(b.ph * 1.4) * 14; b.face = Math.cos(b.ph * 0.9) >= 0 ? 1 : -1;
+      if (b.t <= 0 && F.intro <= 0 && !c.hidden && c.bathT <= 0 && c.stun <= 0 && c.plat && !F.birds.some(q => q !== b && !q.dead && q.mode !== 'fly')) { b.mode = 'aim'; b.t = 0.8; b.tx = c.x; b.ty = c.plat.y; b.tp = c.plat; sfx.alert(); }
+    } else if (b.mode === 'aim') {
+      if (c.plat && !c.hidden) { b.tx = c.x; b.ty = c.plat.y; b.tp = c.plat; }
+      b.face = Math.sign(b.tx - b.x) || 1;
+      if (b.t <= 0) { b.mode = 'dive'; b.sx = b.x; b.sy = b.y; b.t = 0.45; sfx.whoosh(); }
+    } else if (b.mode === 'dive') {
+      const k = clamp(1 - b.t / 0.45, 0, 1); b.x = b.sx + (b.tx - b.sx) * k; b.y = b.sy + (b.ty - b.sy) * k * k;
+      if (b.t <= 0) {
+        b.mode = 'land'; b.t = 1.4; b.plat = b.tp; b.y = b.ty; b.x = b.tx; sfx.cluck();
+        if (c.plat === b.tp && !c.hidden && Math.abs(c.x - b.x) < 30 && foeHitCat(Math.sign(c.x - b.x) || 1, 1.0, lt('カァ!! -3秒', 'CAW!! -3s'))) { timeLeft = Math.max(1, timeLeft - 3); run.ev.crowHit = (run.ev.crowHit || 0) + 1; }
+        else pops.push({ x: b.x, y: b.y - 40, text: lt('カァ', 'Caw'), life: 0.8, col: '#3a3f46', size: 14 });
+        // 降りた段のものをつつく（押す）
+        if (b.plat && b.plat !== PL.floor) { const id = ++chainSeq; for (const o of items) if (o.plat === b.plat && o.state === 'rest' && Math.abs(o.x - b.x) < 22) { o.vx = (Math.sign(o.x - b.x) || b.face) * 110 / IT[o.t].m; o.state = 'slide'; o.chain = id; o.byChick = true; } }
+      }
+    } else if (b.mode === 'land') { if (b.t <= 0) { b.mode = 'fly'; b.t = rnd(5, 8); b.plat = null; b.ph = 0; } }
+  }
+  if (!alive && !F.dead) foeDown(W / 2, 200);
+}
+function updToybot(F, dt) {
+  const c = cat, onFloor = c.plat === PL.floor && !c.hidden && c.bathT <= 0;
+  for (let i = F.darts.length - 1; i >= 0; i--) { const d = F.darts[i]; d.x += d.vx * dt; d.life -= dt; if (d.x < 4 || d.x > W - 4 || d.life <= 0) { F.darts.splice(i, 1); continue; } if (onFloor && c.y > FLOOR - 10 && Math.abs(c.x - d.x) < 16 && foeHitCat(Math.sign(d.vx), 1.5, lt('ビリビリ!!', 'BZZT!!'))) F.darts.splice(i, 1); }
+  if (F.dead) return;
+  if (F.stun > 0) { F.stun -= dt; F.x = clamp(F.x + F.vx * dt, 26, 335); F.vx *= 1 - 6 * dt; return; }
+  if (F.cd > 0) F.cd -= dt;
+  const dx = c.x - F.x;
+  if (F.mode === 'walk') {
+    F.x += F.dir * 45 * dt; if (F.x < 26) { F.x = 26; F.dir = 1; } else if (F.x > 335) { F.x = 335; F.dir = -1; } F.face = F.dir;
+    if (F.intro <= 0 && F.cd <= 0 && onFloor && Math.sign(dx) === F.face && Math.abs(dx) < 190 && Math.abs(dx) > 20) { F.mode = 'aim'; F.t = 0.55; sfx.alert(); }
+    else if (F.intro <= 0 && onFloor && Math.sign(dx) !== F.face && Math.abs(dx) < 90 && Math.random() < dt * 0.6) F.dir = -F.dir;   // 背後にいると、ときどき振り向く
+  } else if (F.mode === 'aim') {
+    F.t -= dt; if (F.t <= 0) { F.mode = 'walk'; F.cd = 2.4; F.darts.push({ x: F.x + F.face * 16, vx: F.face * 250, life: 2 }); sfx.pon(0.6); pops.push({ x: F.x, y: FLOOR - 44, text: lt('ピュン', 'Pew'), life: 0.6, col: '#2b8fd9', size: 13 }); }
+  }
+}
+function updDrone(F, dt) {
+  const c = cat; F.anim += dt;
+  if (F.dead) {
+    if (F.mode === 'crash') { F.vy += GRAV * dt; F.y += F.vy * dt; F.x = clamp(F.x + F.vx * dt, 26, W - 26); F.rot = (F.rot || 0) + 9 * dt; if (F.y >= FLOOR - 8) { F.y = FLOOR - 8; F.mode = 'skid'; F.t = 3; F.dir = Math.sign(F.vx) || 1; shake = 0.3; sfx.cera(1); } }
+    else if (F.mode === 'skid') { F.t -= dt; rampage(F, dt, 190); if (F.t <= 0) F.mode = 'wreck'; }
+    return;
+  }
+  if (F.stun > 0) { F.stun -= dt; F.x = clamp(F.x + F.vx * dt, 40, W - 40); F.vx *= 1 - 5 * dt; return; }
+  if (F.cd > 0) F.cd -= dt; if (F.beepT > 0) F.beepT -= dt;
+  F.x += F.dir * 55 * dt; if (F.x < 50) { F.x = 50; F.dir = 1; } else if (F.x > W - 50) { F.x = W - 50; F.dir = -1; } F.face = F.dir; F.y = 205 + Math.sin(F.anim * 2) * 8;
+  const sees = F.intro <= 0 && !c.hidden && !c.safe && c.bathT <= 0 && Math.abs(c.x - F.x) < 62 && c.y > F.y - 20;   // 自分より上にいるネコは見えない
+  if (sees && F.cd <= 0) {
+    F.seeT += dt;
+    if (F.seeT > 0.6) {
+      F.seeT = 0; F.cd = 4; F.beepT = 1; sfx.alert(); sus = Math.min(95, sus + 30); run.lastBy = 'cam'; cat.mark = 0.4;
+      const o = owner;
+      if (o.mode === 'away') { o.t = Math.min(o.t, 0.8); o.hint = c.x; }
+      else if (o.mode !== 'search' && o.mode !== 'chase') { o.face = Math.sign(c.x - o.x) || o.face; o.lureT = Math.max(o.lureT, 1.2); say(lt('ドローンが鳴いてる？', 'Why is the drone beeping?'), 1.4); }
+      pops.push({ x: F.x, y: F.y - 30, text: lt('ピピピッ!!', 'BEEP BEEP!!'), life: 1, col: '#e0362c', size: 15 });
+    }
+  } else F.seeT = Math.max(0, F.seeT - dt);
+}
+function updFoe(dt) {
+  const F = foe; if (!F) return;
+  F.anim += dt; if (F.intro > 0) F.intro -= dt;
+  if (F.kind === 'vacbot') updVacbot(F, dt); else if (F.kind === 'crow') updCrow(F, dt); else if (F.kind === 'toybot') updToybot(F, dt); else if (F.kind === 'drone') updDrone(F, dt);
+}
+// ネコパンチが相手に当たったか
+function punchFoe(strong, reach) {
+  const F = foe, c = cat; if (!F || F.dead) return;
+  const n = strong ? 2 : 1;
+  if (F.kind === 'vacbot' && c.plat === PL.floor) {
+    const dx = (F.x - c.x) * c.face; if (dx > -6 && dx < reach + 20) { hurtFoe(n, F.x, FLOOR - 10); if (!F.dead) { F.vx = c.face * (strong ? 320 : 200); F.stun = 0.5; if (F.mode === 'charge') { F.mode = 'rest'; F.t = 0.8; } } }
+  } else if (F.kind === 'crow') {
+    for (const b of F.birds) {
+      if (b.dead || b.mode !== 'land' || b.plat !== c.plat) continue;
+      const dx = (b.x - c.x) * c.face; if (dx > -6 && dx < reach + 12) {
+        b.hp -= n; sfx.thud2(); buzz(25); shake = Math.max(shake, 0.1); fur(b.x, b.y - 14);
+        if (b.hp > 0) { b.x = clamp(b.x + c.face * 24, 20, W - 20); pops.push({ x: b.x, y: b.y - 44, text: lt('バサッ', 'FLAP'), life: 0.7, col: '#3a3f46', size: 15 }); continue; }
+        // 倒した：逃げていきながら、盗んでいた光りものを落とす（落ちて割れればネコの手柄）
+        b.dead = true; b.vx = c.face * 220; b.vy = -280; b.plat = null; run.ev.crows = (run.ev.crows || 0) + 1; happyHop(); sfx.cluck();
+        const t = pick(['wine', 'glamp', 'frame', 'watch']);
+        items.push({ t, x: clamp(b.x, 20, W - 20), y: b.y - 16, vx: rnd(-30, 30), vy: -120, plat: null, home: 'shelf', state: 'fall', rot: 0, vr: 4, y0: b.y - 80, chain: 0, kaku: false, water: false });
+        pops.push({ x: b.x, y: b.y - 48, text: lt('カラス退治! 何か落とした', 'Crow bopped! It dropped something'), life: 1.4, col: '#1d8174', size: 15 });
+      }
+    }
+  } else if (F.kind === 'toybot' && c.plat === PL.floor) {
+    const dx = (F.x - c.x) * c.face; if (dx > -6 && dx < reach + 14) {
+      if (c.face === F.face) { hurtFoe(n, F.x, FLOOR - 16); if (!F.dead) { F.vx = c.face * 140; F.stun = 0.45; } }
+      else { sfx.tink(); pops.push({ x: F.x, y: FLOOR - 50, text: lt('カチン', 'CLANG'), life: 0.7, col: '#8a8f96', size: 15 }); if (F.mode === 'walk' && F.intro <= 0) { F.mode = 'aim'; F.t = 0.3; } }   // 正面はよろいで弾く
+    }
+  } else if (F.kind === 'drone') {
+    const px = c.x + c.face * (reach / 2 + 6), py = c.y - 26;
+    if (Math.abs(F.x - px) < reach / 2 + 16 && Math.abs(F.y - py) < 60) { hurtFoe(n, F.x, F.y + 10); if (!F.dead) { F.vx = c.face * 180; F.stun = 0.5; } else { F.mode = 'crash'; F.vx = c.face * 120; F.vy = -80; F.rot = 0; } }
+  }
+}
+// ---------- 描画 ----------
+function drawHp(x, y, hp, max) { for (let i = 0; i < max; i++) { g.fillStyle = i < hp ? '#ff5a5a' : 'rgba(0,0,0,.2)'; g.beginPath(); g.arc(x - (max - 1) * 5 + i * 10, y, 3.5, 0, TAU); g.fill(); } }
+function smoke(x, y, t) { for (let i = 0; i < 3; i++) { const k = (t * 0.8 + i / 3) % 1; g.globalAlpha = 0.5 * (1 - k); g.fillStyle = '#9aa0a6'; g.beginPath(); g.arc(x + Math.sin(k * 6 + i) * 6, y - 10 - k * 34, 5 + k * 6, 0, TAU); g.fill(); } g.globalAlpha = 1; }
+function drawFoe() {
+  const F = foe; if (!F) return;
+  const nm = FOES[F.kind].n;
+  const label = (x, y) => { g.font = `800 11px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.lineWidth = 3; g.strokeStyle = '#fff'; g.strokeText(nm, x, y); g.fillStyle = '#c0392b'; g.fillText(nm, x, y); };
+  if (F.kind === 'vacbot') {
+    const x = F.x, y = FLOOR, flip = F.dead;
+    g.save(); g.translate(x, y - 7); if (flip) g.rotate(Math.PI); if (F.mode === 'wreck') g.rotate(0.2);
+    g.fillStyle = '#e0362c'; rr(g, -24, -8, 48, 15, 7); g.fill(); g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1.2; g.stroke();
+    g.fillStyle = '#4a2f1d'; g.fillRect(-16, -3, 32, 3);
+    // 目（怒り）：前の縁に2つ。突進と休みで色が変わる
+    const eye = F.mode === 'charge' ? '#fff' : F.mode === 'rest' ? '#ffc94a' : (tAnim * 3) % 1 < 0.5 ? '#ffe36b' : '#ff9f3d';
+    g.fillStyle = eye; g.beginPath(); g.arc(F.dir * 14, -2, 2.6, 0, TAU); g.arc(F.dir * 7, -2, 2.6, 0, TAU); g.fill();
+    g.strokeStyle = '#4a2f1d'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(F.dir * 17, -6); g.lineTo(F.dir * 10, -4); g.stroke();
+    // 車輪（裏返ると上で空回り）
+    g.fillStyle = '#2a2f36'; g.beginPath(); g.arc(-14, 7, 3.5, 0, TAU); g.arc(14, 7, 3.5, 0, TAU); g.fill();
+    if (flip && F.mode !== 'wreck') { g.strokeStyle = '#9aa0a6'; g.lineWidth = 1.2; const a = tAnim * 20; g.beginPath(); g.moveTo(-14 + Math.cos(a) * 4, 7 + Math.sin(a) * 4); g.lineTo(-14 - Math.cos(a) * 4, 7 - Math.sin(a) * 4); g.moveTo(14 + Math.cos(a) * 4, 7 + Math.sin(a) * 4); g.lineTo(14 - Math.cos(a) * 4, 7 - Math.sin(a) * 4); g.stroke(); }
+    // 回るブラシ
+    if (!flip || F.mode !== 'wreck') { g.strokeStyle = '#ffc94a'; g.lineWidth = 2; const a = tAnim * (F.mode === 'charge' ? 30 : 12); for (let i = 0; i < 3; i++) { const q = a + i * TAU / 3; g.beginPath(); g.moveTo(F.dir * 20, 4); g.lineTo(F.dir * 20 + Math.cos(q) * 7, 4 + Math.sin(q) * 5); g.stroke(); } }
+    g.restore();
+    if (F.mode === 'charge') { g.strokeStyle = 'rgba(224,54,44,.5)'; g.lineWidth = 2; for (let i = 1; i <= 3; i++) { g.beginPath(); g.moveTo(x - F.dir * (26 + i * 8), y - 14 + i * 3); g.lineTo(x - F.dir * (34 + i * 8), y - 14 + i * 3); g.stroke(); } }
+    if (F.mode === 'wreck') smoke(x, y - 10, tAnim);
+    if (!F.dead) { drawHp(x, y - 34, F.hp, FOES.vacbot.hp); label(x, y - 42); }
+  } else if (F.kind === 'crow') {
+    for (const b of F.birds) {
+      if (b.mode === 'aim' && !b.dead) {
+        // ねらいの影と「！」
+        const k = 1 - clamp(b.t / 0.8, 0, 1); g.fillStyle = `rgba(20,20,30,${0.25 + 0.3 * k})`; g.beginPath(); g.ellipse(b.tx, b.ty - 2, 14 + 10 * k, 5, 0, 0, TAU); g.fill();
+        g.fillStyle = '#ff3b30'; g.strokeStyle = '#fff'; g.lineWidth = 2.5; g.beginPath(); g.arc(b.tx, b.ty - 70 - Math.sin(tAnim * 12) * 3, 11, 0, TAU); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.font = `800 14px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('!', b.tx, b.ty - 69 - Math.sin(tAnim * 12) * 3);
+      }
+      const x = b.x, y = b.y, land = b.mode === 'land', flap = land ? 0 : Math.sin(b.anim * (b.mode === 'dive' ? 4 : 11)) * 9;
+      g.save(); g.translate(x, land ? y - 9 : y); g.scale(b.face, 1); if (b.mode === 'dive') g.rotate(0.5); if (b.dead) g.rotate(-0.3);
+      g.fillStyle = '#2a2d36'; g.beginPath(); g.ellipse(0, 0, 13, 7, 0, 0, TAU); g.fill();
+      g.beginPath(); g.moveTo(-4, -2); g.lineTo(-16, -2 - flap); g.lineTo(-2, 4); g.closePath(); g.fill();   // 翼
+      g.beginPath(); g.moveTo(-12, 2); g.lineTo(-22, 5); g.lineTo(-13, 6); g.closePath(); g.fill();   // 尾
+      g.beginPath(); g.arc(10, -5, 5.5, 0, TAU); g.fill();
+      g.fillStyle = '#ffc94a'; g.beginPath(); g.moveTo(14, -5); g.lineTo(22, -3); g.lineTo(14, -1); g.closePath(); g.fill();
+      g.fillStyle = b.dead ? '#fff' : '#fff'; g.beginPath(); g.arc(11, -6, 1.8, 0, TAU); g.fill(); g.fillStyle = '#111'; g.beginPath(); g.arc(11.6, -6, 0.9, 0, TAU); g.fill();
+      if (land) { g.strokeStyle = '#ffc94a'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(-3, 6); g.lineTo(-3, 9); g.moveTo(4, 6); g.lineTo(4, 9); g.stroke(); }
+      g.restore();
+      if (land && !b.dead) { drawHp(x, y - 32, b.hp, 2); }
+    }
+    const alive = F.birds.filter(b => !b.dead); if (alive.length) label(alive[0].x, alive[0].y - 24);
+  } else if (F.kind === 'toybot') {
+    const x = F.x, y = FLOOR, dead = F.dead;
+    for (const d of F.darts) { g.fillStyle = '#ff8a3d'; g.fillRect(d.x - 7, FLOOR - 16, 14, 4); g.fillStyle = '#2b8fd9'; g.fillRect(d.x + (d.vx > 0 ? 7 : -10), FLOOR - 17, 3, 6); }
+    g.save(); g.translate(x, y); g.scale(F.face, 1); if (dead) { g.rotate(0.35); g.translate(0, 4); }
+    g.fillStyle = '#9aa6b5'; g.fillRect(-9, -8, 7, 8); g.fillRect(2, -8, 7, 8);   // 脚
+    g.fillStyle = '#2b8fd9'; rr(g, -14, -34, 28, 27, 4); g.fill(); g.strokeStyle = 'rgba(0,0,0,.3)'; g.lineWidth = 1.2; g.stroke();
+    g.fillStyle = '#ffc94a'; g.fillRect(-9, -26, 6, 6); g.fillRect(3, -26, 6, 6); g.fillStyle = '#e0362c'; g.fillRect(-6, -16, 12, 3);   // 胸のボタン
+    g.fillStyle = '#c9d3d9'; rr(g, -11, -52, 22, 18, 3); g.fill(); g.strokeStyle = 'rgba(0,0,0,.3)'; g.stroke();   // 頭
+    g.fillStyle = dead ? '#555' : F.mode === 'aim' ? '#ff3b30' : (tAnim * 2) % 1 < 0.5 ? '#bff27a' : '#7fe0d0'; g.fillRect(-6, -46, 5, 5); g.fillRect(2, -46, 5, 5);
+    g.strokeStyle = '#9aa6b5'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -52); g.lineTo(0, -60); g.stroke(); g.fillStyle = '#ff5a5a'; g.beginPath(); g.arc(0, -61, 2.5, 0, TAU); g.fill();
+    // 腕と砲
+    g.strokeStyle = '#9aa6b5'; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(12, -28); g.lineTo(22, -24); g.stroke(); g.fillStyle = '#3a3f46'; g.fillRect(18, -27, 12, 6);
+    if (F.mode === 'aim') { g.fillStyle = `rgba(255,59,48,${0.5 + 0.5 * Math.sin(tAnim * 30)})`; g.beginPath(); g.arc(31, -24, 3, 0, TAU); g.fill(); }
+    g.beginPath(); g.moveTo(-12, -28); g.lineTo(-20, -20); g.stroke();
+    g.restore();
+    if (dead) smoke(x, y - 30, tAnim); else { drawHp(x, y - 72, F.hp, FOES.toybot.hp); label(x, y - 80); }
+  } else if (F.kind === 'drone') {
+    const x = F.x, y = F.y;
+    if (!F.dead && F.intro <= 0) { const k = clamp(F.seeT / 0.6, 0, 1); g.fillStyle = `rgba(224,54,44,${0.08 + 0.14 * k})`; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 62, FLOOR); g.lineTo(x + 62, FLOOR); g.closePath(); g.fill(); }   // 下を見ている範囲
+    g.save(); g.translate(x, y); if (F.dead) g.rotate(F.mode === 'crash' ? F.rot : F.mode === 'skid' ? 0.4 : 0.6);
+    g.strokeStyle = '#3a3f46'; g.lineWidth = 3; g.beginPath(); g.moveTo(-18, -4); g.lineTo(18, -4); g.stroke();
+    g.fillStyle = '#e8eef2'; rr(g, -11, -8, 22, 12, 4); g.fill(); g.strokeStyle = 'rgba(0,0,0,.3)'; g.lineWidth = 1.2; g.stroke();
+    const spin = F.dead && F.mode !== 'crash' ? 0 : 1; g.fillStyle = 'rgba(60,66,76,.6)'; [-18, 18].forEach(rx => { g.beginPath(); g.ellipse(rx, -6, 11, 2 + (spin ? Math.abs(Math.sin(tAnim * 40 + rx)) * 1.5 : 0), 0, 0, TAU); g.fill(); });
+    g.fillStyle = '#20252b'; g.beginPath(); g.arc(0, 4, 4.5, 0, TAU); g.fill(); g.fillStyle = F.beepT > 0 ? '#ff3b30' : '#6fb3e8'; g.beginPath(); g.arc(0, 4, 2.2, 0, TAU); g.fill();
+    if (F.beepT > 0 && (tAnim * 8) % 1 < 0.5) { g.fillStyle = '#ff3b30'; g.beginPath(); g.arc(8, -10, 2.5, 0, TAU); g.fill(); }
+    g.restore();
+    if (F.mode === 'wreck') smoke(x, y, tAnim);
+    if (!F.dead) { drawHp(x, y - 22, F.hp, FOES.drone.hp); label(x, y - 30); }
+  }
+}
+// ---------- お祭りの夜（庭）：花火が上がる間、飼い主は空を見上げる。合間は静かで、物音に敏感 ----------
+function updFest(dt) {
+  const f = fest; if (!f) return;
+  if (f.show > 0) f.show -= dt;
+  f.t -= dt;
+  if (f.t <= 0) {
+    f.t = rnd(6, 9); f.show = 3.2; f.n = (f.n || 0) + 1; sfx.whoosh(); setTimeout(() => { if (fest) sfx.gatan(); }, 500);
+    const col = pick(['#ff5a5a', '#ffc94a', '#7fe0d0', '#ff9fb2', '#9cc8ef', '#ffffff']);
+    f.bursts.push({ x: rnd(110, 360), y: rnd(60, 150) - OY * 0.5, r: 0, col, t: 0 });
+    pops.push({ x: W / 2, y: 180, text: lt('ドーン!', 'BOOM!'), life: 1, col: '#ffc94a', size: 26 });
+    const o = owner;
+    if (o.mode !== 'away' && !['search', 'chase', 'sky', 'churu'].includes(o.mode) && !(o.stunT > 0)) { o.up = true; setMode('sky', 3); o.lureT = 0; say(pick([lt('たまやー!', 'Ooooh!'), lt('きれい…', 'So pretty…'), lt('今年もいいねえ', 'Lovely as always')]), 1.6); }
+  }
+  for (let i = f.bursts.length - 1; i >= 0; i--) { const b = f.bursts[i]; b.t += dt; if (b.t > 2.2) f.bursts.splice(i, 1); }
+}
+function drawFest() {
+  const f = fest; if (!f) return;
+  // 花火：広がる火の粉
+  for (const b of f.bursts) { const k = clamp(b.t / 1.8, 0, 1), r = 20 + k * 70; g.globalAlpha = 1 - k; g.fillStyle = b.col; for (let i = 0; i < 18; i++) { const a = i * TAU / 18, rr2 = r * (1 - 0.3 * (i % 2)); g.beginPath(); g.arc(b.x + Math.cos(a) * rr2, b.y + Math.sin(a) * rr2 + k * k * 30, 2.5 - k, 0, TAU); g.fill(); } g.globalAlpha = 1; }
+  if (f.show > 2.6) { g.fillStyle = `rgba(255,240,200,${(f.show - 2.6) * 0.5})`; g.fillRect(0, -OY, W, FLOOR + OY); }
+  // ちょうちんの列（パーゴラの上の方）
+  g.strokeStyle = '#4a2f1d'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, 150); g.quadraticCurveTo(W / 2, 170, W, 150); g.stroke();
+  for (let i = 0; i < 7; i++) { const x = 30 + i * 65, y = 152 + 10 * Math.sin(i / 6 * Math.PI); g.fillStyle = i % 2 ? '#ff5a5a' : '#ffc94a'; rr(g, x - 7, y + 4, 14, 20, 5); g.fill(); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(x - 5, y + 8, 10, 1.5); g.fillRect(x - 5, y + 16, 10, 1.5); g.fillStyle = '#4a2f1d'; g.fillRect(x - 3, y + 2, 6, 3); }
+}
+// ---------- 犬が起きている夜（リビング）：犬が歩き回り、床のネコに近づくと吠えて飼い主がすぐ戻る。骨をパンチで投げると4秒かじる ----------
+function updBones(dt) {
+  for (const b of bones) {
+    if (b.eaten) continue;
+    if (b.vx) { b.x += b.vx * dt; const f = 260 * dt; if (Math.abs(b.vx) <= f) b.vx = 0; else b.vx -= Math.sign(b.vx) * f; if (b.x < 20) { b.x = 20; b.vx = Math.abs(b.vx) * 0.5; } else if (b.x > W - 20) { b.x = W - 20; b.vx = -Math.abs(b.vx) * 0.5; } }
+  }
+}
+function punchBones(strong, reach) {
+  const c = cat; if (c.plat !== PL.floor) return false; let hit = false;
+  for (const b of bones) { if (b.eaten) continue; const dx = (b.x - c.x) * c.face; if (dx > -6 && dx < reach + 8) { b.vx = c.face * (strong ? 420 : 260); b.thrown = true; hit = true; sfx.pon(0.5); learn('bone'); pops.push({ x: b.x, y: FLOOR - 30, text: lt('ポーン', 'Toss'), life: 0.7, col: '#c98a4f', size: 13 }); } }
+  return hit;
+}
+function drawBones() {
+  for (const b of bones) { if (b.eaten) continue; const x = b.x, y = FLOOR - 4; g.fillStyle = '#fff6e0'; g.strokeStyle = '#c9b39a'; g.lineWidth = 1; rr(g, x - 9, y - 3, 18, 5, 2); g.fill(); g.stroke(); [-9, 9].forEach(dx => { g.beginPath(); g.arc(x + dx, y - 3, 3, 0, TAU); g.arc(x + dx, y + 2, 3, 0, TAU); g.fill(); g.stroke(); }); }
+}
+// ---------- 最後の夜（寝室）：飼い主は部屋から出ない。うたた寝（動ける）と目覚め（じっとする）をくり返す。寝る時間はだんだん短くなる。目覚まし時計を落とすと即アウト ----------
+function updNap(dt) {
+  const n = nap, o = owner; if (!n) return;
+  if (o.mode === 'nap') {
+    n.t -= dt; if (n.sayT > 0) n.sayT -= dt;
+    if (!(o.sayT > 0) && Math.random() < dt * 0.12) say(pick(LINES.nap), 1.6);
+    if (n.t <= 0) { n.asleep = false; n.cyc++; setMode('look', 3); o.omni = true; o.range = 600; o.up = false; o.face = Math.sign(cat.x - o.x) || o.face; sfx.alert(); say(pick([lt('…ん？', '…Hm?'), lt('…起きてるよ', "…I'm awake"), lt('…今の音は？', '…What was that?')]), 1.5); }
+  } else if (o.mode === 'look' && !n.asleep) {
+    o.face = Math.sign(cat.x - o.x) || o.face;
+    if (o.t <= 0.05) napSleep();
+  }
+}
+function napSleep() { const n = nap, o = owner; n.asleep = true; n.t = Math.max(2.4, 5.5 - 0.35 * n.cyc); o.lureT = 0; o.up = false; setMode('nap', 99); }
+function drawNapTop() {
+  const n = nap, o = owner; if (!n || o.mode !== 'nap') return;
+  const x = o.x, y = FLOOR - 200;
+  if (n.t < 0.8) { const bob = Math.sin(tAnim * 14) * 3; g.fillStyle = '#ffb020'; g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(x, y + bob, 13, 0, TAU); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.font = `800 15px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('…', x, y - 2 + bob); }
+  else { const k = (tAnim * 0.7) % 1; g.font = `800 ${12 + 8 * k}px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.fillStyle = '#5d7a9a'; g.globalAlpha = 1 - k; g.textAlign = 'center'; g.textBaseline = 'middle'; g.strokeText('Zzz', x + 18 + 10 * k, y - 20 * k); g.fillText('Zzz', x + 18 + 10 * k, y - 20 * k); g.globalAlpha = 1; }
+}
+function updNight2(dt) { updFest(dt); updBones(dt); updNap(dt); }
 // ---------- 仕掛け（テーブルクロス・テレビ・ペットカメラ・積み重ね・吊り照明・傾く棚・床・罠・きゅうり） ----------
 function clothPull() {
   // テーブルクロスを引くと、テーブルの上のものが全部、右の端へすべり落ちる
@@ -2787,9 +3176,13 @@ const ENDINGS = {
     oops: tx('あーっ!!', 'HEY!!'), punch: true },
   normal: { n: tx('いつもの夜', 'Just Another Night'), how: tx('3日目の夜を越える', 'Get through the third night'),
     say: [tx('今日もいろいろあったけど…', 'What a day it was…'), tx('はい、ごはん', "Here's dinner"), tx('やっぱり、いい子だね〜', "You're a good cat after all~")],
-    oops: tx('あーっ!!', 'HEY!!'), punch: true }
+    oops: tx('あーっ!!', 'HEY!!'), punch: true },
+  true: { n: tx('ほんとうのおしまい', 'The True End'), how: tx('7日目の夜を越える', 'Get through the seventh night'),
+    say: [tx('7日間、ぜんぶ見てたよ', 'I saw all seven days'), tx('はい、ごはん。いっぱい食べな', "Here's dinner. Eat up"), tx('……もう、好きにしなさい', '……Fine. Do as you please')],
+    oops: tx('……明日かたづけるよ', '……I\'ll clean it up tomorrow'), punch: true }
 };
 function endingType(r) {
+  if (r.trueEnded) return 'true';
   if (!(r.conts || 0) && !(r.revives || 0) && (r.perfect || 0) >= 4) return 'perfect';
   if ((r.bigs || []).length >= 3 || r.yen >= 500000) return 'wrecker';
   if (r.yen < 60000) return 'good';
@@ -2800,7 +3193,7 @@ try { endingsSeen = new Set(JSON.parse(store.get('nekoEndings', '[]'))); } catch
 // スタッフロール：ENDING の種類、出演（ネコ・飼い主）、被害者一覧（割ったもの）、大技、3日間の写真。タップ・ボタンで飛ばせる
 let credT = 0, CRED_LEN = 64 * (60 / 84 / 2);   // 曲のひとまわり（8 小節・84 BPM ＝ 約 22.9 秒）に合わせる。4.23.1
 function creditLines() {
-  const r = run, E = ENDINGS[r.endType], L = [];
+  const r = run, E = ENDINGS[r.endType], L = [], nd = r.endType === 'true' ? TRUE_DAY : END_DAY, tr = r.endType === 'true';
   L.push(['big', lt('こっそりネコ', 'Mischievous Cat')]); L.push(['sub', 'ENDING ' + String(E.n)]); L.push(['gap']);
   L.push(['h', lt('出演', 'CAST')]); L.push(['t', lt('ネコ：', 'Cat: ') + CATS[selCat].name]); L.push(['t', lt('飼い主：', 'Owner: ') + lt('名前はまだない', 'Name unknown')]);
   L.push(['t', lt('ときどき：子ども、おばあちゃん', 'Also: the kid, Grandma')]); L.push(['t', lt('お父さん、お客さん', 'Dad, the guest')]); L.push(['gap']);
@@ -2808,9 +3201,12 @@ function creditLines() {
   const bro = Object.entries(r.broke || {}).filter(([k]) => IT[k]).sort((a, b) => b[1] - a[1]).slice(0, 7);
   bro.forEach(([k, n]) => L.push(['t', IT[k].n + ' ×' + n])); if (!bro.length) L.push(['t', lt('（なし。本当に？）', '(none. really?)')]);
   if ((r.bigs || []).length) { L.push(['gap']); L.push(['h', lt('大技', 'BIG ONES')]); r.bigs.forEach(k => L.push(['t', BIG[k].n])); }
+  { const fs = Object.keys(FOES).filter(k => r.ev && r.ev['foe_' + k]); if (fs.length) { L.push(['gap']); L.push(['h', lt('たおした相手', 'DEFEATED')]); fs.forEach(k => L.push(['t', FOES[k].n])); } }
   L.push(['gap']); L.push(['h', lt('こっそりネコ', 'Mischievous Cat')]); L.push(['t', lt('制作：', 'Created by ') + AUTHOR]);
-  L.push(['gap']); L.push(['h', lt('3日間の被害額', '3-DAY DAMAGE')]); L.push(['big2', yen(r.yen)]); L.push(['t', lt('称号', 'Title') + '「' + titleOf(r.yen) + '」']);
-  L.push(['gap']); L.push(['t', lt('飼い主は、まだ気づいていない', 'The owner still has no idea')]); L.push(['gap']); L.push(['sub', lt('そして、4日目へ……', 'And so, on to Day 4……')]);
+  L.push(['gap']); L.push(['h', lt(nd + '日間の被害額', nd + '-DAY DAMAGE')]); L.push(['big2', yen(r.yen)]); L.push(['t', lt('称号', 'Title') + '「' + titleOf(r.yen) + '」']);
+  L.push(['gap']); L.push(['t', tr ? lt('飼い主は、ぜんぶ知っていた', 'The owner knew all along') : lt('飼い主は、まだ気づいていない', 'The owner still has no idea')]); L.push(['gap']);
+  L.push(['sub', tr ? lt('あそんでくれて、ありがとう', 'Thank you for playing') : lt('そして、4日目へ……', 'And so, on to Day 4……')]);
+  if (tr) { L.push(['gap']); L.push(['t', lt('（8日目からは、終わりのない日々）', '(From Day 8: the endless days)')]); }
   return L;
 }
 function drawCredits() {
@@ -2835,7 +3231,8 @@ function drawCredits() {
   if (e < 0.6) { g.fillStyle = `rgba(20,14,40,${1 - e / 0.6})`; g.fillRect(0, -OY, W, VH); }
   if (e > 1 && e < CRED_LEN - 1) { g.fillStyle = 'rgba(255,246,200,.5)'; g.font = `800 11px ${FONT}`; g.textAlign = 'right'; g.fillText(lt('タップで飛ばす', 'Tap to skip'), W - 10, -OY + 16); }
 }
-function startEnding() {
+function startEnding(isTrue) {
+  if (isTrue) run.trueEnded = true;
   run.endType = endingType(run); endFall = null; endLastPop = -1; endPopTxt = '';
   run.ended = true; run.days = dayOf(level); state = 'ending'; endT = 0; endShown = false; endCup = { x: 252, y: 474, vy: 0, vx: 0, rot: 0, broke: false };
   bgmStop(); endBgmStart(false); setPulse(null); setMode('away', 99); owner.say = ''; parts = []; pops = []; spaceT = 0; room = 'living'; spots = []; lamp = null; tv = null; weather = 'sun';   // 4.23.2：始まりの効果音（dayend）はやめ、BGM だけにする
@@ -2854,7 +3251,7 @@ function drawEnding() {
   if (!cu.broke) drawItem(g, 'cup', cu.x, cu.y, cu.rot, false);
   // 飼い主（ひざをついて座っている。6.6秒から立って左へ去る）
   const back = ET === 'wrecker' ? clamp((e - 10.2) / 0.7, 0, 1) : 0;   // 解体の日々：走って戻る
-  const leave = clamp((e - 6.6) / 1.2, 0, 1) * (1 - back), ox = 140 - leave * 220;
+  const leave = ET === 'true' ? 0 : clamp((e - 6.6) / 1.2, 0, 1) * (1 - back), ox = 140 - leave * 220;   // ほんとうのおしまい：飼い主は去らない
   g.save(); g.translate(ox, F); g.lineCap = 'round';
   if (leave <= 0) { g.fillStyle = '#8ea6e0'; rr(g, -18, -18, 44, 18, 8); g.fill(); g.fillStyle = '#a9bdf0'; rr(g, -14, -78, 30, 62, 10); g.fill(); }
   else { const sw = Math.sin(e * 12) * 8; g.strokeStyle = '#8ea6e0'; g.lineWidth = 11; g.beginPath(); g.moveTo(-3, -58); g.lineTo(-3 - sw, -4); g.moveTo(5, -58); g.lineTo(5 + sw, -4); g.stroke(); g.fillStyle = '#a9bdf0'; rr(g, -15, -122, 32, 68, 10); g.fill(); g.translate(0, -44); }
@@ -2871,17 +3268,17 @@ function drawEnding() {
   // ごはん皿
   if (e > 1.5) { g.fillStyle = '#ff7a95'; g.beginPath(); g.moveTo(166, F - 9); g.lineTo(194, F - 9); g.lineTo(190, F); g.lineTo(170, F); g.closePath(); g.fill(); if (e < 4.4) { g.fillStyle = '#c98a4f'; for (let i = -2; i <= 2; i++) { g.beginPath(); g.arc(180 + i * 4, F - 10, 2.6, 0, TAU); g.fill(); } } }
   // ネコ：食べる → なでられてゴロゴロ → 振り向いてニヤリ → パンチ
-  const zoom = ET === 'good' ? 0 : e > 7.6 && e < 12.2 ? Math.min(1, (e - 7.6) / 0.5) : e >= 12.2 ? Math.max(0, 1 - (e - 12.2) / 0.5) : 0, cx = 214, cy = F - 24;   // いい子は寄らない（寝ているだけ）
+  const zoom = ET === 'good' || ET === 'true' ? 0 : e > 7.6 && e < 12.2 ? Math.min(1, (e - 7.6) / 0.5) : e >= 12.2 ? Math.max(0, 1 - (e - 12.2) / 0.5) : 0, cx = 214, cy = F - 24;   // いい子は寄らない（寝ているだけ）
   g.save(); if (zoom) { const z = 1 + 1.2 * zoom; g.translate(cx, cy); g.scale(z, z); g.translate(-cx, -cy); }
   let pose = 'walk', eyes = null, face = -1, tail = 'up';
   if (e < 4.4) { pose = e > 1.6 ? 'hunt' : 'walk'; eyes = e > 1.6 ? 'happy' : null; }
   else if (e < 7.6) { pose = 'loaf'; eyes = 'happy'; }
-  else if (ET === 'good') { pose = 'loaf'; eyes = 'happy'; tail = e > 8.6 && e < 9.3 ? 'puff' : 'normal'; }   // いい子：寝たまま、しっぽだけがコップに当たる
+  else if (ET === 'good' || ET === 'true') { pose = 'loaf'; eyes = 'happy'; tail = e > 8.6 && e < 9.3 ? 'puff' : 'normal'; }   // いい子・ほんとうのおしまい：寝たまま、しっぽだけがコップに当たる
   else if (e < 8.7) { pose = 'smug'; face = 1; }
   else if (e < 9.2) { pose = 'punch'; face = 1; }
   else { pose = 'smug'; face = 1; }
   drawCat(g, 214, F, { type: cat.type, face, scale: 1, t: tAnim, pose, eyes, tail, acc: selAcc });
-  if (e > 7.9 && e < 12.2 && ET !== 'good' && ET !== 'perfect') { const k = (tAnim * 2) % 1; g.fillStyle = '#fff6a8'; g.globalAlpha = Math.sin(k * Math.PI); g.beginPath(); g.arc(214 + 26, F - 34, 2 + 3 * Math.sin(k * Math.PI), 0, TAU); g.fill(); g.globalAlpha = 1; }   // 目がきらり
+  if (e > 7.9 && e < 12.2 && ET !== 'good' && ET !== 'perfect' && ET !== 'true') { const k = (tAnim * 2) % 1; g.fillStyle = '#fff6a8'; g.globalAlpha = Math.sin(k * Math.PI); g.beginPath(); g.arc(214 + 26, F - 34, 2 + 3 * Math.sin(k * Math.PI), 0, TAU); g.fill(); g.globalAlpha = 1; }   // 目がきらり
   g.restore();
   if (ET === 'wrecker') {
     // 上から次々に降ってくる（連鎖の続き。寄りの変換の外で描く）。落ちきったら破片と音
@@ -2895,7 +3292,7 @@ function drawEnding() {
   if (e > 0.6 && e < 2.6) bubble(150, F - 140, String(EN.say[0]));
   if (e > 2.8 && e < 4.4) bubble(150, F - 140, String(EN.say[1]));
   if (e > 4.6 && e < 6.6) bubble(150, F - 140, String(EN.say[2]));
-  if (e > 4.6 && e < 7.4) { g.font = `800 14px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(lt('ゴロゴロ', 'Purr purr'), 250, F - 60); g.fillStyle = '#c95f17'; g.fillText(lt('ゴロゴロ', 'Purr purr'), 250, F - 60); }
+  if (e > 4.6 && e < (ET === 'true' ? 12.2 : 7.4)) { g.font = `800 14px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(lt('ゴロゴロ', 'Purr purr'), 250, F - 60); g.fillStyle = '#c95f17'; g.fillText(lt('ゴロゴロ', 'Purr purr'), 250, F - 60); }
   const offSay = (t, y) => { g.font = `800 15px ${FONT}`; const w = g.measureText(t).width + 18; g.fillStyle = '#fff'; g.strokeStyle = '#4a2f1d'; g.lineWidth = 2; rr(g, 6, y - 13, w, 26, 12); g.fill(); g.stroke(); g.fillStyle = '#e0362c'; g.fillText(t, 6 + w / 2, y); };   // 画面の外（左）の飼い主の声
   if (ET === 'perfect') {
     // 完全犯罪：飼い主が去ると電気が消え、暗闇で目だけ光る。コップは暗闇で割れ、飼い主は「気のせいか」
@@ -2909,6 +3306,13 @@ function drawEnding() {
     if (e > 8.0 && e < 12.2) { g.font = `800 ${40 + Math.sin(tAnim * 8) * 2}px ${FONT}`; g.lineWidth = 8; g.strokeStyle = '#1a1430'; const t = lt('ニヤリ', 'Heh.'); g.strokeText(t, W / 2, 200); g.fillStyle = '#fff6c8'; g.fillText(t, W / 2, 200); }
     if (e > 9.5 && e < 10.7) offSay(String(EN.oops), F - 250);
     if (e > 10.9 && e < 12.2) offSay(lt('……気のせいか', '……Must be my imagination'), F - 250);
+  } else if (ET === 'true') {
+    // ほんとうのおしまい：飼い主はそばに居つづける。部屋が少し暗くなり、しっぽがコップに当たって割れても「明日かたづけるよ」。ふたりで Zzz
+    const dim = clamp((e - 7.6) / 1.2, 0, 1); if (dim) { g.fillStyle = `rgba(16,22,60,${0.35 * dim})`; g.fillRect(0, -OY, W, VH); }
+    if (e > 8.9 && e < 9.4) { g.font = `800 16px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(lt('ぱたん', 'flop'), 262, F - 46); g.fillStyle = '#c95f17'; g.fillText(lt('ぱたん', 'flop'), 262, F - 46); }
+    if (e > 9.5 && e < 10.9) bubble(ox + 20, F - 150, String(EN.oops));
+    if (e > 11.0 && e < 12.4) bubble(ox + 20, F - 150, lt('おやすみ', 'Good night'));
+    if (e > 10.0 && e < 12.4) { const k = (tAnim * 0.8) % 1; g.font = `800 ${16 + 8 * k}px ${FONT}`; g.lineWidth = 5; g.strokeStyle = '#fff'; g.fillStyle = '#5d7a9a'; g.globalAlpha = 1 - k; g.strokeText('Zzz', ox + 30 + 14 * k, F - 150 - 26 * k); g.fillText('Zzz', ox + 30 + 14 * k, F - 150 - 26 * k); g.strokeText('Zzz', 250 + 14 * k, F - 70 - 26 * k); g.fillText('Zzz', 250 + 14 * k, F - 70 - 26 * k); g.globalAlpha = 1; }
   } else if (ET === 'good') {
     // いい子（自称）：寝たまま。しっぽがコップに当たって割れるが、ネコは寝ている（ことになっている）
     if (e > 7.6 && e < 12.2) { const k = (tAnim * 0.8) % 1; g.font = `800 ${16 + 8 * k}px ${FONT}`; g.lineWidth = 5; g.strokeStyle = '#fff'; g.fillStyle = '#1d8174'; g.globalAlpha = 1 - k; g.strokeText('Zzz', 250 + 14 * k, F - 70 - 26 * k); g.fillText('Zzz', 250 + 14 * k, F - 70 - 26 * k); g.globalAlpha = 1; }
@@ -2927,12 +3331,12 @@ function drawEnding() {
   }
   // 終わりの札
   const k2 = clamp((e - 12.2) / 0.6, 0, 1);   // 「ニヤリ」のあとに、終わりの札（約3秒見せてから締めの画面）
-  if (k2 > 0) { g.fillStyle = `rgba(20,14,40,${0.55 * k2})`; g.fillRect(0, -OY, W, VH); g.globalAlpha = k2; g.fillStyle = '#fff6c8'; g.font = `800 34px ${FONT}`; g.fillText(lt('おしまい……？', 'The end…?'), W / 2, 220); g.font = `800 16px ${FONT}`; g.fillText(lt(END_DAY + '日間の被害額 ', END_DAY + '-day damage ') + yen(run.yen), W / 2, 262); g.globalAlpha = 1; }
+  if (k2 > 0) { g.fillStyle = `rgba(20,14,40,${0.55 * k2})`; g.fillRect(0, -OY, W, VH); g.globalAlpha = k2; g.fillStyle = '#fff6c8'; g.font = `800 34px ${FONT}`; g.fillText(ET === 'true' ? lt('おしまい', 'The End') : lt('おしまい……？', 'The end…?'), W / 2, 220); g.font = `800 16px ${FONT}`; { const nd = ET === 'true' ? TRUE_DAY : END_DAY; g.fillText(lt(nd + '日間の被害額 ', nd + '-day damage ') + yen(run.yen), W / 2, 262); } g.globalAlpha = 1; }
   // 最初はふわっと明るく
   if (e < 0.8) { g.fillStyle = `rgba(20,14,40,${1 - e / 0.8})`; g.fillRect(0, -OY, W, VH); }
 }
 // 確認用の再生：エンディングを種類の順（いつもの夜 → 完全犯罪 → 解体の日々 → いい子）に見る。記録には残さない
-const PREVIEW_ORDER = ['normal', 'perfect', 'wrecker', 'good'];
+const PREVIEW_ORDER = ['normal', 'perfect', 'wrecker', 'good', 'true'];
 let previewIx = 0;
 function previewEnding(ix) {
   previewIx = ((ix % PREVIEW_ORDER.length) + PREVIEW_ORDER.length) % PREVIEW_ORDER.length;
@@ -2941,7 +3345,7 @@ function previewEnding(ix) {
   // 写真も見本で入れる（1〜12面を順に写す。実際のスタッフロールと同じ枚数・描画負荷になる）
   try { run.album = []; for (let L = 1; L <= 12; L++) { setupStage(L); const sn = takeSnap(); if (!sn) continue; const c2 = document.createElement('canvas'); c2.width = c2.height = 160; c2.getContext('2d').drawImage(sn, 0, 0, 160, 160); run.album.push({ im: c2, L, yen: 1000 * L }); } } catch (e) {}
   setupStage(DAY_LEN * END_DAY);
-  startEnding(); run.endType = PREVIEW_ORDER[previewIx];
+  startEnding(); run.endType = PREVIEW_ORDER[previewIx]; run.trueEnded = run.endType === 'true';
 }
 function showEnding() {
   if (run.preview) {
@@ -2958,7 +3362,8 @@ function showEnding() {
   state = 'endmenu'; ov.hidden = false; endFx = 0;
   // ここで一度記録する：ランキングへ送る（自己ベストなら）・称号・ごほうびのきせかえ。4日目へつづけても、この記録は残る
   const firstEnd = store.get('nekoEnded', '') !== '1'; store.set('nekoEnded', '1');
-  const et = run.endType || 'normal', newEnd = !endingsSeen.has(et); endingsSeen.add(et); store.set('nekoEndings', JSON.stringify([...endingsSeen]));
+  const et = run.endType || 'normal', newEnd = !endingsSeen.has(et), tr = et === 'true', nd = tr ? TRUE_DAY : END_DAY;
+  const firstTrue = tr && store.get('nekoTrueEnd', '') !== '1'; if (tr) store.set('nekoTrueEnd', '1'); endingsSeen.add(et); store.set('nekoEndings', JSON.stringify([...endingsSeen]));
   const newSiam = !catsOpen.has('siam'); openCat('siam');
   const gotTitles = [];
   for (const t of TITLES) { let got = false; try { got = t.tier != null ? run.yen >= t.tier : t.life ? !!t.life(LIFE) : t.test(run); } catch (e) {} if (got && !unlocked.has(t.id)) { unlocked.add(t.id); gotTitles.push(t.name); } }
@@ -2968,17 +3373,17 @@ function showEnding() {
   const n = v => (v || 0).toLocaleString('ja-JP'), brokeN = Object.values(run.broke || {}).reduce((x, y) => x + y, 0);
   const row = (k, v) => `<span>${k}</span><span>${v}</span>`;
   ov.innerHTML = `<div class="panel end-panel">
-    <div class="big-logo" style="font-size:1.7rem">${lt('いたずら完走！', 'Mischief Complete!')}</div>
-    <p class="sub">${lt(END_DAY + '日間、だれにも止められなかった', END_DAY + ' days. Nobody could stop you.')}</p>
+    <div class="big-logo" style="font-size:1.7rem">${tr ? lt('ぜんぶやりきった！', 'You Did It All!') : lt('いたずら完走！', 'Mischief Complete!')}</div>
+    <p class="sub">${tr ? lt('7日間、飼い主はぜんぶ知っていた', 'Seven days. The owner knew all along.') : lt(END_DAY + '日間、だれにも止められなかった', END_DAY + ' days. Nobody could stop you.')}</p>
     <p class="best" style="margin:0 0 6px">ENDING「${ENDINGS[et].n}」 <small style="font-weight:500">${endingsSeen.size} / ${Object.keys(ENDINGS).length}${newEnd ? ' NEW' : ''}</small></p>
     <div class="cert">
-      <p class="res-yen" style="margin:0">${lt(END_DAY + '日間の被害額', END_DAY + '-day damage')}<b>${yen(run.yen)}</b></p>
+      <p class="res-yen" style="margin:0">${lt(nd + '日間の被害額', nd + '-day damage')}<b>${yen(run.yen)}</b></p>
       <p class="best" style="margin:2px 0 8px">${lt('称号', 'Title')}「${titleOf(run.yen)}」</p>
       <div class="stat-list">${row(lt('割ったもの', 'Things broken'), n(brokeN) + lt('個', ''))}${row(lt('最大の連鎖', 'Best chain'), n(run.maxChain))}${row(lt('お題の★', 'Task stars'), n(run.stars))}${row(lt('朝からつづけた', 'Day restarts'), n(run.conts) + lt('回', ''))}</div>
     </div>
-    <div class="badges">${newSiam ? `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ シャム猫', 'NEW CAT Siamese')}</span>` : ''}${firstEnd ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「金メダル」', 'Reward: Gold medal accessory')}</span>` : ''}${gotTitles.map(t => `<span class="badge new">NEW ${t}</span>`).join('')}</div>
-    <button class="btn go" id="enCont" type="button">${lt((END_DAY + 1) + '日目へつづける', 'On to Day ' + (END_DAY + 1))}</button>
-    <p class="best" style="margin:2px 0 6px;font-weight:500;font-size:.78rem">${lt('ここからは1日ごとに飼い主がきびしくなります。どこまで行けるか腕だめし', 'From here the owner gets stricter every day. How far can you go?')}</p>
+    <div class="badges">${newSiam ? `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ シャム猫', 'NEW CAT Siamese')}</span>` : ''}${firstEnd ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「金メダル」', 'Reward: Gold medal accessory')}</span>` : ''}${firstTrue ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「星のバッジ」', 'Reward: Star badge accessory')}</span>` : ''}${gotTitles.map(t => `<span class="badge new">NEW ${t}</span>`).join('')}</div>
+    <button class="btn go" id="enCont" type="button">${lt((nd + 1) + '日目へつづける', 'On to Day ' + (nd + 1))}</button>
+    <p class="best" style="margin:2px 0 6px;font-weight:500;font-size:.78rem">${tr ? lt('ここから先は終わりのない日々。1日ごとに飼い主がきびしくなります', 'From here on, the endless days. The owner gets stricter every day.') : lt('4日目からは新しい相手と新しい夜。7日目の夜を越えると、もうひとつのおしまい', 'From Day 4: new foes and new nights. Get past the seventh night for another ending.')}</p>
     <div class="row"><button class="btn w" id="enRes" type="button">${lt('ここで終わって結果を見る', 'Finish and see results')}</button></div>
     <p class="best" style="margin:6px 0 0;font-weight:500;font-size:.72rem;color:var(--ink2)">${lt('こっそりネコ　制作：', 'Mischievous Cat — created by ')}${AUTHOR}</p></div>`;
   $('enCont').addEventListener('click', () => { endBgmStop(); ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
@@ -3174,6 +3579,7 @@ function updSus(dt) {
   }
   if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { const ic = cams.some(cm => camSees(cm, it.x)); gain += ic && !guestSees(it.x) ? 12 : 16; exBy = exBy || (ic ? 'cam' : 'guest'); it.mark = 0.4; it.spotted = true; break; } }
   if (o.mode === 'search') gain *= 1.15;
+  if (rival && rival.ally && rival.plat && rival.mode !== 'wait' && rival.mode !== 'gone' && Math.abs(rival.x - cat.x) < 130) gain *= 0.5;   // ボス猫の夜：飼い主はボスを先に疑う
   // 隠れ場所（ダンボール・キャットタワーの上・高い所）でじっとしている間は、足跡や転がるもの・音があっても上げない。探している最中でも少しずつ下げる
   const hiding = inEscape() && !(cat.punchT > 0) && !cat.scratch;
   // 同じ隠れ場所に長くいる：8秒をすぎると、探している飼い主がそこへ向かい、近くまで来たら追い出す（見つかりはしない）
@@ -3200,7 +3606,7 @@ function updSus(dt) {
   // 飼い主が部屋の外にいるときは、100% になっても見つからない（戻ってくるまで 99% で待つ）。お客さん・カメラに見られているときは別
   if (sus >= 100 && !exSeen && (o.mode === 'away' || o.x < 6 || o.x > W - 6)) sus = 99;
   // ネタ：じっとくつろいでいると、飼い主がスマホで写真を撮る（1面に1回。怪しまれ度が少し下がる）
-  if (!gag.photo && state === 'play' && (o.mode === 'walk' || o.mode === 'look') && !cat.onFurn && !cat.hidden && cat.still > 3 && ownerSees(cat.x) && sus < 90) {
+  if (!gag.photo && !nap && state === 'play' && (o.mode === 'walk' || o.mode === 'look') && !cat.onFurn && !cat.hidden && cat.still > 3 && ownerSees(cat.x) && sus < 90) {
     gag.photo = true; setMode('phone', 1.6); o.upIn = 9; o.face = Math.sign(cat.x - o.x) || o.face; say(lt('かわいい…撮っとこ', 'So cute… gotta get a pic'), 1.6); sus = Math.max(0, sus - 15); gag.flash = 0.25; sfx.rec();
   }
   // ネタ：大きいネコは箱からしっぽが出ている（見つかりはしない）
@@ -3298,6 +3704,7 @@ function caught(timeup) {
   snap = takeSnap();
   state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.face = timeup ? 'deadpan' : pickW(CAUGHT_FACES, f => f.w).id; if (run.blame) run.face = 'innocent'; run.huh = run.face === 'huh'; run.huhStep = 0; spaceT = 0; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME[phaseOf(level).tod] || REACT_TIME[3]) : room === 'kids' && Math.random() < 0.6 ? pick(LINES.kid) : room === 'garden' && Math.random() < 0.7 ? pick(LINES.granny) : room === 'study' && Math.random() < 0.7 ? pick(LINES.dad) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35; slowT = 0;
   { const sp = specialReact(!!timeup); if (sp) run.react = sp; }
+  if (nap && !timeup && Math.random() < 0.7) run.react = pick(LINES.napCaught);
   bgmStop(); if (timeup) sfx.timeup(); else { sfx.watch(); sfx.caught(); } buzz(timeup ? 80 : [60, 40, 120]); setPulse(null);
   if (owner.mode === 'away') { owner.x = clamp(cat.x - 70, 20, 330); owner.face = 1; }
   setMode('look', 9); owner.lureT = 0; owner.face = Math.sign(cat.x - owner.x) || 1; owner.up = false; chaseT = 0;
@@ -3321,6 +3728,7 @@ function checkClear() {
   const quick = Math.round(sy * 0.4 * clamp(timeLeft / timeMax, 0, 1)) + close, sneaky = Math.round(sy * (perfect ? 0.3 : stageMaxSus < 50 ? 0.15 : 0));
   run.yen += quick + sneaky; run.skill += quick + sneaky; if (perfect) run.perfect++;
   if (stageMaxSus < 10 && sy > 0) run.ghost++; if (phaseOf(level).special === 'guest' && stageMaxSus < 50) run.guestClear = true;
+  if (phaseOf(level).special) run.ev['night_' + phaseOf(level).special] = true;
   stageBonus = { quick, sneaky, perfect, close };
   try { const sn = takeSnap(); if (sn) { const c2 = document.createElement('canvas'); c2.width = c2.height = 160; c2.getContext('2d').drawImage(sn, 0, 0, 160, 160); run.album = (run.album || []).concat([{ im: c2, L: level, yen: Math.round(sy) }]).slice(-12); } } catch (e) {}
   if (run.yen >= 100000) openCat('mike');
@@ -3691,6 +4099,11 @@ function drawAcc(c, id) {
     c.strokeStyle = '#2b8fd9'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(12, -26); c.lineTo(17, -12); c.lineTo(22, -26); c.stroke();
     c.fillStyle = '#ffc94a'; c.strokeStyle = '#c98a00'; c.lineWidth = 1; c.beginPath(); c.arc(17, -9, 4.2, 0, TAU); c.fill(); c.stroke();
     c.fillStyle = '#fff3b0'; c.beginPath(); c.arc(16, -10, 1.4, 0, TAU); c.fill();
+  } else if (id === 'star') {
+    // 星のバッジ：胸に黄色い星
+    c.fillStyle = '#ffc94a'; c.strokeStyle = '#c98a00'; c.lineWidth = 1; c.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 2.4 : 5.5; c.lineTo(12 + Math.cos(a) * r, -12 + Math.sin(a) * r); }
+    c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#fff3b0'; c.beginPath(); c.arc(11, -13, 1.2, 0, TAU); c.fill();
   } else if (id === 'bell') {
     c.strokeStyle = '#e0362c'; c.lineWidth = 3; c.beginPath(); c.arc(17, -20, 7, 0.5, 2.4); c.stroke();
     c.fillStyle = '#ffc94a'; c.beginPath(); c.arc(18, -12.5, 2.6, 0, TAU); c.fill(); c.fillStyle = '#8a5a00'; c.fillRect(17.5, -12, 1, 2);
@@ -4471,7 +4884,7 @@ function drawOwner() {
   g.fillStyle = shirt; rr(g, -15, -122, 32, 68, 10); g.fill();
   if (room === 'kitchen') { g.fillStyle = '#ff9fb2'; rr(g, -8, -108, 26, 50, 6); g.fill(); }   // エプロン
   if (night) { g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 2; for (let k = -10; k <= 12; k += 7) { g.beginPath(); g.moveTo(k, -120); g.lineTo(k, -56); g.stroke(); } }
-  const tilt = (o.up || m === 'up') ? -0.25 : (m === 'phone' ? 0.25 : m === 'tidy' ? 0.55 : 0);
+  const tilt = (o.up || m === 'up' || m === 'sky') ? -0.25 : (m === 'phone' ? 0.25 : m === 'tidy' ? 0.55 : m === 'nap' ? 0.35 : 0);
   g.save(); g.translate(2, -130); g.rotate(tilt);
   g.fillStyle = '#f0c8a0'; g.beginPath(); g.arc(0, 0, 16, 0, TAU); g.fill();
   const hairC = wt === 'grandma' ? '#c9ced6' : '#3a2a22';
@@ -4484,10 +4897,12 @@ function drawOwner() {
   else if (room === 'study') { g.strokeStyle = '#2a2f36'; g.lineWidth = 1.4; g.beginPath(); g.arc(8, -1, 4, 0, TAU); g.moveTo(4, -2); g.lineTo(-6, -4); g.stroke(); }   // メガネ
   else if (room === 'bath') { g.fillStyle = '#ffffff'; rr(g, -17, -22, 32, 12, 6); g.fill(); }   // 頭にタオル
   else if (room === 'bed') { g.fillStyle = '#3a4a8a'; g.fillRect(-17, -12, 33, 4); }   // アイマスク
-  g.fillStyle = '#222'; g.beginPath(); g.arc(8, -1, 1.9, 0, TAU); g.fill();
+  if (ruleOf() === 'earphone') { g.fillStyle = '#fff'; g.beginPath(); g.arc(-13, 1, 3.2, 0, TAU); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(-13, 4); g.quadraticCurveTo(-16, 20, -8, 34); g.stroke(); }   // イヤホン
+  if (m === 'nap') { g.strokeStyle = '#222'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(5, -1); g.quadraticCurveTo(8, 2, 11, -1); g.stroke(); }
+  else { g.fillStyle = '#222'; g.beginPath(); g.arc(8, -1, 1.9, 0, TAU); g.fill(); }
   const angry = m === 'look' || m === 'search' || m === 'chase' || state === 'caught';
   g.strokeStyle = '#222'; g.lineWidth = 1.6; g.beginPath();
-  if (angry) { g.moveTo(3, -7); g.lineTo(12, -4); g.moveTo(5, 9); g.lineTo(12, 9); } else { g.moveTo(5, 9); g.quadraticCurveTo(9, 11, 13, 8); }
+  if (angry) { g.moveTo(3, -7); g.lineTo(12, -4); g.moveTo(5, 9); g.lineTo(12, 9); } else if (m === 'nap') { g.moveTo(6, 9); g.lineTo(11, 9); } else { g.moveTo(5, 9); g.quadraticCurveTo(9, 11, 13, 8); }
   g.stroke(); g.restore();
   // 腕
   g.strokeStyle = shirt; g.lineWidth = 8; g.beginPath(); g.moveTo(2, -112);
@@ -4506,7 +4921,8 @@ function drawOwner() {
   }
   else if (m === 'chase') { g.lineTo(24, -110); g.stroke(); }
   else if (m === 'churu') { g.lineTo(22, -74); g.stroke(); g.fillStyle = '#ff7a95'; rr(g, 20, -82, 6, 18, 2); g.fill(); const k = (tAnim * 1.5) % 1; g.globalAlpha = 1 - k; g.fillStyle = '#ff7a95'; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.fillText('♥', 30 + k * 6, -90 - k * 16); g.globalAlpha = 1; }
-  else if (m === 'tv') { g.lineTo(10, -80); g.stroke(); }
+  else if (m === 'tv' || m === 'nap') { g.lineTo(10, -80); g.stroke(); }
+  else if (m === 'sky') { g.lineTo(18, -130); g.stroke(); }
   else if (m === 'sad') { g.lineTo(6, -64); g.stroke(); }
   else if (m === 'tidy') { g.lineTo(16, -70); g.lineTo(20, -30); g.stroke(); }
   else if (m === 'feed') { g.lineTo(20, -66); g.stroke(); g.fillStyle = '#ff9fb2'; g.beginPath(); g.ellipse(24, -62, 11, 5, 0, 0, Math.PI); g.fill(); g.fillStyle = '#c98a4f'; g.beginPath(); g.arc(20, -64, 2.5, 0, TAU); g.arc(26, -64, 2.5, 0, TAU); g.fill(); }
@@ -4538,6 +4954,7 @@ function bubble(x, y, text) {
 }
 function drawDog() {
   if (!dog) return;
+  if (dog.roam) { drawDogAwake(); return; }
   const x = dog.x, y = FLOOR, up = dog.barkT > 0;
   g.fillStyle = '#c8945a'; g.beginPath(); g.ellipse(x, y - 11, 26, 11, 0, 0, TAU); g.fill();
   g.fillStyle = '#b07d45'; g.beginPath(); g.ellipse(x + 20, y - (up ? 24 : 12), 11, 9, 0, 0, TAU); g.fill();
@@ -4548,6 +4965,22 @@ function drawDog() {
   g.strokeStyle = '#b07d45'; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(x - 24, y - 12); g.quadraticCurveTo(x - 34, y - 20, x - 30, y - 26); g.stroke();
   g.fillStyle = 'rgba(40,60,90,.7)'; g.font = `800 13px ${FONT}`; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
   if (!up) { const f = (tAnim % 2) / 2; g.globalAlpha = 1 - f; g.fillText('z', x + 28, y - 30 - f * 12); g.fillText('Z', x + 36, y - 40 - f * 12); g.globalAlpha = 1; }
+}
+// 起きている犬：向きがあり、歩くと足が動く。骨をかじっている間は口に骨
+function drawDogAwake() {
+  const d = dog, x = d.x, y = FLOOR, up = d.barkT > 0, chew = d.chewT > 0, walk = !chew && Math.abs(d.dir) > 0 && !up;
+  g.save(); g.translate(x, y); g.scale(d.dir || 1, 1);
+  const sw = walk ? Math.sin(tAnim * 12) * 4 : 0;
+  g.strokeStyle = '#b07d45'; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(-14, -12); g.lineTo(-14 - sw, 0); g.moveTo(12, -12); g.lineTo(12 + sw, 0); g.stroke();
+  g.fillStyle = '#c8945a'; g.beginPath(); g.ellipse(0, -18, 24, 11, 0, 0, TAU); g.fill();
+  g.fillStyle = '#b07d45'; g.beginPath(); g.ellipse(22, -30, 11, 9, 0, 0, TAU); g.fill();
+  g.fillStyle = '#7a5530'; g.beginPath(); g.ellipse(16, -36, 4, 7, -0.4, 0, TAU); g.fill();
+  g.fillStyle = '#222'; g.beginPath(); g.arc(27, -32, 2.2, 0, TAU); g.fill(); g.beginPath(); g.arc(32, -28, 1.8, 0, TAU); g.fill();
+  if (chew) { g.fillStyle = '#fff6e0'; rr(g, 24, -24, 16, 4, 2); g.fill(); g.beginPath(); g.arc(24, -22, 3, 0, TAU); g.arc(40, -22, 3, 0, TAU); g.fill(); }
+  else if (up) { g.fillStyle = '#e0362c'; g.beginPath(); g.ellipse(30, -24, 4, 2.5, 0, 0, TAU); g.fill(); }
+  const wag = Math.sin(tAnim * (chew ? 16 : 6)) * 6; g.strokeStyle = '#b07d45'; g.lineWidth = 5; g.beginPath(); g.moveTo(-22, -20); g.quadraticCurveTo(-32, -30 + wag, -30, -36 + wag); g.stroke();
+  g.restore();
+  if (!chew && !up && cat.plat === PL.floor && !cat.hidden && Math.abs(cat.x - x) < 130) { g.strokeStyle = 'rgba(224,54,44,.35)'; g.lineWidth = 2; g.setLineDash([4, 4]); g.beginPath(); g.arc(x, y - 16, 90, Math.PI, TAU); g.stroke(); g.setLineDash([]); }   // 吠える範囲
 }
 function drawBark() {
   if (!dog || dog.barkT <= 0) return;
@@ -4815,6 +5248,7 @@ function draw() {
   if (state === 'credits') { drawCredits(); g.restore(); return; }
   if (state === 'ending' || state === 'endmenu') { drawEnding(); if (state === 'endmenu') drawParts(); g.restore(); return; }
   drawRoom();
+  drawFest();
   drawSeason();
   if (BOT > H) { const fg = g.createLinearGradient(0, FLOOR + 10, 0, BOT); fg.addColorStop(0, 'rgba(60,35,15,0)'); fg.addColorStop(1, 'rgba(60,35,15,.16)'); g.fillStyle = fg; g.fillRect(0, FLOOR + 10, W, BOT - FLOOR - 10); }   // 手前の床に奥行きの影
   drawHigh();
@@ -4832,11 +5266,13 @@ function draw() {
   drawBall();
   if (state === 'play' && !snapMode) { for (const it of items) if (it.mark > 0) markAt(it.x, (it.state === 'fall' ? it.y : it.plat.y) - IT[it.t].h - 12); for (const p of prints) if (p.mark > 0) markAt(p.x, p.y - 12); }
   drawBowl();
+  drawBones();
   drawVac();
   drawCharm();
   drawMouse();
   drawChick();
   drawRival();
+  drawFoe();
   drawCatNow();
   drawBox();
   drawHideMark();
@@ -4848,6 +5284,7 @@ function draw() {
   if (snapMode) { drawParts(); g.restore(); return; }
   if (gag.flash > 0) { g.fillStyle = `rgba(255,255,255,${gag.flash * 2.4})`; g.beginPath(); g.arc(cat.x, cat.y - 20, 40, 0, TAU); g.fill(); }   // 犯行現場写真：ここまで（吹き出し・お題・時間などは描かない）
   drawOwnerTop();
+  drawNapTop();
   drawGuestTop();
   drawParts();
   drawHints();
@@ -4909,6 +5346,11 @@ function draw() {
     drawWeatherIcon(g, iw / 2 - 26, -14, weather);
     g.fillStyle = ph.special ? '#c0392b' : '#4a2f1d'; g.font = `800 26px ${FONT}`; g.fillText(title, 0, 14);
     if (ph.special) { g.fillStyle = '#ffc94a'; g.strokeStyle = '#4a2f1d'; g.lineWidth = 2; rr(g, -48, -58, 96, 22, 11); g.fill(); g.stroke(); g.fillStyle = '#4a2f1d'; g.font = `800 12px ${FONT}`; g.fillText(lt('とくべつな夜', 'SPECIAL NIGHT'), 0, -47); }
+    else if (ph.foe || ph.rule) {
+      // 第2週：相手の名前（赤）か、その日のルール（黄）
+      const t = ph.foe ? String(FOES[ph.foe].n) : String(RULE_NAME[ph.rule]); g.font = `800 12px ${FONT}`; const bw = g.measureText(t).width + 24;
+      g.fillStyle = ph.foe ? '#e0362c' : '#ffc94a'; g.strokeStyle = '#4a2f1d'; g.lineWidth = 2; rr(g, -bw / 2, -58, bw, 22, 11); g.fill(); g.stroke(); g.fillStyle = ph.foe ? '#fff' : '#4a2f1d'; g.fillText(t, 0, -47);
+    }
     g.restore();
   }
   if (state === 'dayend') {
@@ -4975,7 +5417,7 @@ function update(dt) {
     if (introT <= 0 && escT > 0) escT -= dt;
     else if (introT <= 0 && spot.length) { spotT += dt; if (spotT > 1.5) { learn('see_' + spot[0].k); spot.shift(); spotT = 0; } } updLamp(dt); updCat(dt); updTalk(dt);
     if (chaseT > 0) { updChase(dt); updItems(dt); updBall(dt); updVac(dt); }
-    else { updOwner(dt); updItems(dt); updBall(dt); updDog(dt); updVac(dt); updChick(dt); updMouse(dt); updTank(dt); updRival(dt); updCams(dt); updShelf(dt); updTv(dt); updSus(dt); checkClear(); updTut(); }
+    else { updOwner(dt); updItems(dt); updBall(dt); updDog(dt); updVac(dt); updChick(dt); updMouse(dt); updTank(dt); updRival(dt); updFoe(dt); updNight2(dt); updCams(dt); updShelf(dt); updTv(dt); updSus(dt); checkClear(); updTut(); }
     if (state === 'play' && chaseT <= 0) {
       timeLeft -= dt;
       const sec = Math.ceil(timeLeft); if (sec <= 10 && sec < lastTick && sec > 0) { lastTick = sec; sfx.tick(); }
@@ -4987,6 +5429,7 @@ function update(dt) {
     if (clearT <= 0) {
       if (dayEndNext) { dayEndNext = false;
         if (dayOf(level) === END_DAY && !run.ended) startEnding();   // 3日目の夜を越えたらエンディング
+        else if (dayOf(level) === TRUE_DAY && !run.trueEnded) startEnding(true);   // 7日目の夜を越えたら「ほんとうのおしまい」
         else { run.days = dayOf(level); state = 'dayend'; dayT = 4; sfx.dayend(); }
       } else { setupStage(level + 1); state = 'play'; }
     }
@@ -5111,7 +5554,7 @@ function showTitle() {
     <div class="big-logo">${lt('こっそり<span>ネコ</span>', 'Mischievous <span>Cat</span>')}</div><p class="sub">${lt('MISCHIEVOUS CAT', 'こっそりネコ')}</p>
     <div class="cats" role="group" aria-label="${lt('ネコをえらぶ', 'Choose a cat')}">${CATS.map((c, i) => { const ok = catsOpen.has(c.id); return `<button type="button" data-i="${i}" aria-pressed="${i === selCat}" ${ok ? '' : 'disabled'}><canvas width="144" height="108"></canvas><b>${ok ? c.name : '？？？'}</b><span>${ok ? c.note : CAT_LOCK[c.id]}</span></button>`; }).join('')}</div>
     <div class="stats" id="stats"></div>
-    <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : a.ending ? lt('エンディング', 'Ending') : a.secret ? '？？？' : '★' + a.need}</button>`; }).join('')}</div>
+    <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : a.ending ? lt('エンディング', 'Ending') : a.trueEnd ? lt('7日目', 'Day 7') : a.secret ? '？？？' : '★' + a.need}</button>`; }).join('')}</div>
     <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
     ${keysBox()}
     <div class="row"><button class="btn w" id="recBtn" type="button">${lt('きろく', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('せってい', 'Settings')}</button></div>
@@ -5562,7 +6005,7 @@ function nextGoal() {
   if (!newRec && bestYen > y) cands.push({ gap: bestYen - y, text: lt(`あと ${yen(bestYen - y)} でベスト更新`, `${yen(bestYen - y)} to your best`) });
   if (tt) cands.push({ gap: tt.tier - y, text: lt(`あと ${yen(tt.tier - y)} で「${tt.name}」`, `${yen(tt.tier - y)} to "${tt.name}"`) });
   cands.sort((a, b) => a.gap - b.gap); if (cands.length) rows.push(cands[0].text);
-  const acc = ACCS.filter(a => a.need > 0 && !a.ending && a.need > unlocked.size).sort((a, b) => a.need - b.need)[0];
+  const acc = ACCS.filter(a => a.need > 0 && !a.ending && !a.trueEnd && !a.secret && a.need > unlocked.size).sort((a, b) => a.need - b.need)[0];
   const left = CARDS.length - cardsGot.size;
   if (acc && acc.need - unlocked.size <= 3) rows.push(lt(`称号あと ${acc.need - unlocked.size} 個で きせかえ「${acc.name}」`, `${acc.need - unlocked.size} more title${acc.need - unlocked.size > 1 ? 's' : ''} for "${acc.name}"`));
   else if (left > 0 && cardsGot.size > 0) { const nb = Object.keys(BIG).find(k => !cardsGot.has('big_' + k)); rows.push(nb && cardsGot.size >= 5 ? lt(`大技「${BIG[nb].n}」：${BIG[nb].how}`, `Big one "${BIG[nb].n}": ${BIG[nb].how}`) : lt(`いたずらカード あと ${left} 枚`, `${left} mischief card${left > 1 ? 's' : ''} to go`)); }

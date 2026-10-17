@@ -73,7 +73,7 @@ Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. 
 
 ## 🏠 A day in the house
 
-A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. Clear the third night to see the ending. There are 4 endings depending on how you played (never caught, big damage, well-behaved, or the usual), followed by a credits roll with the photos taken at each stage clear. Then keep going into day 4 and beyond.
+A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. Days 4–7 bring new foes (beat them with cat punches) and four new special nights; clear the seventh night for the true ending. Clear the third night to see the ending. There are 4 endings depending on how you played (never caught, big damage, well-behaved, or the usual), followed by a credits roll with the photos taken at each stage clear. Then keep going into day 4 and beyond.
 
 | Day | Morning | Noon | Evening | Special night |
 |---|---|---|---|---|
@@ -128,7 +128,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 - **Send on LINE**: sends the text and the link (the image share sends only the picture on LINE). On PC, Share copies the image to the clipboard and opens the X post window, so paste it into the post
 - **Records**: one screen from the title with tabs for Ranking, Titles, Cards and Stats
 - **Big ones**: each room has one way to bring a whole piece of furniture down (bookshelf avalanche, fridge avalanche…). Everything on top falls and the owner freezes for a moment. The Cards tab tells you how
-- **Mischief cards**: 37 kinds of mischief, each collected as a card with a photo of the moment you first pulled it off. The Cards tab also shows how to get the ones you are missing
+- **Mischief cards**: 45 kinds of mischief, each collected as a card with a photo of the moment you first pulled it off. The Cards tab also shows how to get the ones you are missing
 - **This device**: your own top 10
 - **Titles**: 54 of them (some per run, some lifetime). The Titles list shows how to earn even the ones you don't have yet. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
 - **Crime scene photo**: a close-up of the cat at the moment you're caught becomes a Polaroid (no HUD in the shot), with a one-line pitch and where to play. Share it with `#MischievousCat`

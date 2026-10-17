@@ -94,6 +94,20 @@ HTML に直接書いた文字（下のボタン、読み上げ用のラベル、
 - ランキングの記録に `k`（続けた回数）を入れる（v6）。署名は `y|s|st|sk|k|uid|鍵`。`firestore.rules` を公開し直すまで、v6 の記録は送れない
 - 見つかった原因：`updSus` でいちばん多く怪しまれ度を上げた見張り（飼い主・子ども・おばあちゃん・お父さん・お客さん・ペットカメラ）を `run.lastBy` に覚え、`caught` で `run.cause` にする。時間切れは `time`。通算記録（`LIFE.cause`・`LIFE.where`）に足して「見つかった原因」「よく見つかった場所」に出す
 
+## 第2週：4〜7日目（4.24.0）
+
+4日目からは部屋の使い回しをやめ、`WEEK2` の日程で遊ぶ。`phaseOf(L)` が返す `foe`（その面の相手）と `rule`（その日のルール）、`SPECIALS2`（第2週の夜）を見て `setupStageCore` が用意する。8日目からは `SLOT_ROOMS` と `SPECIALS` のくり返し（前と同じ）。
+
+- **相手（`foe`）**：`FOES` に種類ごとの体力と壊れたときの被害額。`makeFoe` → `updFoe`（種類ごとの `updVacbot` / `updCrow` / `updToybot` / `updDrone`）→ `drawFoe`。パンチの当たりは `doPunch` から `punchFoe(strong, reach)`。やられたときは `foeHitCat(dir, stunT, label)`（`cat.stun` と押し出し、`hearNoise(x, 0.35)`）。倒すと `foeDown` が +5秒・`run.foes`・`run.ev.foe_<kind>`・お題 `foe`・`damage(yen, kind)`。裏返ったロボと落ちたドローンは `rampage` で壁から壁へ走り、サイドテーブルとテーブルの下を通るたびに上のものをすべらせる（落ちた分はネコの手柄）。相手のいる面は制限時間 +10 秒、お題に必ず `foe` が入る（`tasks.pop(); tasks.unshift('foe')`）
+- **ルール（`rule`）**：`earphone` は `hearNoise` で部屋にいる間 `loud *= 0.5`、`arrive` の `warnTime × 1.4`、`drawOwner` にイヤホン。`dogday` は庭・お風呂場以外に `dog`（`keep` で `pruneGimmicks` から外す）。`bossday` は `rival` を必ず出す（`keep`）。`twocam` は昼でもカメラ 2 台（`G_HAZ.cam.on` で除外）
+- **お祭りの夜**：`fest` が 6〜9 秒おきに花火（`bursts`）。上がっている間、部屋にいる飼い主は `setMode('sky', 3)`（見えない）、`hearNoise` は `×0.5`、合間は `×1.4`。`drawFest` がちょうちんの列と火の粉を描く（`drawRoom` の直後）
+- **犬が起きている夜**：`dog.roam`。`updDog` の先頭で歩き回り（`dir`・`t`）、床のネコが 90px に入ると `dogBark`（`cd` 5 秒）。`bones`（2 本）を `punchBones` で投げると `thrown` になり、犬が 130px/秒で向かって `chewT = 4`、食べると `eaten`。`drawDogAwake`
+- **ボス猫の夜**：`rival.ally`。`breakItem` の `byRival` の前に味方の分岐（被害額はネコに、`run.lastDropT` から 2.5 秒以内なら連携 +50%、`run.ev.combo`）。`updSus` でボスが 130px 以内なら上がりが半分。ケンカ（`fight`）にならず、ネコのパンチも当たらない。叱られたあとの戻りは 6〜9 秒（`back: 3`）
+- **最後の夜**：`nap`。飼い主は `setMode('nap')` で部屋にいて、`updNap` が `nap.t` で目覚め（`setMode('look', 3)` ＋ `omni` / `range 600`）と `napSleep`（寝る長さ `max(2.4, 5.5 − 0.35 × cyc)`）をくり返す。`updOwner` の先頭で `nap` のときは `leave`/`away` → `napSleep`、`look` の時間切れ → `napSleep`、それ以外の行動（写真を撮る など）は `look` に戻す。`rush` / `hearNoise` / `alertOwner` / `meow` は寝ている間 `nap.t` を減らすだけ（`owner.stops` を触らない）。`goAway` も `napSleep`。目覚まし時計は `breakItem` で `sus = 100`・`chaseUsed = true` にして即アウト
+- **ほんとうのおしまい**：`TRUE_DAY = 7`。7日目の夜のクリアで `startEnding(true)` → `run.trueEnded`、`ENDINGS.true`。`drawEnding` は飼い主が去らず（`leave = 0`）、ネコは寝たまましっぽでコップを割り、「……明日かたづけるよ」「おやすみ」、ふたりで Zzz、締めは「おしまい」（？なし）。スタッフロールは `nd = TRUE_DAY`、「たおした相手」の段、「あそんでくれて、ありがとう」。`showEnding` は `tr` で文言を変え、初回に `nekoTrueEnd` を保存してきせかえ「星のバッジ」（`ACCS.star`、`accOk` の `trueEnd`）。確認用再生の `PREVIEW_ORDER` に `'true'` を追加（5 / 5）
+- 称号 `foe1` `foe4` `week2` `nohit`、カード `foe_*` 4 枚と夜 4 枚（`run.ev.night_<special>` は `checkClear` で付ける）
+- 難しさ：`postK` は 4〜7日目 +5%/日（相手が出るぶん控えめに）、8日目から +10%/日（前は 4日目から +10%）
+
 ## 3日目とペットカメラの夜（4.11.0）
 
 - 難しさに使う面の数 `diffL`：1日目はそのまま、2〜3日目は 0.65 倍のペース（12面目で 9.2）、13面目からは1面ごとに +1。`awayRange`・`warnTime`・`lookTime`・`walkSpeed` はこれを使う。下限は3日目まで「不在 3.5〜5 秒、？ 0.75 秒」、エンディング後は「3〜4.5 秒、0.7 秒」
