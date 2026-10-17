@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.20.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.21.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -341,6 +341,69 @@ const PL = {
   tank:  { x0: 24,  x1: 96,  y: 400 }    // 水槽のふた（子ども部屋だけ。サイドテーブルの上）
 };
 const HIGH = [PL.rail, PL.hang, PL.ac];
+// 大技：部屋の背の高い家具（本棚・冷蔵庫・収納棚・タンス・物置・二段ベッド・棚）を崩す。
+// 条件は部屋ごと。発動すると上に載っていたものが全部落ち（連鎖）、家具はがれきの足場（RUBP）になり、飼い主は3秒固まる。
+// 被害額はその面の目安（stageValue）の 0.75 倍で、腕前ボーナスには入れない。1回のプレイで部屋ごとに1回。残り時間は止めない
+const RUBP = { x0: 347, x1: W - 4, y: FLOOR - 46 };
+const BIG = {
+  living:  { n: tx('本棚なだれ', 'Bookshelf Avalanche'), how: tx('本棚のものを1面で3つ落とす', 'Knock 3 things off the bookshelf in one stage'), need: 3, line: tx('本棚がーっ!! …本が、本が', 'The bookshelf!! …my books'), cols: ['#ff5a5a', '#2b8fd9', '#ffc94a', '#2fb3a3', '#9b7fc0'] },
+  kitchen: { n: tx('冷蔵庫なだれ', 'Fridge Avalanche'), how: tx('床から冷蔵庫を強パンチで3回たたく', 'Power-punch the fridge 3 times from the floor'), need: 3, line: tx('冷蔵庫が… 卵が… 全部…', 'The fridge… the eggs… everything…'), cols: ['#fff3df', '#ffe08a', '#ff8a3d', '#9cc8ef', '#e8f4ff'], wet: true },
+  study:   { n: tx('書類なだれ', 'Paper Avalanche'), how: tx('床から収納棚を強パンチで3回たたく', 'Power-punch the cabinet 3 times from the floor'), need: 3, line: tx('今日の会議の資料が……', 'The documents for today\'s meeting……'), cols: ['#ffffff', '#f3efe6', '#e8e8e8', '#ffe08a', '#d8d8d8'] },
+  bed:     { n: tx('タンスなだれ', 'Dresser Avalanche'), how: tx('床からタンスを強パンチで3回たたく', 'Power-punch the dresser 3 times from the floor'), need: 3, line: tx('たたんだのに!! 全部!!', 'I JUST folded those!!'), cols: ['#ff9fb2', '#9fd3ef', '#ffffff', '#ffc94a', '#b9a0e0'] },
+  garden:  { n: tx('物置なだれ', 'Shed Collapse'), how: tx('地面から物置を強パンチで3回たたく', 'Power-punch the shed 3 times from the ground'), need: 3, line: tx('物置が…おじいさんの物置が…', 'The shed… Grandpa\'s shed…'), cols: ['#8fa6b5', '#5d7a9a', '#b8743f', '#2fb3a3', '#3a3f46'] },
+  kids:    { n: tx('二段ベッド崩壊', 'Bunk Bed Collapse'), how: tx('二段ベッドの上で5回ジャンプする', 'Jump 5 times on top of the bunk bed'), need: 5, line: tx('ぼくのベッドがーっ!!', 'My BED!!'), cols: ['#5d8fd0', '#ffb020', '#ffffff', '#7fc1f0', '#4a7ab8'] },
+  bath:    { n: tx('棚なだれ', 'Shelf Avalanche'), how: tx('床から棚を強パンチで3回たたく', 'Power-punch the shelf 3 times from the floor'), need: 3, line: tx('シャンプーがーっ!! すべるっ!!', 'The shampoo!! It\'s slippery!!'), cols: ['#ff9fb2', '#9fd3ef', '#ffc94a', '#ffffff', '#e8eef2'], wet: true }
+};
+let bigEv = { done: false, anim: 0, cnt: 0, wob: 0 };
+const bigAvail = () => !!BIG[room] && !bigEv.done && run && !(run.bigs || []).includes(room);
+// 条件のカウント（強パンチ・本棚のもの・ジャンプ）。あと1回で「グラッ」と揺らして知らせる
+function bigCount(x) {
+  if (!bigAvail() || state !== 'play') return;
+  bigEv.cnt++; bigEv.wob = 0.35; sfx.thud(); buzz(20);
+  const left = BIG[room].need - bigEv.cnt;
+  if (left <= 0) { bigTrigger(); return; }
+  pops.push({ x: x == null ? 395 : x, y: PL.book.y - 30, text: left === 1 ? lt('グラッ…', 'Wobble…') : lt('ガタッ', 'Thud'), life: 0.9, col: '#8a5a34', size: left === 1 ? 20 : 15 });
+}
+function bigTrigger() {
+  const B = BIG[room]; if (!B || bigEv.done) return;
+  bigEv.done = true; bigEv.anim = 1.2; bigEv.wob = 0;
+  run.bigs = run.bigs || []; run.bigs.push(room); run.ev['big_' + room] = 1;
+  // 上に載っていたものを全部落とす（ひとつの連鎖として数える）
+  const id = ++chainSeq;
+  for (const it of items) if (it.plat === PL.book && it.state !== 'fall') { it.state = 'fall'; it.plat = null; it.y0 = PL.book.y; it.y = PL.book.y - 2; it.vy = -rnd(60, 160); it.vx = -rnd(40, 130); it.vr = rnd(-8, 8); it.chain = id; it.strong = true; }
+  if (cat.plat === PL.book) { cat.plat = null; cat.vy = -200; cat.vx = -120; }
+  if (snack && !snack.got) snack.got = true;
+  // 足場：本棚の上はなくなり、がれきの上に乗れる
+  PLS = PLS.filter(pl => pl !== PL.book); if (!PLS.includes(RUBP)) PLS.push(RUBP);
+  // 被害額：その面の目安の 0.75 倍。腕前ボーナスの元にはしない
+  const amt = Math.round(stageValue(level) * 0.75); damage(amt, 'big', 395, PL.book.y - 20, 1.6); stageYen0 += amt; run.bigYen = (run.bigYen || 0) + amt;
+  // 破片・水たまり
+  for (let k = 0; k < 70; k++) addPart({ k: 'shard', x: rnd(350, W - 6), y: rnd(PL.book.y, FLOOR - 20), vx: rnd(-260, 60), vy: rnd(-320, -40), life: 30, gy: FLOOR - rnd(0, 6), c: pick(B.cols), s: rnd(3, 8), rot: rnd(0, 6), vr: rnd(-9, 9) });
+  if (B.wet) puddles.push({ plat: PL.floor, x: 310, w: 200, life: 60, col: room === 'bath' ? 'rgba(200,230,255,.65)' : 'rgba(255,240,170,.7)' });
+  if (chick && chick.mode !== 'fly') chickStartle(-1);
+  // 演出：スロー・大揺れ・音・振動。飼い主は3秒固まる（見ない）
+  slowT = 0.5; shake = 0.7; hitStop = Math.max(hitStop, 0.12); sfx.strong(); sfx.thud(); sfx.cera(1); buzz([60, 40, 90, 40, 140]);
+  const o = owner;
+  if (o.mode !== 'away') { o.stunT = 3; o.shock = 3; o.lureT = 0; o.face = 1; say(B.line, 3); if (B.wet && o.x > 220) say(lt('すべった!!', 'Slipped!!'), 3); }
+  pops.push({ x: W / 2, y: 190, text: B.n, life: 2.2, col: '#c0392b', size: 26 });
+  happyHop(); cardCd = 0;
+}
+// 家具の描画：崩れる間は床を軸に縦につぶし、崩れたあとは低くつぶれたままにして、がれきを重ねる
+function bigPre(g) {
+  if (!bigEv.done && bigEv.wob <= 0) return;
+  const k = bigEv.done ? (bigEv.anim > 0 ? 0.22 + 0.78 * Math.pow(bigEv.anim / 1.2, 2) : 0.22) : 1;
+  const sx = bigEv.anim > 0 ? Math.sin(tAnim * 60) * 3 * (bigEv.anim / 1.2) : bigEv.wob > 0 ? Math.sin(tAnim * 45) * 2 * (bigEv.wob / 0.35) : 0;
+  g.save(); g.translate(sx, FLOOR); g.scale(1, k); g.translate(0, -FLOOR);
+}
+function bigPost(g) {
+  if (!bigEv.done && bigEv.wob <= 0) return;
+  g.restore();
+  if (!bigEv.done || bigEv.anim > 0.9) return;
+  const B = BIG[room], top = RUBP.y;
+  g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.moveTo(342, FLOOR); g.quadraticCurveTo(360, top - 8, 400, top - 6); g.quadraticCurveTo(440, top - 6, W, top + 10); g.lineTo(W, FLOOR); g.closePath(); g.fill();
+  for (let i = 0; i < 26; i++) { const x = 350 + (i * 37) % (W - 356), y = top - 2 + (i * 13) % 34, w = 10 + (i * 7) % 12, h = 6 + (i * 5) % 9; g.save(); g.translate(x, y); g.rotate(((i * 29) % 60 - 30) * 0.03); g.fillStyle = B.cols[i % B.cols.length]; rr(g, -w / 2, -h / 2, w, h, 2); g.fill(); g.restore(); }
+  g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(347, top, W - 351, 3);
+}
 // てこ（板）の先：テーブルの右端から外へ張り出した足場（キャットタワーの左どなり）。毎面 setupStage で出し入れする
 // 右端にしたのは、真上に足場がなく、板の上でその場ジャンプすると板に戻ってこられるから
 const LEVP = { x0: 302, x1: 330, y: 430, lever: true };
@@ -567,7 +630,9 @@ const TITLES = [
   { id: 'boxer', name: tx('ダンボールの住人', 'Box Dweller'), life: L => (L.hides || 0) >= 10 },
   { id: 'rooms', name: tx('家じゅう制覇', 'Whole-House Tour'), life: L => Object.keys(L.rooms || {}).length >= Object.keys(ROOM_NAME).length },
   { id: 'family', name: tx('ネコ一家', 'The Whole Family'), life: () => catsOpen.size >= CATS.length },
-  { id: 'days3', name: tx('三日坊主卒業', 'Three-Day Streak'), life: L => (L.dayStreak || 0) >= 3 }
+  { id: 'days3', name: tx('三日坊主卒業', 'Three-Day Streak'), life: L => (L.dayStreak || 0) >= 3 },
+  { id: 'wrecker', name: tx('解体屋', 'Demolition Cat'), test: r => (r.bigs || []).length >= 1 },
+  { id: 'wrecker7', name: tx('全室解体', 'Whole-House Demolition'), life: L => Object.keys(L.bigs || {}).length >= Object.keys(BIG).length }
 ];
 // 称号の取り方（図鑑に出す）。「1回で」は、あそぶ を押してから見つかるまでの1回のこと
 const TDESC = {
@@ -595,7 +660,7 @@ const TDESC = {
   guest: tx('お客さんの夜を怪しまれ度50%未満でクリア', 'Clear Guest Night with suspicion under 50%'), regular: tx('10回遊ぶ', 'Play 10 times'),
   million: tx('通算の被害額 ¥1,000,000', 'Reach ¥1,000,000 total damage'), cups: tx('通算でコップを30個割る', 'Break 30 cups in total'),
   night: tx('夜の面の被害額が通算 ¥100,000', 'Deal ¥100,000 total damage at night'), boxer: tx('通算でダンボールに10回かくれてやりすごす', 'Hide in the box from the owner 10 times in total'),
-  rooms: tx('7つの部屋ぜんぶでいたずらする', 'Make mischief in all 7 rooms'), family: tx('ネコを6匹そろえる', 'Unlock all 6 cats'), days3: tx('3日続けて遊ぶ', 'Play 3 days in a row')
+  rooms: tx('7つの部屋ぜんぶでいたずらする', 'Make mischief in all 7 rooms'), wrecker: tx('大技（家具を崩す）を1回', 'Pull off a big one (collapse a piece of furniture)'), wrecker7: tx('7つの部屋ぜんぶで家具を崩す', 'Collapse the furniture in all 7 rooms'), family: tx('ネコを6匹そろえる', 'Unlock all 6 cats'), days3: tx('3日続けて遊ぶ', 'Play 3 days in a row')
 };
 let unlocked = new Set();
 try { unlocked = new Set(JSON.parse(store.get('nekoTitles', '[]'))); } catch (e) {}
@@ -631,7 +696,15 @@ const CARDS = [
   { id: 'top',    name: tx('天井の住人', 'Ceiling Dweller'),        desc: tx('エアコンの上に登る', 'Climb on top of the air conditioner'), test: r => !!r.top },
   { id: 'tv',     name: tx('テレビ係', 'TV Operator'),             desc: tx('テレビをつける', 'Turn on the TV'), test: r => r.tv >= 1 },
   { id: 'churu',  name: tx('チュールに釣られる', 'Treat Trap'),     desc: tx('チュールを食べる', 'Eat the treat'), test: r => r.churu >= 1 },
-  { id: 'dog',    name: tx('犬に吠えられる', 'Barked At'),          desc: tx('犬に吠えられる', 'Get barked at by the dog'), test: r => r.barks >= 1 }
+  { id: 'dog',    name: tx('犬に吠えられる', 'Barked At'),          desc: tx('犬に吠えられる', 'Get barked at by the dog'), test: r => r.barks >= 1 },
+  // 大技（部屋ごと）
+  { id: 'big_living',  name: tx('本棚なだれ', 'Bookshelf Avalanche'), desc: tx('リビング：本棚のものを1面で3つ落とす', 'Living room: knock 3 things off the bookshelf in one stage'), test: r => !!r.ev.big_living },
+  { id: 'big_kitchen', name: tx('冷蔵庫なだれ', 'Fridge Avalanche'),  desc: tx('キッチン：床から冷蔵庫を強パンチで3回', 'Kitchen: power-punch the fridge 3 times from the floor'), test: r => !!r.ev.big_kitchen },
+  { id: 'big_study',   name: tx('書類なだれ', 'Paper Avalanche'),     desc: tx('書斎：床から収納棚を強パンチで3回', 'Study: power-punch the cabinet 3 times from the floor'), test: r => !!r.ev.big_study },
+  { id: 'big_bed',     name: tx('タンスなだれ', 'Dresser Avalanche'), desc: tx('寝室：床からタンスを強パンチで3回', 'Bedroom: power-punch the dresser 3 times from the floor'), test: r => !!r.ev.big_bed },
+  { id: 'big_garden',  name: tx('物置なだれ', 'Shed Collapse'),       desc: tx('庭：地面から物置を強パンチで3回', 'Garden: power-punch the shed 3 times from the ground'), test: r => !!r.ev.big_garden },
+  { id: 'big_kids',    name: tx('二段ベッド崩壊', 'Bunk Bed Collapse'), desc: tx('子ども部屋：二段ベッドの上で5回ジャンプ', "Kid's room: jump 5 times on top of the bunk bed"), test: r => !!r.ev.big_kids },
+  { id: 'big_bath',    name: tx('棚なだれ', 'Shelf Avalanche'),       desc: tx('お風呂場：床から棚を強パンチで3回', 'Bathroom: power-punch the shelf 3 times from the floor'), test: r => !!r.ev.big_bath }
 ];
 let cardsGot = new Set(), cardPics = {}, newCards = [], cardCd = 0;
 try { cardsGot = new Set(JSON.parse(store.get('nekoCards', '[]'))); } catch (e) {}
@@ -1255,6 +1328,7 @@ function setupStageCore(L) {
   // てこ（テーブルの右端の板）は v3.2 で廃止：乗ったものが落としにくく、通り道の邪魔になるため。関連の処理は lever が null のときは何もしない
   lever = null; ball = null;
   PLS = Object.values(PL).filter(p => p === PL.tank ? room === 'kids' : !(p === PL.side && room === 'kids')); if (lever) PLS.push(LEVP); if (room === 'bath') PLS.push(RIMP);
+  bigEv = { done: false, anim: 0, cnt: 0, wob: 0 };
   // 転がるもの（ステージ3から）：パンチすると転がり、当たったものを押す。足場から落ちると跳ねる
   if (L >= 3) {
     // ほかのものから 26px 以上離れた場所を探す（見つからなければ床）
@@ -1541,6 +1615,7 @@ function updOwner(dt) {
     if (o.t <= 0) enter();
     return;
   }
+  if (o.stunT > 0) { o.stunT -= dt; return; }   // 大技で固まっている
   if (o.lureT > 0) { o.lureT -= dt; return; }
   if (o.mode === 'walk' && !(o.sayT > 0) && cat.plat === PL.floor && Math.abs(cat.x - o.x) < 40 && sus < 20 && Math.random() < dt * 0.25) say(pick(LINES.pet), 1.5);   // そばでおとなしくしていると
   const step = (gx, sp) => { const d = gx - o.x; if (Math.abs(d) <= sp * dt) { o.x = gx; return true; } o.x += Math.sign(d) * sp * dt; o.face = Math.sign(d); o.step += dt; return false; };
@@ -1675,6 +1750,7 @@ function updCat(dt) {
   }
   if (c.jumpBuf > 0 && (c.plat || c.coyote > 0) && c.stun <= 0) {
     const soft = c.plat && c.plat.soft;
+    if (room === 'kids' && c.plat === PL.book) bigCount(c.x);
     c.vy = -JUMP * T.jump * (soft ? 1.25 : 1) * (c.sticky ? 0.75 : 1); c.plat = null; c.coyote = 0; c.jumpBuf = 0; c.sq = 0.2; if (soft) sfx.boing(); else sfx.jump();
   }
   if (c.plat && !riding) {
@@ -1885,7 +1961,7 @@ function drawSpot() {
   g.restore();
 }
 // 隠れ場所：ダンボール（中に入る）・キャットタワーの上・本棚の上・カーテンレールの上
-function escSpots() { return [[BOX.x, FLOOR - BOX.h - 14], [(PL.tower.x0 + PL.tower.x1) / 2, PL.tower.y - 14], [(PL.book.x0 + PL.book.x1) / 2, PL.book.y - 14], [(PL.rail.x0 + PL.rail.x1) / 2, PL.rail.y - 14]]; }
+function escSpots() { return [[BOX.x, FLOOR - BOX.h - 14], [(PL.tower.x0 + PL.tower.x1) / 2, PL.tower.y - 14], ...(bigEv.done ? [] : [[(PL.book.x0 + PL.book.x1) / 2, PL.book.y - 14]]), [(PL.rail.x0 + PL.rail.x1) / 2, PL.rail.y - 14]]; }
 function drawEsc(a, label) {
   const b = Math.abs(Math.sin(tAnim * 8)) * 8;
   g.save(); g.globalAlpha = a; g.lineJoin = 'round';
@@ -1980,6 +2056,7 @@ function doPunch(strong) {
   if (bHit && !hit) sfx.pon(0.4);
   if (bHit) learn('ball');
   if (strong) { sfx.strong(); hearNoise(c.x, 0.5); } else sfx.weak();
+  if (strong && c.plat === PL.floor && c.face === 1 && c.x > 292 && BIG[room] && !BIG[room].jump && room !== 'living') bigCount(c.x + 40);
   if (hit && !strong) sfx.thud();
   if (hit) buzz(strong ? 30 : 15);
 }
@@ -2052,7 +2129,7 @@ function breakItem(it, plat) {
   run.stageDrops.push(d.yen); run.todYen[phaseOf(level).tod] += d.yen; if (d.yen >= 30000) run.bigN++;
   if (it.t === 'alarm') rush(it.x);
   if (it.t === 'remote') tvOn();
-  if (it.home === 'book') run.bookBroke++;
+  if (it.home === 'book') { run.bookBroke++; if (room === 'living') bigCount(it.x); }
   if (it.kaku) run.kakushin++;
   const big = d.yen >= 10000;
   // 手ごたえ：割れた瞬間に一瞬止めて、少し寄る（高いものほど長く・強く）
@@ -2831,7 +2908,7 @@ function updBall(dt) {
 function updSus(dt) {
   const o = owner;
   let seen = false, exSeen = false, exBy = '';   // exBy：お客さん・ペットカメラのどちらに見られたか
-  if (o.mode !== 'away' && !cat.hidden && !cat.safe) seen = ownerSees(cat.x);
+  if (o.mode !== 'away' && !cat.hidden && !cat.safe && !(o.stunT > 0)) seen = ownerSees(cat.x);
   let rate = o.rate; if (o.mode === 'up' && o.t > 0.5) rate = 8;
   rate *= postK();   // エンディング後は1日ごとに +10%
   if (WT().shelf && o.mode === 'up' && [PL.shelf, PL.hang, PL.ac].includes(cat.plat)) rate *= 1.3;   // お父さんは棚・吊り棚・エアコンの上をよく見ている
@@ -4012,7 +4089,8 @@ function drawFurniture() {
   if (room === 'garden') { g.fillStyle = '#8a5a34'; g.fillRect(S0.x0 + 7, sy + 9, 6, 12); g.fillRect(S0.x1 - 14, sy + 9, 6, 12); }
   g.fillStyle = ({ kitchen: '#e8e2d6', bed: '#c9a0dc', bath: '#dfeef5', kids: '#ffc94a', garden: '#b98a56' })[room] || '#c98a4f'; rr(g, S0.x0 - 2, sy, S0.x1 - S0.x0 + 4, 9, 4); g.fill(); }
   g.restore();
-  // 背の高い家具（本棚・冷蔵庫・タンス・物置・収納棚・二段ベッド）。ネコは前を歩ける
+  // 背の高い家具（本棚・冷蔵庫・タンス・物置・収納棚・二段ベッド）。ネコは前を歩ける。大技で崩れる（bigPre／bigPost）
+  bigPre(g);
   if (room === 'garden') {
     g.fillStyle = '#8fa6b5'; g.fillRect(345, 291, W - 345, FLOOR - 291);
     g.strokeStyle = 'rgba(40,60,80,.25)'; g.lineWidth = 2; for (let x = 352; x < W; x += 12) { g.beginPath(); g.moveTo(x, 293); g.lineTo(x, FLOOR); g.stroke(); }
@@ -4052,6 +4130,7 @@ function drawFurniture() {
     }
     g.fillStyle = '#9a6038'; rr(g, 345, 285, W - 345, 8, 3); g.fill();
   }
+  bigPost(g);
   // キャットタワー（背の高い家具の手前に描く。庭は切り株、お風呂場は風呂いす）。描く位置は元の 305 から右へずらす
   if (room === 'garden') drawStump(); else if (room === 'bath') drawStool(); else {
   g.save(); g.translate(PL.tower.x0 - 305, 0);
@@ -4658,6 +4737,7 @@ function update(dt) {
     stageT += dt; run.time = (run.time || 0) + dt; if (introT > 0) introT -= dt;
     cardCd -= dt; if (cardCd <= 0) { cardCd = 0.5; cardCheck(); }
     if (tripleCd > 0) tripleCd -= dt; if (meowDownAt && !meowLongDone && performance.now() - meowDownAt > 450) meowLong();
+    if (bigEv.anim > 0) bigEv.anim -= dt; if (bigEv.wob > 0) bigEv.wob -= dt;
     if (introT <= 0 && escT > 0) escT -= dt;
     else if (introT <= 0 && spot.length) { spotT += dt; if (spotT > 1.5) { learn('see_' + spot[0].k); spot.shift(); spotT = 0; } } updLamp(dt); updCat(dt); updTalk(dt);
     if (chaseT > 0) { updChase(dt); updItems(dt); updBall(dt); updVac(dt); }
@@ -5076,6 +5156,7 @@ function addLife() {
   // 行動の称号用：夜の被害額、ダンボールでやりすごした回数、行った部屋、何日続けて遊んだか
   inc('nightYen', Math.round(r.todYen[3] || 0)); inc('hides', (r.ev && r.ev.hide) || 0);
   L.rooms = L.rooms || {}; (r.rooms || []).forEach(k => { L.rooms[k] = 1; });
+  L.bigs = L.bigs || {}; (r.bigs || []).forEach(k => { L.bigs[k] = 1; });
   { const today = jstDay(), last = L.lastDay || ''; if (today !== last) { const y = new Date(Date.now() + 9 * 3600e3 - 86400e3); const yk = y.getUTCFullYear() + '-' + String(y.getUTCMonth() + 1).padStart(2, '0') + '-' + String(y.getUTCDate()).padStart(2, '0'); L.dayStreak = last === yk ? (L.dayStreak || 0) + 1 : 1; L.lastDay = today; } }
   store.set('nekoLife', JSON.stringify(L));
 }
@@ -5246,7 +5327,7 @@ function nextGoal() {
   const acc = ACCS.filter(a => a.need > 0 && !a.ending && a.need > unlocked.size).sort((a, b) => a.need - b.need)[0];
   const left = CARDS.length - cardsGot.size;
   if (acc && acc.need - unlocked.size <= 3) rows.push(lt(`称号あと ${acc.need - unlocked.size} 個で きせかえ「${acc.name}」`, `${acc.need - unlocked.size} more title${acc.need - unlocked.size > 1 ? 's' : ''} for "${acc.name}"`));
-  else if (left > 0 && cardsGot.size > 0) rows.push(lt(`いたずらカード あと ${left} 枚`, `${left} mischief card${left > 1 ? 's' : ''} to go`));
+  else if (left > 0 && cardsGot.size > 0) { const nb = Object.keys(BIG).find(k => !cardsGot.has('big_' + k)); rows.push(nb && cardsGot.size >= 5 ? lt(`大技「${BIG[nb].n}」：${BIG[nb].how}`, `Big one "${BIG[nb].n}": ${BIG[nb].how}`) : lt(`いたずらカード あと ${left} 枚`, `${left} mischief card${left > 1 ? 's' : ''} to go`)); }
   if (!rows.length) return '';
   return `<p class="goal">${rows.map(r => `<span>${r}</span>`).join('')}</p>`;
 }
