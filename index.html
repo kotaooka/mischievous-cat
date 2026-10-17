@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.22.3', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.22.4', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2893,6 +2893,9 @@ function previewEnding(ix) {
   previewIx = ((ix % PREVIEW_ORDER.length) + PREVIEW_ORDER.length) % PREVIEW_ORDER.length;
   ov.hidden = true; newRun(); run.preview = true; setupStage(DAY_LEN * END_DAY);
   run.yen = 123456; run.broke = { cup: 7, vase: 2, phone: 1 }; run.bigs = ['living'];   // スタッフロールの見本用
+  // 写真も見本で入れる（1〜12面を順に写す。実際のスタッフロールと同じ枚数・描画負荷になる）
+  try { run.album = []; for (let L = 1; L <= 12; L++) { setupStage(L); const sn = takeSnap(); if (!sn) continue; const c2 = document.createElement('canvas'); c2.width = c2.height = 160; c2.getContext('2d').drawImage(sn, 0, 0, 160, 160); run.album.push({ im: c2, L, yen: 1000 * L }); } } catch (e) {}
+  setupStage(DAY_LEN * END_DAY);
   startEnding(); run.endType = PREVIEW_ORDER[previewIx];
 }
 function showEnding() {
