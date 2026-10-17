@@ -128,7 +128,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 - **Big ones**: each room has one way to bring a whole piece of furniture down (bookshelf avalanche, fridge avalanche…). Everything on top falls and the owner freezes for a moment. The Cards tab tells you how
 - **Mischief cards**: 37 kinds of mischief, each collected as a card with a photo of the moment you first pulled it off. The Cards tab also shows how to get the ones you are missing
 - **This device**: your own top 10
-- **Titles**: 53 of them (some per run, some lifetime). The Titles list shows how to earn even the ones you don't have yet. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
+- **Titles**: 54 of them (some per run, some lifetime). The Titles list shows how to earn even the ones you don't have yet. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
 - **Crime scene photo**: a close-up of the cat at the moment you're caught becomes a Polaroid (no HUD in the shot), with a one-line pitch and where to play. Share it with `#MischievousCat`
 - **Day restarts**: from Day 2 on, the result screen offers "Continue from Day N morning". Damage, stars and charms go back to that morning, and the ranking shows how many restarts you used
 - **Bad records**: unsigned records and impossible scores don't appear in the ranking
