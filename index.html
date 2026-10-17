@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.24.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.24.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -801,7 +801,7 @@ function cardShot() {
   try { const sn = takeSnap(); if (!sn) return null; const c = document.createElement('canvas'); c.width = c.height = 128; c.getContext('2d').drawImage(sn, 0, 0, 128, 128); return c.toDataURL('image/jpeg', 0.6); } catch (e) { return null; }
 }
 function cardCheck() {
-  if (state !== 'play' || !run || run.preview) return;
+  if (state !== 'play' || !run || run.preview || run.test) return;
   for (const cd of CARDS) {
     if (cardsGot.has(cd.id)) continue;
     let ok = false; try { ok = !!cd.test(run); } catch (e) {}
@@ -3359,6 +3359,16 @@ function showEnding() {
     $('enBack').addEventListener('click', () => { endBgmStop(); run.preview = false; showTitle(); });
     return;
   }
+  if (run.test) {
+    // テスト：記録に残さず、つづけるかタイトルへ
+    state = 'endmenu'; ov.hidden = false; endFx = 0;
+    ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.6rem">${lt('エンディング', 'THE END')}</div><p class="sub">${lt('（テスト）', '(Test)')}「${ENDINGS[run.endType || 'normal'].n}」 ${yen(run.yen)}</p>
+      <button class="btn go" id="enCont" type="button">${lt(dayName(level + 1) + 'へつづける', 'On to ' + dayName(level + 1))}</button>
+      <div class="row"><button class="btn w" id="enBack" type="button">${lt('タイトルへ', 'Title')}</button></div></div>`;
+    $('enCont').addEventListener('click', () => { endBgmStop(); ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
+    $('enBack').addEventListener('click', () => { endBgmStop(); showTitle(); });
+    return;
+  }
   state = 'endmenu'; ov.hidden = false; endFx = 0;
   // ここで一度記録する：ランキングへ送る（自己ベストなら）・称号・ごほうびのきせかえ。4日目へつづけても、この記録は残る
   const firstEnd = store.get('nekoEnded', '') !== '1'; store.set('nekoEnded', '1');
@@ -3870,6 +3880,7 @@ function commentOf() {
 }
 function gameOver() {
   state = 'over';
+  if (run.test) { run.stage = level; run.comment = commentOf(); newRec = false; rankNow = 0; newTitles = []; newAccs = []; worldNow = null; showOver(); return; }   // テスト：記録・ランキング・称号に残さない
   addLife();
   run.stage = level; run.comment = commentOf();
   newRec = run.yen > bestYen;
@@ -5650,7 +5661,7 @@ async function sendOne(coll, bestKey) {
 async function sendScore() {
   // 今回の記録を「総合」と「今日」の両方に送る（それぞれ自己ベストを更新したときだけ。そのときの名前で載る）
   // 記録は追加だけで、書き換え・削除はしない（firestore.rules）。同じ人の記録は、一覧で一番よいものだけ表示する
-  if (!onlineOn() || !myName || !run || run.sent || run.yen <= 0) return;
+  if (!onlineOn() || !myName || !run || run.sent || run.test || run.yen <= 0) return;   // テストの回は送らない
   run.sent = true; dailyKey = jstDay(); const out = {};
   for (const [k, coll, bk] of [['world', 'scores', 'nekoWorldBest'], ['today', dailyColl(), 'nekoDailyBest-' + dailyKey]]) {
     try { out[k] = await sendOne(coll, bk); } catch (e) { out[k] = { err: true, code: String(e && e.message || '').replace('HTTP ', '') }; }
@@ -5814,14 +5825,34 @@ function showSettings(back) {
   $('sFx').addEventListener('click', () => { SET.calm = !SET.calm; store.set('nekoCalm', SET.calm ? '1' : '0'); applySettings(); showSettings(back); });
   $('sLg').addEventListener('click', () => { setLang(lt('en', 'ja')); showSettings(back); });
   $('sBack').addEventListener('click', back);
-  // 確認用の隠し操作：バージョン表示を2秒以内に5回押すと、エンディングだけを再生する（記録・称号には残さない）
+  // 確認用の隠し操作：バージョン表示を2秒以内に5回押すと、テストメニュー（ステージえらび・エンディングの再生）
   const leEl = ov.querySelector('.lasterr'); if (leEl) leEl.addEventListener('click', () => { store.set('nekoLastErr', ''); showSettings(back); });
   const vEl = ov.querySelector('.ver:not(.lasterr)');
   if (vEl) { let taps = []; vEl.addEventListener('click', e => {
     if (e.target.tagName === 'A') return;
     const now = performance.now(); taps = taps.filter(t => now - t < 2000); taps.push(now);
-    if (taps.length >= 5) { taps = []; audio(); previewEnding(0); }
+    if (taps.length >= 5) { taps = []; audio(); showTestMenu(back); }
   }); }
+}
+// ---------- テストメニュー（確認用。ここから始めた回は記録・ランキング・称号・カードに残さない） ----------
+function stageLabel(L) {
+  const ph = phaseOf(L), extra = ph.special ? String(ph.spTitle) : ph.foe ? String(FOES[ph.foe].n) : ph.rule ? String(RULE_NAME[ph.rule]) : '';
+  return `${L}　${dayName(L)}・${ph.name}　${ph.roomName}${extra ? '（' + extra + '）' : ''}`;
+}
+function showTestMenu(back) {
+  ov.hidden = false;
+  const rows = []; for (let L = 1; L <= TRUE_DAY * DAY_LEN; L++) rows.push(`<button type="button" data-l="${L}" style="width:100%;text-align:left;border-radius:10px">${stageLabel(L)}</button>`);
+  ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.4rem">${lt('テスト', 'TEST')}</div><p class="sub">${lt('ステージをえらんで始める（記録には残らない）', 'Pick a stage (nothing is recorded)')}</p>
+    <div class="accs" style="max-height:38vh;overflow:auto;flex-direction:column;flex-wrap:nowrap;gap:3px">${rows.join('')}</div>
+    <div class="row"><input id="tsL" class="nm" type="number" min="1" max="999" value="${level || 1}" style="width:5em" aria-label="stage"><button class="btn w" id="tsGo" type="button">${lt('この番号から', 'Start at #')}</button></div>
+    <div class="row"><button class="btn w" id="tsEnd" type="button">${lt('エンディングの再生', 'Play endings')}</button></div>
+    <button class="btn go" id="tsBack" type="button">${lt('もどる', 'Back')}</button></div>`;
+  const start = L => { L = Math.max(1, Math.min(999, L | 0)); ov.hidden = true; audio(); newRun(); run.test = true; carryT = 0; setupStage(L); state = 'play'; bgmStart(); toast(lt('テスト：', 'TEST: ') + stageLabel(L), 2500); };
+  ov.querySelectorAll('button[data-l]').forEach(b => b.addEventListener('click', () => start(+b.dataset.l)));
+  $('tsGo').addEventListener('click', () => start(+$('tsL').value));
+  $('tsL').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') start(+$('tsL').value); });
+  $('tsEnd').addEventListener('click', () => { audio(); previewEnding(0); });
+  $('tsBack').addEventListener('click', () => showSettings(back));
 }
 // ---------- 通算記録 ----------
 const CAUSE_N = { owner: tx('飼い主', 'Owner'), kid: tx('子ども', 'Kid'), grandma: tx('おばあちゃん', 'Grandma'), dad: tx('お父さん', 'Dad'), guest: tx('お客さん', 'Guest'), cam: tx('ペットカメラ', 'Pet camera'), time: tx('時間切れ', 'Time up') };
