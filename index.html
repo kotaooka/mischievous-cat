@@ -66,17 +66,18 @@
   .logo span { color: var(--org); }
   .logo small { display: block; font-size: .6rem; font-weight: 500; color: var(--ink2); letter-spacing: .08em; }
   .pill { background: var(--card); border: 2px solid var(--line); border-radius: 999px; padding: 1px 10px; font-weight: 800; font-size: .92rem; white-space: nowrap; line-height: 1.6; }
-  .pill.yen { color: var(--red-d); }
+  .pill.yen { color: var(--red-d); font-size: 1.3rem; line-height: 1.35; padding: 1px 12px; font-variant-numeric: tabular-nums; }
+  @media (max-width: 360px) { .pill.yen { font-size: 1.1rem; } .logo { font-size: 1rem; } }
   #bSnd, #bPause { width: 38px; height: 34px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0; flex: none; }
   #bSnd svg, #bPause svg { width: 22px; height: 22px; }
   #bPause[hidden] { display: none; }
   /* 怪しまれ度 */
   #meter { display: flex; align-items: center; gap: 6px; margin-top: 6px; margin-bottom: 6px; }
   #meter svg { width: 26px; height: 18px; flex: none; }
-  #meter .bar { flex: 1; height: 14px; background: #f6e2c4; border: 2px solid var(--line); border-radius: 999px; overflow: hidden; }
+  #meter .bar { flex: 1; height: 19px; background: #f6e2c4; border: 2px solid var(--line); border-radius: 999px; overflow: hidden; }
   #meter .bar i { display: block; height: 100%; width: 0; background: var(--teal); border-radius: 999px; transition: background .2s; }
   /* 怪しまれ度は色だけでなく、言葉・しま模様・目の開き具合でも段階を示す */
-  #meter .lvl { flex: none; min-width: 4.6em; text-align: center; font-weight: 800; font-size: .72rem; border: 2px solid var(--line); border-radius: 999px; padding: 0 6px; background: var(--card); color: var(--ink); line-height: 1.5; white-space: nowrap; }
+  #meter .lvl { flex: none; min-width: 4.6em; text-align: center; font-weight: 800; font-size: .8rem; border: 2px solid var(--line); border-radius: 999px; padding: 0 6px; background: var(--card); color: var(--ink); line-height: 1.5; white-space: nowrap; }
   #meter svg circle { transform-origin: 13px 9px; transition: transform .2s; }
   #meter.l0 svg circle { transform: scale(.55); }
   #meter.l2 svg circle, #meter.l3 svg circle { transform: scale(1.3); }
@@ -84,6 +85,7 @@
   #meter.l2 .bar i, #meter.l3 .bar i { background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.5) 0 3px, transparent 3px 6px); }
   #meter.l1 .lvl { background: var(--yel); }
   #meter.l2 .lvl, #meter.l3 .lvl { background: var(--red-d); color: #fff; animation: lvb .6s steps(2) infinite; }
+  #meter.l2 .bar, #meter.l3 .bar { border-color: var(--red-d); box-shadow: 0 0 0 2px rgba(255,90,90,.35); }
   body.calm #meter .lvl { animation: none; }
   @keyframes lvb { 50% { opacity: .5; } }
   #hY.bump { animation: bump .22s ease-out; }
@@ -118,6 +120,8 @@
   .btn.go { font-size: 1.4rem; padding: 12px; width: 100%; }
   .btn.w { background: #fff; color: var(--org-d); box-shadow: 0 4px 0 var(--line); border: 2px solid var(--line); }
   .btn.t { background: var(--teal); box-shadow: 0 4px 0 var(--teal-d); }
+  /* ボタン・ゲームパッド・キーボードでメニューを選ぶときの枠 */
+  #ov .navf { outline: 4px solid #2b8fd9; outline-offset: 3px; position: relative; z-index: 1; }
   .best { font-weight: 800; color: var(--ink2); font-size: .9rem; margin: 6px 0 0; }
   .res-yen { font-weight: 800; font-size: 1rem; margin: 0; color: var(--ink2); }
   .res-yen b { display: block; font-size: 2.2rem; color: var(--red-d); line-height: 1.15; }
@@ -234,7 +238,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.3.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.4.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -4015,7 +4019,7 @@ function draw() {
   }
   // ステージ表示
   g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.font = `800 15px ${FONT}`;
-  const tag = (t, x, al) => { g.font = `800 15px ${FONT}`; g.textBaseline = 'alphabetic'; g.textAlign = al; g.lineWidth = 4; g.strokeStyle = 'rgba(255,255,255,.9)'; g.strokeText(t, x, 24 - OY); g.fillStyle = '#4a2f1d'; g.fillText(t, x, 24 - OY); };
+  const tag = (t, x, al) => { g.font = `800 17px ${FONT}`; g.textBaseline = 'alphabetic'; g.textAlign = al; g.lineWidth = 4; g.strokeStyle = 'rgba(255,255,255,.9)'; g.strokeText(t, x, 24 - OY); g.fillStyle = '#4a2f1d'; g.fillText(t, x, 24 - OY); };
   if ((state === 'play' || state === 'pause') && tasks.length) {
     // やることリスト
     // 文字は 15px。長くて入らないときだけ小さくする
@@ -4023,9 +4027,9 @@ function draw() {
     let fs = 15; const wOf = () => Math.max(...tasks.map(k => g.measureText(String(k.t) + (k.need > 1 ? ' 0/0' : '')).width));
     g.font = `800 ${fs}px ${FONT}`; while (wOf() + 40 > W - 16 && fs > 11) { fs--; g.font = `800 ${fs}px ${FONT}`; }
     const tw = Math.min(W - 16, Math.max(220, wOf() + 40)), lh = fs + 7;
-    g.fillStyle = 'rgba(255,250,242,.86)'; rr(g, 8, 36 - OY, tw, 12 + tasks.length * lh, 10); g.fill();
+    g.fillStyle = 'rgba(255,250,242,.86)'; rr(g, 8, 50 - OY, tw, 12 + tasks.length * lh, 10); g.fill();
     tasks.forEach((k, i) => {
-      const y = 42 - OY + lh / 2 + i * lh;
+      const y = 56 - OY + lh / 2 + i * lh;
       g.fillStyle = k.done ? '#ffb020' : '#c9b39a'; g.fillText(k.done ? '★' : '☆', 14, y);
       g.fillStyle = k.done ? '#b39a80' : '#4a2f1d'; g.fillText(k.t + (k.need > 1 && !k.done ? ` ${k.n}/${k.need}` : ''), 33, y);
       if (k.done) { g.fillStyle = '#b39a80'; g.fillRect(33, y, g.measureText(k.t).width, 1.5); }
@@ -4045,7 +4049,13 @@ function draw() {
     g.lineJoin = 'round'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `800 24px ${FONT}`;
     const rt = lt('にげろ! ', 'RUN! ') + Math.ceil(chaseT); g.lineWidth = 6; g.strokeStyle = '#fff'; g.strokeText(rt, W / 2, 210); g.fillStyle = '#ff3b30'; g.fillText(rt, W / 2, 210);
   }
-  if (state !== 'title') { tag(dayName(level) + lt('・', ' · ') + phaseOf(level).name, 12, 'left'); tag(lt('のこり ', 'Left ') + mains().length, W - 12, 'right'); }
+  if (state !== 'title') {
+    tag(dayName(level) + lt('・', ' · ') + phaseOf(level).name, 12, 'left');
+    // のこりの数：数字を大きく（プレイ中にいちばん見る数のひとつ）
+    const nL = String(mains().length); g.font = `800 26px ${FONT}`; const nw = g.measureText(nL).width;
+    g.textAlign = 'right'; g.lineWidth = 5; g.strokeStyle = 'rgba(255,255,255,.95)'; g.strokeText(nL, W - 12, 30 - OY); g.fillStyle = '#c93636'; g.fillText(nL, W - 12, 30 - OY);
+    g.font = `800 15px ${FONT}`; g.lineWidth = 4; g.strokeText(lt('のこり', 'Left'), W - 16 - nw, 28 - OY); g.fillStyle = '#4a2f1d'; g.fillText(lt('のこり', 'Left'), W - 16 - nw, 28 - OY);
+  }
   if (state === 'play' && introT > 0) {
     const ph = phaseOf(level), k = Math.min(1, (2 - introT) / 0.2, introT / 0.3);
     g.save(); g.globalAlpha = clamp(k, 0, 1); g.translate(W / 2, 150);
@@ -4091,13 +4101,13 @@ function draw() {
   if (state === 'play' || state === 'clear' || state === 'pause' || state === 'caught') {
     const sec = Math.max(0, Math.ceil(timeLeft)), warn = sec <= 10 && state !== 'clear';
     const pul = warn && state === 'play' ? 1 + 0.08 * Math.abs(Math.sin(tAnim * 6)) : 1;
-    g.save(); g.translate(W / 2, 20 - OY); g.scale(pul, pul);
+    g.save(); g.translate(W / 2, 24 - OY); g.scale(pul * 1.3, pul * 1.3);
     g.fillStyle = warn ? '#ff3b30' : '#fff'; g.strokeStyle = '#4a2f1d'; g.lineWidth = 2.5; rr(g, -38, -15, 76, 30, 15); g.fill(); g.stroke();
     const ic = warn ? '#fff' : '#4a2f1d';
     g.strokeStyle = ic; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath(); g.arc(-19, 0, 8, 0, TAU); g.stroke(); g.beginPath(); g.moveTo(-19, 0); g.lineTo(-19, -5); g.moveTo(-19, 0); g.lineTo(-15, 2); g.stroke();
     g.fillStyle = ic; g.font = `800 19px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(sec), 9, 1);
     g.restore();
-    if (run && run.charm) drawCharmIcon(g, W / 2 + 54 + Math.sin(tAnim * 3) * 1.5, 22 - OY, 1.2);
+    if (run && run.charm) drawCharmIcon(g, W / 2 + 66 + Math.sin(tAnim * 3) * 1.5, 24 - OY, 1.2);
   }
   if (state === 'caught') drawCutscene();
   g.restore();
@@ -4468,10 +4478,76 @@ function pollPad() {
     if (cur.M && !padPrev.M) meow();
   }
   if (cur.S && !padPrev.S) { if (state === 'pause') resumeGame(); else if (state === 'play' || state === 'clear') pauseGame(); }
-  else if (cur.J && !padPrev.J && !ov.hidden) { const bt = ov.querySelector('.btn.go'); if (bt) { audio(); bt.click(); } }   // 画面のメニューは A で決定
+  else if (menuActive()) {
+    const ay = gp.axes[1] || 0, d = b(14) || ax < -0.5 ? 'L' : b(15) || ax > 0.5 ? 'R' : b(12) || ay < -0.5 ? 'U' : b(13) || ay > 0.5 ? 'D' : '';
+    const now = performance.now();
+    if (d && (d !== padPrev.d || now >= (padPrev.rep || 0))) {
+      cur.rep = now + (d !== padPrev.d ? 380 : 110);
+      const el = navOn ? navCur() : null;
+      if (el && el.type === 'range' && (d === 'L' || d === 'R')) navRange(el, d === 'L' ? -5 : 5); else navMove(d);
+    } else cur.rep = padPrev.rep;
+    cur.d = d;
+    if (b(0) && !padPrev.A) navOk();
+    if (b(1) && !padPrev.B) navBack();
+  }
+  cur.A = b(0); cur.B = b(1);
   padPrev = cur;
 }
 function startGame() { ov.hidden = true; newRun(); state = 'play'; bgmStart(); }
+// ---------- メニューの操作（ゲームパッド・画面下のボタン・キーボード）----------
+// 選べるもの：ボタン・リンク・つまみ（文字の入力欄は除く）。枠は、これらで操作したときだけ出す（タップでは出さない）
+let navEl = null, navOn = false;
+const menuActive = () => !ov.hidden && state !== 'play' && state !== 'clear' && state !== 'caught';
+const navList = () => [...ov.querySelectorAll('button:not([disabled]), a.btn, input[type=range]')].filter(el => el.offsetParent !== null);
+function navSet(el) {
+  if (navEl && navEl !== el) navEl.classList.remove('navf');
+  navEl = el; if (!el) return;
+  el.classList.add('navf'); try { el.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+}
+function navCur() {
+  // 画面が書き換わったら、大きいボタン（なければ先頭）から始める
+  if (navEl && ov.contains(navEl) && navEl.offsetParent !== null) return navEl;
+  const L = navList(); return ov.querySelector('.btn.go:not([disabled])') || L[0] || null;
+}
+function navMove(dir) {
+  // dir：'L' 'R' 'U' 'D'（向きにいちばん近いもの）、'prev' 'next'（並び順）
+  const L = navList(); if (!L.length) return; const cur = navCur();
+  if (!navOn || !cur) { navOn = true; navSet(cur || L[0]); return; }
+  if (dir === 'prev' || dir === 'next') { const i = L.indexOf(cur); navSet(L[(i + (dir === 'next' ? 1 : L.length - 1)) % L.length]); return; }
+  const r0 = cur.getBoundingClientRect(), cx = r0.left + r0.width / 2, cy = r0.top + r0.height / 2;
+  let best = null, bs = 1e9;
+  for (const el of L) {
+    if (el === cur) continue;
+    const r = el.getBoundingClientRect(), dx = r.left + r.width / 2 - cx, dy = r.top + r.height / 2 - cy;
+    const main = dir === 'L' ? -dx : dir === 'R' ? dx : dir === 'U' ? -dy : dy, side = dir === 'L' || dir === 'R' ? Math.abs(dy) : Math.abs(dx);
+    if (main <= 4) continue;
+    const sc = main + side * 2.5; if (sc < bs) { bs = sc; best = el; }
+  }
+  if (best) navSet(best); else if (dir === 'D' || dir === 'R') navMove('next'); else navMove('prev');
+}
+function navRange(el, d) { el.value = clamp(+el.value + d, +el.min || 0, +el.max || 100); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); }
+function navOk() {
+  const cur = navCur(); if (!cur) return;
+  if (!navOn) { navOn = true; navSet(cur); return; }
+  audio(); if (cur.type === 'range') return; cur.click();
+}
+function navBack() {
+  // もどる：サブ画面の「もどる」、ポーズなら「つづける」
+  const b = ov.querySelector('#rkBack, #zkBack, #sBack, #lfBack, #pResume'); if (b) { audio(); b.click(); }
+}
+function menuKey(k) {
+  // 画面下のボタン：← 前へ、→ 次へ、パンチ・ジャンプ 決定（つまみでは パンチ ＋10、ジャンプ −10）、にゃー もどる
+  if (!menuActive()) return false;
+  const cur = navOn ? navCur() : null, rng = cur && cur.type === 'range';
+  if (k === 'L') navMove('prev'); else if (k === 'R') navMove('next');
+  else if (k === 'P') { if (rng) navRange(cur, 10); else navOk(); }
+  else if (k === 'J') { if (rng) navRange(cur, -10); else navOk(); }
+  else if (k === 'M') navBack();
+  return true;
+}
+// 画面が書き換わったら枠を付け直す（タップで操作しているときは出さない）
+new MutationObserver(() => { navEl = null; if (navOn && menuActive()) navSet(navCur()); }).observe(ov, { childList: true });
+ov.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || navOn) { navOn = false; if (navEl) navEl.classList.remove('navf'); } });
 function pauseGame() {
   if (state !== 'play' && state !== 'clear') return;
   pausedFrom = state; state = 'pause'; keys.L = keys.R = false; punchUp(); setPulse(null); showPause();
@@ -4620,11 +4696,11 @@ function hold(id, on, off) {
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, () => { b.classList.remove('act'); off(); }));
   b.addEventListener('contextmenu', e => e.preventDefault());
 }
-hold('bL', () => { keys.L = true; }, () => { keys.L = false; });
-hold('bR', () => { keys.R = true; }, () => { keys.R = false; });
-hold('bJ', jumpPress, () => {});
-hold('bP', punchDown, punchUp);
-hold('bM', () => { if (state === 'play') meow(); }, () => {});
+hold('bL', () => { if (menuKey('L')) return; keys.L = true; }, () => { keys.L = false; });
+hold('bR', () => { if (menuKey('R')) return; keys.R = true; }, () => { keys.R = false; });
+hold('bJ', () => { if (menuKey('J')) return; jumpPress(); }, () => {});
+hold('bP', () => { if (menuKey('P')) return; punchDown(); }, punchUp);
+hold('bM', () => { if (menuKey('M')) return; if (state === 'play') meow(); }, () => {});
 // 片手操作：ゲーム画面をタップ・スワイプで遊ぶ（ボタンは隠す）
 function setOneHand(on) { oneHand = on; tapTarget = null; if (cat) cat.autoScr = null; store.set('nekoOneHand', on ? '1' : '0'); try { document.body.classList.toggle('onehand', on); } catch (e) {} fit(); }
 try { document.body.classList.toggle('onehand', oneHand); } catch (e) {}
@@ -4674,6 +4750,12 @@ bPause.addEventListener('click', pauseGame);
 soundLabel();
 window.addEventListener('keydown', e => {
   const k = e.key;
+  if (menuActive() && !(e.target && e.target.tagName === 'INPUT' && e.target.type !== 'range')) {
+    const dir = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D' }[k];
+    if (dir) { e.preventDefault(); const cur = navOn ? navCur() : null; if (cur && cur.type === 'range' && (dir === 'L' || dir === 'R')) navRange(cur, dir === 'L' ? -5 : 5); else navMove(dir); return; }
+    if (k === 'Enter' || k === ' ') { if (navOn) { e.preventDefault(); navOk(); return; } }
+    if (k === 'Escape' || k === 'Backspace') { if (state !== 'pause') { e.preventDefault(); navBack(); return; } }
+  }
   if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.L = true;
   else if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.R = true;
   else if (k === 'ArrowUp' || k === 'w' || k === 'W') { if (!e.repeat) jumpPress(); }
