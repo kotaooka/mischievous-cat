@@ -69,24 +69,6 @@ Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. 
 </tr>
 </table>
 
-- **Cat-meme moments included.** Break something pricey and the cat hops for joy; a big chain makes it stand up and dance. Watch its face when it gets caught (five different reactions). Stand still for a bit and it starts vibing to the music
-- **Grab the red charm if you spot one.** It turns up on a shelf now and then. Holding it lets you continue the stage once after you get caught
-- **Books, pencils, cans and teddy bears are free-for-all clutter.** Knock them to the floor for "Mess" damage. The owner crouches to tidy up, and only looks at their feet while doing it
-- **Mouse on the loose? Bop it.** Mice pop out of a hole now and then and dash around the floor. Bop one for extra time. Chase it toward the owner and they freeze with a scream (your chance!)
-- **Don't let the boss cat win.** It knocks things off first and steals the damage. Land 3 paw hits and it runs away. If the owner catches it, it gets scolded and leaves
-- **You can walk in front of the bookshelf and the fridge.** The cat tower stands in front of the bookshelf
-- **Rub against the owner's legs.** Stay still at their feet to lower suspicion and stop them in their tracks
-- **Step on the remote** to turn on the TV. The owner (and the guest) can't look away
-- **Yank the tablecloth** hanging off the right end of the table and everything on it slides off
-- **Swing on the ceiling lamp.** Leap at it from the hanging shelf, pump left and right, and jump to let go
-- **Pile things at one end of the shelf, then stand there…** CLUNK! The shelf tips and dumps everything
-- **Creaky boards:** running makes them creak. Hold punch to tiptoe silently
-- **Gimmicks rotate every stage.** Each stage has at most two hazards (traps, cucumber, pet cam, dog…) and two toys (ball, hanging lamp, robot vacuum), with ones you haven't seen yet first
-- **From day 2, watch for traps** (noisy foil, sticky tape). From day 3, a pet cam sweeps the room
-- **Cucumbers** make the cat leap straight up. Use them as a springboard
-- **Churu!** When the owner shakes a churu, the cat gets pulled in. Eat it for time, or mash buttons to resist and leave the owner sulking
-- **Hungry? Meow.** A cute meow next to the owner might get you food (= more time)
-
 ## 🏠 A day in the house
 
 A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. Clear the third night to see the ending, then keep going into day 4 and beyond.
