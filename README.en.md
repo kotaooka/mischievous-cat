@@ -5,7 +5,9 @@
 **Knock everything off the shelves while your owner isn't looking.**
 Cups, vases, smartphones. You're just an adorable cat. …Probably.
 
-### ▶ [Play now](https://kotaooka.github.io/mischievous-cat/)
+#You can stop any time: the game auto-saves at the start of every stage, and the title screen offers "Continue" from that stage next time (or from that day's morning if you got caught).
+
+## ▶ [Play now](https://kotaooka.github.io/mischievous-cat/)
 
 ![Mischievous Cat](og.png)
 

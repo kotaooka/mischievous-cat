@@ -94,6 +94,10 @@ HTML に直接書いた文字（下のボタン、読み上げ用のラベル、
 - ランキングの記録に `k`（続けた回数）を入れる（v6）。署名は `y|s|st|sk|k|uid|鍵`。`firestore.rules` を公開し直すまで、v6 の記録は送れない
 - 見つかった原因：`updSus` でいちばん多く怪しまれ度を上げた見張り（飼い主・子ども・おばあちゃん・お父さん・お客さん・ペットカメラ）を `run.lastBy` に覚え、`caught` で `run.cause` にする。時間切れは `time`。通算記録（`LIFE.cause`・`LIFE.where`）に足して「見つかった原因」「よく見つかった場所」に出す
 
+## セーブ（4.27.0）
+
+`saveGame(L, cont)` を `setupStageCore` の先頭（`run.ck` を作ったあと）で呼び、`nekoSave` に `{ level, cont, carryT, cat, acc, pk: packRun(run), ck }` を保存する。`packRun` は `run` から `ck`・`res`・`album` を外して JSON にし、写真は 128px JPEG の dataURL（`album[].d`）。`unpackRun` で `Image` に戻す（`run.ck.pk` も同じ形。前は `JSON.stringify` で写真が壊れていた）。保存しないのは `run.test`・`run.preview`・`state === 'title'`（`showTitle` の `newRun`）・1 面目。`gameOver` では、エンディングで終えたら次の日、見つかって終えたら `run.ck` の朝（`cont: true`、再開時に `conts` と `LIFE.conts` を +1）、それ以外は消す。`startGame` で消す。タイトルは `loadSave()` があれば「つづきから」（`resumeSave`）を大きいボタンに、「はじめから」は 2 秒以内の 2 回押し。`resumeGame` はポーズの復帰に使われている名前なので、セーブの再開は `resumeSave`
+
 ## 称号をいたずら図鑑に統合、きせかえの効き目（4.26.0〜4.26.1）
 
 4.26.1：きせかえは枚数ではなく決まったカードで手に入る（`ACCS[].card`、`accOk`）。ロックの札にはカード名。効き目は良い面だけにして悪い面をなくした（4.26.0 の デバフと「なし」が補正なし、という設計はやめた）。「次の目標」にはまだのきせかえとそのカードを 5 割で出す。

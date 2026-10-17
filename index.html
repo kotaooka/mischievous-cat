@@ -308,7 +308,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.26.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.27.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1504,7 +1504,8 @@ function setupStageCore(L) {
   applyLayout(L);
   if (run) { run.stageDrops = []; if (!run.rooms.includes(room)) run.rooms.push(room); }
   // その日の朝（各日の1面目）の状態を覚えておく（見つかったら、ここから続けられる）
-  if (run && (L - 1) % DAY_LEN === 0) run.ck = { level: L, run: JSON.parse(JSON.stringify(Object.assign({}, run, { ck: null, res: null, sent: false }))) };
+  if (run && (L - 1) % DAY_LEN === 0) run.ck = { level: L, pk: packRun(run) };
+  saveGame(L);   // 自動セーブ（4.27.0）：面の始まりの状態を残す
   items = []; puddles = []; prints = []; parts = []; pops = []; coins = [];
   // 置き場所：面が進むと高い所が増える（壁の棚 → 本棚・吊り棚 → カーテンレール → エアコン）
   const ph = phaseOf(L); room = ph.room; introT = 2;
@@ -4005,6 +4006,11 @@ function commentOf() {
 }
 function gameOver() {
   state = 'over';
+  if (!run.test && !run.preview) {
+    if (!run.caughtOver && run.ended && level % NPH === 0) { run.ck = null; saveGame(level + 1, false); }   // エンディングで終えた：次の日から
+    else if (run.ck && run.ck.level > 1 && run.caughtOver) { const ck = run.ck, r0 = run; run = unpackRun(ck.pk); run.ck = null; carryT = 0; saveGame(ck.level, true); run = r0; }   // 見つかった：その日の朝から（つづきに数える）
+    else clearSave();
+  }
   if (run.test) { run.stage = level; run.comment = commentOf(); newRec = false; rankNow = 0; newTitles = []; newAccs = []; worldNow = null; showOver(); return; }   // テスト：記録・ランキング・称号に残さない
   addLife();
   run.stage = level; run.comment = commentOf();
@@ -5723,12 +5729,13 @@ function showTitle() {
     $('seBtn').addEventListener('click', () => showSettings(showTitle));
     return;
   }
+  const sv = loadSave();
   ov.innerHTML = `<div class="panel">
     <div class="big-logo">${lt('こっそり<span>ネコ</span>', 'Mischievous <span>Cat</span>')}</div><p class="sub">${lt('MISCHIEVOUS CAT', 'こっそりネコ')}</p>
     <div class="cats" role="group" aria-label="${lt('ネコをえらぶ', 'Choose a cat')}">${CATS.map((c, i) => { const ok = catsOpen.has(c.id); return `<button type="button" data-i="${i}" aria-pressed="${i === selCat}" ${ok ? '' : 'disabled'}><canvas width="144" height="108"></canvas><b>${ok ? c.name : '？？？'}</b><span>${ok ? c.note : CAT_LOCK[c.id]}</span></button>`; }).join('')}</div>
     <div class="stats" id="stats"></div>
     <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : a.ending ? lt('エンディング', 'Ending') : a.trueEnd ? lt('7日目', 'Day 7') : a.secret ? '？？？' : '🔒' + accCardName(a)}</button>`; }).join('')}</div>
-    <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
+    ${sv ? `<button class="btn go" id="resBtn" type="button">${lt('つづきから', 'Continue')}<small style="display:block;font-size:.72rem;font-weight:500">${stageLabel(sv.level).replace(/^\d+　/, '')}${sv.cont ? lt('（朝から）', ' (from morning)') : ''}</small></button><div class="row"><button class="btn w" id="goBtn" type="button">${lt('はじめから', 'New game')}</button></div>` : `<button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>`}
     ${keysBox()}
     <div class="row"><button class="btn w" id="recBtn" type="button">${lt('きろく', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('せってい', 'Settings')}</button></div>
     ${a2hsBox()}</div>`;
@@ -5743,7 +5750,9 @@ function showTitle() {
     ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.setTransform(2, 0, 0, 2, 0, 0); c2.clearRect(0, 0, 72, 54); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
   }));
   showStats();
-  $('goBtn').addEventListener('click', () => { audio(); startGame(); });
+  // はじめから：セーブがあるときは、2 秒以内にもう一度押したときだけ（消えるので）
+  { let armed = 0; $('goBtn').addEventListener('click', () => { audio(); if (sv && performance.now() - armed > 2000) { armed = performance.now(); toast(lt('もう一度押すと、つづきを消して始めます', 'Press again to delete the save and start over'), 2200); return; } startGame(); }); }
+  if ($('resBtn')) $('resBtn').addEventListener('click', () => { audio(); resumeSave(); });
   bindA2hs();
   $('recBtn').addEventListener('click', () => showRank());
   $('seBtn').addEventListener('click', () => showSettings(showTitle));
@@ -6087,12 +6096,46 @@ function pollPad() {
   cur.A = b(0); cur.B = b(1);
   padPrev = cur;
 }
-function startGame() { ov.hidden = true; newRun(); state = 'play'; bgmStart(); }
+function startGame() { clearSave(); ov.hidden = true; newRun(); state = 'play'; bgmStart(); }
+// ---------- セーブ（4.27.0）----------
+// 面が始まるたびに「この面の始まり」を保存する。アプリを閉じても、タイトルの「つづきから」でそこから再開できる
+// 見つかって終わったときは「その日の朝から」（つづきに数える）を保存する。結果画面の「1日目からやりなおす」「あそぶ」で消す
+// 保存するもの：被害額・割ったもの・できごと・面番号・持ち越し時間・ネコ・きせかえ・スタッフロールの写真（128px JPEG）
+function packRun(r) {
+  const o = Object.assign({}, r, { ck: null, res: null, sent: false, revive: false, album: null });
+  const album = (r.album || []).map(a => ({ L: a.L, yen: a.yen, d: a.d || (a.im && a.im.toDataURL ? a.im.toDataURL('image/jpeg', 0.6) : null) })).filter(a => a.d);
+  return { run: JSON.parse(JSON.stringify(o)), album };
+}
+function unpackRun(pk) {
+  const r = JSON.parse(JSON.stringify(pk.run));
+  r.album = (pk.album || []).map(a => { const im = new Image(); im.src = a.d; return { L: a.L, yen: a.yen, im, d: a.d }; });
+  r.ck = null; return r;
+}
+function saveGame(L, cont) {
+  if (!run || run.test || run.preview || state === 'title' || L <= 1) return;
+  try {
+    const sv = { v: 1, level: L, cont: !!cont, carryT: Math.round(carryT || 0), cat: selCat, acc: selAcc, pk: packRun(run), ck: run.ck ? { level: run.ck.level, pk: run.ck.pk } : null, t: Date.now() };
+    store.set('nekoSave', JSON.stringify(sv));
+  } catch (e) {}
+}
+function clearSave() { store.set('nekoSave', ''); }
+function loadSave() { try { const sv = JSON.parse(store.get('nekoSave', '') || 'null'); return sv && sv.v === 1 && sv.level > 1 && sv.pk ? sv : null; } catch (e) { return null; } }
+function resumeSave() {
+  const sv = loadSave(); if (!sv) { startGame(); return; }
+  if (sv.cat != null && CATS[sv.cat] && catsOpen.has(CATS[sv.cat].id)) { selCat = sv.cat; store.set('nekoCat', String(selCat)); }
+  if (sv.acc && ACCS.some(a => a.id === sv.acc && accOk(a))) { selAcc = sv.acc; store.set('nekoAcc', selAcc); }
+  ov.hidden = true; sus = 0; snap = null; newCats = []; newTitles = []; newAccs = []; newCards = []; dayEndNext = false;
+  run = unpackRun(sv.pk); run.ck = sv.ck ? { level: sv.ck.level, pk: sv.ck.pk } : null;
+  if (sv.cont) { run.conts = (run.conts || 0) + 1; if (LIFE) { LIFE.conts = (LIFE.conts || 0) + 1; store.set('nekoLife', JSON.stringify(LIFE)); } }
+  carryT = sv.carryT || 0; state = 'over';   // setupStage の自動セーブが効くように、タイトル以外の状態にしてから
+  setupStage(sv.level); state = 'play'; bgmStart();
+  toast(lt('つづきから：', 'Resumed: ') + stageLabel(sv.level), 2200);
+}
 function continueDay() {
   // その日の朝から続ける：被害額・★・お守りなども朝の状態に戻す。続けた回数は数えてランキングに載せる
   const ck = run && run.ck; if (!ck) return;
   const k = (run.conts || 0) + 1;
-  run = JSON.parse(JSON.stringify(ck.run)); run.conts = k;
+  run = unpackRun(ck.pk); run.conts = k;
   ov.hidden = true; sus = 0; snap = null; carryT = 0; newCats = []; newTitles = []; newAccs = []; newCards = [];
   setupStage(ck.level); state = 'play'; bgmStart();
   if (LIFE) { LIFE.conts = (LIFE.conts || 0) + 1; store.set('nekoLife', JSON.stringify(LIFE)); }
