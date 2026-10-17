@@ -206,7 +206,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '2.3.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '2.4.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -361,7 +361,8 @@ const TITLES = [
   { id: 'bowl', name: tx('ボウリング王', "Bowling King"), test: r => r.ballHits >= 3 },
   { id: 'top', name: tx('天井の住人', "Ceiling Dweller"), test: r => r.top },
   { id: 'streak', name: tx('ノーマークの達人', "Unseen Master"), test: r => r.maxStreak >= 5 },
-  { id: 'perfect', name: tx('完全犯罪', "Perfect Crime"), test: r => r.perfect >= 3 }
+  { id: 'perfect', name: tx('完全犯罪', "Perfect Crime"), test: r => r.perfect >= 3 },
+  { id: 'space', name: tx('宇宙ネコ', 'Space Cat'), test: r => r.space >= 1 }
 ];
 let unlocked = new Set();
 try { unlocked = new Set(JSON.parse(store.get('nekoTitles', '[]'))); } catch (e) {}
@@ -461,6 +462,8 @@ if (!ACCS.some(a => a.id === selAcc)) selAcc = 'none';
 let run, cat, items = [], puddles = [], prints = [], parts = [], pops = [], vac = null, dog = null, newRec = false, newTitles = [];
 let snap = null, chains = {}, tut = { on: false, broke: false, arrow: null, stop: false }, pulseId = null;
 let lever = null, ball = null, spots = [], stageYen0 = 0, stageBonus = null;
+// 猫ミーム風の演出：spaceT 宇宙猫の残り時間（この間はゲームの進みをゆっくりにする）
+let spaceT = 0;
 // 言葉を使わない手がかり：まだ一度も使っていない仕掛けにだけ、絵の合図（とボタンの点滅）を出す。一度使えば、その合図は出なくなる
 // mis 落とす以外のいたずら / lever てこ / ball 転がるもの / high 壁の高い足場
 let learned = new Set();
@@ -637,6 +640,20 @@ const sfx = {
   pon(v) { const a = A(); if (!a) return; osc('sine', 260 + 160 * (v || 0.5), 140, a.currentTime, 0.12, 0.08 + 0.12 * (v || 0.5)); },
   // てこ：板が「カタン」と鳴って、ものが飛ぶ「ひゅーん」
   lever() { const a = A(); if (!a) return; const t = a.currentTime; osc('triangle', 420, 180, t, 0.08, 0.3); noise(t, 0.05, 0.2, 'bandpass', 900, 0, 2); osc('sine', 500, 1400, t + 0.06, 0.35, 0.08); },
+  // ハッピー跳ね：はずむ短いメロディ（オリジナル）
+  happy() {
+    const a = A(); if (!a) return; const t = a.currentTime;
+    [1047, 1319, 1568, 1319, 1568, 2093].forEach((f, i) => { osc('triangle', f, f, t + i * 0.075, 0.09, 0.11); osc('sine', f * 2, f * 2, t + i * 0.075, 0.05, 0.03); });
+    osc('sine', 300, 700, t + 0.45, 0.12, 0.12);
+  },
+  // 宇宙猫：ゆっくり立ち上がる和音と、きらきらした高い音
+  space() {
+    const a = A(); if (!a) return; const t = a.currentTime;
+    [261.6, 329.6, 392, 493.9].forEach(f => { osc('sine', f, f * 0.98, t, 1.3, 0.05, 0.35); osc('triangle', f * 2, f * 1.96, t + 0.05, 1.1, 0.02, 0.4); });
+    for (let i = 0; i < 8; i++) osc('sine', rnd(2500, 5000), rnd(2500, 5000), t + 0.2 + i * 0.12, 0.25, 0.025);
+  },
+  // 「は？」：レコードを手で止めたような音
+  rec() { const a = A(); if (!a) return; const t = a.currentTime; noise(t, 0.28, 0.5, 'bandpass', 3200, 260, 3, 0.005); osc('sawtooth', 420, 60, t, 0.25, 0.08); },
   // のどを鳴らす「ゴロゴロ」
   purr() { const a = A(); if (!a) return; const t = a.currentTime; const o = osc('sawtooth', 48, 44, t, 0.8, 0.05, 0.08); const l = a.createOscillator(), lg = a.createGain(); l.frequency.value = 24; lg.gain.value = 18; l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + 0.85); }
 };
@@ -773,7 +790,7 @@ function setupStage(L) {
   stageYen0 = run ? run.yen : 0; stageBonus = null;
   const T = CATS[selCat];
   cat = cat || {};
-  Object.assign(cat, { type: T, x: 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: VOICES[0].txt, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0, scratch: null, scrHold: false, autoScr: null, happyT: 0, aimUp: false, scrT: 0, purrT: 0 });
+  Object.assign(cat, { type: T, x: 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: VOICES[0].txt, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0, scratch: null, scrHold: false, autoScr: null, happyT: 0, aimUp: false, scrT: 0, purrT: 0, hopT: 0, jabN: 0, lastPunch: -9 });
   owner.mode = 'away'; owner.t = L === 1 ? 5 : rnd(2.5, 4.5); owner.range = 0; owner.lureT = 0; owner.warned = false; owner.hint = null; owner.say = ''; owner.x = -60;
   sus = Math.min(sus, 25);
   dog = L >= 4 && (room === 'living' || room === 'bed') ? { x: 60, alertT: 0, cd: 0, barkT: 0 } : null;
@@ -794,7 +811,7 @@ function setupStage(L) {
 }
 function newRun() {
   run = { yen: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '', touched: false, stars: 0, escapes: 0,
-    mis: 0, launch: 0, ballHits: 0, top: false, streak: 0, maxStreak: 0, perfect: 0, skill: 0 };
+    mis: 0, launch: 0, ballHits: 0, top: false, streak: 0, maxStreak: 0, perfect: 0, skill: 0, space: 0, huh: false, huhStep: 0 };
   sus = 0; snap = null; carryT = 0; newCats = []; setupStage(1);
 }
 
@@ -1052,6 +1069,7 @@ function updCat(dt) {
   c.onFurn = c.plat === PL.side || c.plat === PL.table || c.plat === PL.shelf || c.plat === PL.book || c.plat === LEVP || HIGH.includes(c.plat);
   c.acting = (c.plat !== VACP && Math.abs(c.vx) > 6) || !c.plat || c.punchT > 0 || c.meowT > 0 || !!c.scratch;
   if (c.happyT > 0) c.happyT -= dt;
+  if (c.hopT > 0) c.hopT -= dt;
   // ねらいを定める：止まっていて、ジャンプで届く上の段にものがある（お尻ふりふり）
   c.aimUp = !!c.plat && c.still > 0.3 && PLS.some(p => p.y < c.plat.y && p.y > c.plat.y - 80 && c.x >= p.x0 - 4 && c.x <= p.x1 + 4 && items.some(o => o.plat === p && o.state === 'rest'));
   // ごはん中はのどを鳴らす
@@ -1070,6 +1088,7 @@ function updCat(dt) {
 function doPunch(strong) {
   const c = cat, T = c.type, kaku = c.stare;
   c.punchT = 0.28; c.strong = strong; c.punchCd = strong ? 0.5 : 0.28; c.still = 0; c.stare = false;
+  c.jabN = !strong && stageT - c.lastPunch < 0.45 ? c.jabN + 1 : 1; c.lastPunch = stageT;   // 3回目から「ちょいちょい」
   const reach = strong ? 54 : 34, force = strong ? 380 : 170, id = ++chainSeq;
   let hit = false;
   for (const it of items) {
@@ -1127,6 +1146,11 @@ function updItems(dt) {
     }
   }
 }
+// 猫ミーム風の演出
+// ハッピー跳ね：高いもの（1万円以上）を割る・2連鎖以上で、その場でぴょんぴょん跳ねる（見た目だけで、当たり判定は動かさない）
+function happyHop() { if (cat.hopT <= 0.3) sfx.happy(); cat.hopT = 1.1; cat.happyT = Math.max(cat.happyT, 1.1); }
+// 宇宙猫：3連鎖以上・10万円以上のもので、一瞬背景が宇宙になって固まる（この間はゲームの進みを 1/4 にする）
+function spaceCat() { if (spaceT > 0 || state !== 'play') return; spaceT = 1.6; run.space++; sfx.space(); }
 function addPart(o) { if (parts.length < 320) parts.push(o); }
 function breakItem(it, plat) {
   const d = IT[it.t];
@@ -1136,13 +1160,16 @@ function breakItem(it, plat) {
   if (it.kaku) run.kakushin++;
   const big = d.yen >= 10000;
   pops.push({ x: it.x, y: plat.y - 30, text: '+' + yen(d.yen), life: big ? 1.8 : 1.4, col: '#e0362c', size: big ? 28 : 16 });
-  if (big) { slowT = 0.7; sfx.kaching(); addPart({ k: 'crack', x: it.x, y: plat.y - 10, life: 0.7, gy: 9999, c: '#fff', s: 26, rot: rnd(0, 6), vr: 0, vx: 0, vy: 0, landed: true }); }
+  if (big) { slowT = 0.7; sfx.kaching(); happyHop(); addPart({ k: 'crack', x: it.x, y: plat.y - 10, life: 0.7, gy: 9999, c: '#fff', s: 26, rot: rnd(0, 6), vr: 0, vx: 0, vy: 0, landed: true }); }
   // 連鎖の数え上げ
   if (it.chain) {
     const n = chains[it.chain] = (chains[it.chain] || 0) + 1;
+    if (n >= 2) happyHop();
+    if (n >= 3) spaceCat();
     if (n >= 2) { const b = Math.round(d.yen * 0.2); run.yen += b; run.maxChain = Math.max(run.maxChain, n); pops.push({ x: it.x, y: plat.y - 62, text: lt(n + '連鎖 巻き添え+', n + 'x chain +') + yen(b), life: 1.8, col: '#ff8a3d', size: 22 }); sfx.combo(n); }
   }
   // 確信犯：目が合ってから落とされた飼い主の、精神的ダメージ
+  if (d.yen >= 100000) spaceCat();
   if (it.kaku) taskHit('kaku');
   if (it.chain && chains[it.chain] >= 2) taskHit('chain');
   if (it.strong) taskHit('strong');
@@ -1354,7 +1381,7 @@ function takeSnap() {
 }
 function caught(timeup) {
   snap = takeSnap();
-  state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35; slowT = 0;
+  state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.huh = !timeup && Math.random() < 0.45; run.huhStep = 0; spaceT = 0; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35; slowT = 0;
   bgmStop(); if (timeup) sfx.timeup(); else { sfx.watch(); sfx.caught(); } buzz(timeup ? 80 : [60, 40, 120]); setPulse(null);
   if (owner.mode === 'away') { owner.x = clamp(cat.x - 70, 20, 330); owner.face = 1; }
   setMode('look', 9); owner.lureT = 0; owner.face = Math.sign(cat.x - owner.x) || 1; owner.up = false; chaseT = 0;
@@ -1583,6 +1610,12 @@ function drawCat(c, x, y, o) {
       c.moveTo(14, -14); c.lineTo(39, -22 + k * 6); c.stroke();
       c.strokeStyle = dark; c.beginPath(); c.moveTo(11, -14); c.lineTo(37, -16 - k * 6);
     }
+    else if (pose === 'jab') {
+      // ねこパンチ連打：前足を交互に小刻みに突き出す
+      const k = Math.sin(t * 46);
+      c.moveTo(14, -14); c.lineTo(30 + k * 7, -17); c.stroke();
+      c.strokeStyle = dark; c.beginPath(); c.moveTo(11, -13); c.lineTo(28 - k * 7, -12);
+    }
     else if (pose === 'groom') { const k = Math.sin(t * 9) * 2; c.moveTo(14, -12); c.lineTo(26, -22 + k); }
     else if (pose === 'stretch') { c.moveTo(14, -9); c.lineTo(34, 0); }
     else if (air) { c.moveTo(16, ly + 1); c.lineTo(27, ly - 1); }
@@ -1594,7 +1627,8 @@ function drawCat(c, x, y, o) {
   if (pose === 'hunt' || pose === 'wiggle') c.translate(3, crouch + 2);
   else if (pose === 'loaf') c.translate(-1, 7);
   else if (pose === 'stretch') c.translate(3, 7);
-  else c.translate(0, -bob);
+  else c.translate(0, -bob + (o.nod || 0) * 2.4);
+  if (o.nod) { c.translate(20, -28); c.rotate((o.nod - 0.5) * 0.12); c.translate(-20, 28); }   // BGM に合わせて頭をふる
   c.fillStyle = body; c.beginPath(); c.arc(20, -28, 11, 0, TAU); c.fill();
   // 耳：back は後ろへ倒す（見つかりそう・追いかけっこ）。ときどき片耳がぴくっと動く
   const ears = o.ears || (pose === 'caught' ? 'back' : null);
@@ -1611,7 +1645,7 @@ function drawCat(c, x, y, o) {
   if (T.patch) { c.fillStyle = '#e8913f'; c.beginPath(); c.arc(15, -32, 5, 0, TAU); c.fill(); c.fillStyle = '#2b2b35'; c.beginPath(); c.arc(26, -24, 3.5, 0, TAU); c.fill(); }
   // 顔：表情は pose と eyes で決まる（eyes：happy にっこり / shock びっくり）
   const ink = '#1b1b22';
-  const face = (o.eyes && (pose === 'walk' || pose === 'hunt' || pose === 'wiggle' || pose === 'punch' || pose === 'scratch')) ? o.eyes : pose;
+  const face = (o.eyes && (pose === 'walk' || pose === 'hunt' || pose === 'wiggle' || pose === 'punch' || pose === 'scratch' || pose === 'jab')) ? o.eyes : pose;
   let mouth = null;
   if (face === 'smug') {
     c.strokeStyle = ink; c.lineWidth = 1.8;
@@ -1629,6 +1663,17 @@ function drawCat(c, x, y, o) {
     c.fillStyle = '#fff'; c.beginPath(); c.arc(25, -29, 3.6, 0, TAU); c.arc(17, -29, 3.6, 0, TAU); c.fill();
     c.fillStyle = ink; c.beginPath(); c.arc(25, -29, 1.5, 0, TAU); c.arc(17, -29, 1.5, 0, TAU); c.fill();
     if (face === 'shock') mouth = 'o';
+  } else if (face === 'huh') {
+    // 「は？」：見開いた白目に小さな黒目、口は一文字
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(25, -29.5, 4.2, 0, TAU); c.arc(16.5, -29.5, 4.2, 0, TAU); c.fill();
+    c.strokeStyle = ink; c.lineWidth = 0.6; c.stroke();
+    c.fillStyle = ink; c.beginPath(); c.arc(26, -29.5, 1.1, 0, TAU); c.arc(17.5, -29.5, 1.1, 0, TAU); c.fill();
+    c.strokeStyle = ink; c.lineWidth = 0.9; c.beginPath(); c.moveTo(28.5, -22.6); c.lineTo(32.5, -22.6); c.stroke();
+  } else if (face === 'space') {
+    // 宇宙猫：まっ黒に開いた瞳に、星の光
+    c.fillStyle = T.eye; c.beginPath(); c.arc(25, -29, 4.2, 0, TAU); c.arc(16.5, -29, 4.2, 0, TAU); c.fill();
+    c.fillStyle = '#0b0b1a'; c.beginPath(); c.arc(25, -29, 3.6, 0, TAU); c.arc(16.5, -29, 3.6, 0, TAU); c.fill();
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(26.3, -30.4, 0.9, 0, TAU); c.arc(17.8, -30.4, 0.9, 0, TAU); c.arc(24, -27.6, 0.45, 0, TAU); c.arc(15.5, -27.6, 0.45, 0, TAU); c.fill();
   } else if (face === 'stare') {
     // こちらを見つめる大きな目
     c.fillStyle = T.eye; c.beginPath(); c.arc(25, -29, 4, 0, TAU); c.arc(16.5, -29, 4, 0, TAU); c.fill();
@@ -2198,18 +2243,29 @@ function drawCatNow() {
   if (state === 'caught') pose = 'caught';
   else if (chaseT > 0) { eyes = 'shock'; ears = 'back'; tail = 'puff'; }   // 追いかけっこ：毛を逆立てて逃げる
   else if (c.scratch) pose = 'scratch';
-  else if (c.punchT > 0) pose = 'punch';
+  else if (c.punchT > 0) pose = c.jabN >= 3 ? 'jab' : 'punch';
   else if (state === 'clear' || state === 'dayend' || c.plat === VACP) pose = 'smug';
   else if (c.stare) pose = 'stare';
   else if (c.still > 2.5) { const k = c.still - 2.5; pose = k < 4.4 ? (k < 2.2 ? 'groom' : 'yawn') : k < 5.8 ? 'stretch' : 'loaf'; }   // 毛づくろい → あくび → 伸び → 香箱座り
   else if (!moving && c.plat && c.still > 0.2 && itemInReach(c, 40)) pose = 'hunt';   // ものの横：身を低くして狙う
-  else if (!moving && c.aimUp) pose = 'wiggle';   // 上の段のものを狙って、お尻ふりふり
+  else if (!moving && c.aimUp && c.still < 1.6) pose = 'wiggle';   // 上の段のものを狙って、お尻ふりふり（しばらくするとノリノリに戻る）
   if (!eyes && play) {
     if (c.seen && c.onFurn) { eyes = 'shock'; ears = 'back'; }
     else if (c.happyT > 0 || c.eatT > 0) eyes = 'happy';
   }
   if (tail === 'normal' && play && pose !== 'loaf') { if (sus >= 60) { tail = 'low'; ears = ears || 'back'; } else if (moving || c.happyT > 0) tail = 'up'; }
-  drawCat(g, c.x, c.y, { type: c.type, face: c.face, scale: 1, t: c.anim, move: moving, pose, sq: c.sq, acc: selAcc, sweat: c.seen && c.onFurn && play, eyes, ears, tail, air: !c.plat && play });
+  // ハッピー跳ね：足場の上で止まっているときだけ、絵をぴょんぴょん上下させる
+  const hop = c.hopT > 0 && c.plat && !moving && pose === 'walk' ? Math.abs(Math.sin(c.hopT * 15)) * 13 : 0;
+  if (hop) { eyes = 'happy'; tail = 'up'; if (Math.random() < 0.35) addPart({ k: 'drop', x: c.x + rnd(-16, 16), y: c.y - rnd(10, 40), vx: rnd(-40, 40), vy: rnd(-120, -40), life: 0.6, gy: c.y, c: pick(['#ff5a5a', '#ffc94a', '#2fb3a3', '#2b8fd9', '#9b7fc0']), s: rnd(2, 3.5), rot: 0, vr: 0 }); }
+  // ノリノリ：少し止まっている間は、BGM のテンポで頭をふる（毛づくろいが始まるまで）
+  let nod = 0;
+  if (play && pose === 'walk' && !moving && c.plat && !hop && c.still > 0.5 && sus < 60) {
+    const bt = (ac && BGM.on ? ac.currentTime : tAnim) * TEMPO[phaseIx(level)] / 60;
+    nod = Math.abs(Math.sin(bt * Math.PI));
+  }
+  drawCat(g, c.x, c.y - hop, { type: c.type, face: c.face, scale: 1, t: c.anim, move: moving, pose, sq: hop ? -0.1 : c.sq, acc: selAcc, sweat: c.seen && c.onFurn && play, eyes, ears, tail, air: !c.plat && play, nod });
+  if (nod && !muted) { const k = (tAnim * 0.7) % 1; g.globalAlpha = 1 - k; g.fillStyle = '#9b7fc0'; g.font = `800 13px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('♪', c.x + c.face * (22 + k * 8), c.y - 50 - k * 16); g.globalAlpha = 1; }
+  if (pose === 'jab' && play) { g.font = `800 13px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.lineWidth = 4; g.strokeStyle = '#fff'; const jt = lt('ちょいちょい', 'Tap tap'); g.strokeText(jt, c.x + c.face * 30, c.y - 56); g.fillStyle = '#c95f17'; g.fillText(jt, c.x + c.face * 30, c.y - 56); }
   if (pose === 'loaf' && play) { const f = (tAnim % 2) / 2; g.globalAlpha = 1 - f; g.fillStyle = 'rgba(40,60,90,.7)'; g.font = `800 12px ${FONT}`; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText('z', c.x + c.face * 18, c.y - 34 - f * 10); g.globalAlpha = 1; }
   if (c.scratch && play) {
     // いたずらの進み具合
@@ -2248,6 +2304,23 @@ function drawTut() {
     g.fillStyle = '#fff'; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('おりて', 'DOWN'), x, y + 1);
   }
 }
+function drawSpace() {
+  // 宇宙猫：背景が宇宙になり、大きな猫の顔が「？？？」と浮かぶ
+  if (spaceT <= 0) return;
+  const e = 1.6 - spaceT, a = Math.min(1, e / 0.18, spaceT / 0.25);
+  g.save(); g.globalAlpha = a;
+  const bg = g.createRadialGradient(W / 2, 200, 20, W / 2, 200, 420); bg.addColorStop(0, '#3b2a7a'); bg.addColorStop(0.5, '#1a1446'); bg.addColorStop(1, '#05051a');
+  g.fillStyle = bg; g.fillRect(0, -OY, W, VH);
+  for (let i = 0; i < 70; i++) { const sx = (i * 137.5) % W, sy = -OY + (i * 89.3) % VH, tw = 0.5 + 0.5 * Math.sin(tAnim * 6 + i); g.fillStyle = `rgba(255,255,255,${0.35 + 0.6 * tw})`; g.fillRect(sx, sy, i % 7 ? 1.5 : 2.5, i % 7 ? 1.5 : 2.5); }
+  g.fillStyle = 'rgba(255,140,220,.25)'; g.beginPath(); g.ellipse(110, 120, 120, 40, -0.4, 0, TAU); g.fill();
+  g.fillStyle = '#ffb35c'; g.beginPath(); g.arc(370, 90, 22, 0, TAU); g.fill(); g.strokeStyle = 'rgba(255,230,180,.8)'; g.lineWidth = 3; g.beginPath(); g.ellipse(370, 90, 36, 9, -0.3, 0, TAU); g.stroke();
+  // 大きな猫（3倍）が、ゆっくり上下に漂う
+  const fl = Math.sin(tAnim * 2) * 6;
+  drawCat(g, W / 2 - 30, 380 + fl, { type: cat.type, face: 1, scale: 3, pose: 'space', t: tAnim, acc: selAcc });
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.font = `800 34px ${FONT}`;
+  ['？', '？', '？'].forEach((q, i) => { const x = W / 2 - 60 + i * 60, y = 130 + Math.sin(tAnim * 3 + i) * 8; g.lineWidth = 6; g.strokeStyle = '#1a1446'; g.strokeText(q, x, y); g.fillStyle = '#fff6a8'; g.fillText(q, x, y); });
+  g.restore();
+}
 function drawCutscene() {
   // 見つかったときの演出：白い閃光 → 飼い主のアップ → ネコの知らん顔
   const e = CAUGHT_DUR - caughtT;
@@ -2271,9 +2344,18 @@ function drawCutscene() {
   } else {
     const k = Math.min(1, (e - 1.65) / 0.16), px = (1 - k) * W;
     g.save(); g.translate(px, 0);
-    g.fillStyle = '#2fb3a3'; g.beginPath(); g.moveTo(0, 215); g.lineTo(W, 190); g.lineTo(W, 450); g.lineTo(0, 470); g.closePath(); g.fill(); g.clip();
-    drawCat(g, 270, 455, { type: cat.type, face: -1, scale: 4, pose: 'deadpan', t: 0, acc: selAcc });
-    g.font = `800 40px ${FONT}`; g.lineWidth = 8; g.strokeStyle = '#fff'; g.strokeText('……', 90, 270); g.fillStyle = '#4a2f1d'; g.fillText('……', 90, 270);
+    if (run.huh) {
+      // 「は？」顔：猫の真顔へ 3 段階でズームイン（段が変わるたびに音）
+      const step = e < 1.95 ? 0 : e < 2.25 ? 1 : 2, z = [4, 6.5, 9.5][step];
+      if (step >= run.huhStep) { if (step === 0) sfx.rec(); else sfx.thud(); run.huhStep = step + 1; shake = 0.12; }
+      g.fillStyle = '#efe6d6'; g.beginPath(); g.moveTo(0, 215); g.lineTo(W, 190); g.lineTo(W, 450); g.lineTo(0, 470); g.closePath(); g.fill(); g.clip();
+      drawCat(g, 230 + 20 * z, 330 + 28 * z, { type: cat.type, face: -1, scale: z, pose: 'huh', t: 0, acc: selAcc });
+      g.font = `800 ${52 + step * 6}px ${FONT}`; g.lineWidth = 9; g.strokeStyle = '#fff'; const hq = lt('は？', 'Huh?'); g.strokeText(hq, 92, 262); g.fillStyle = '#1b1b22'; g.fillText(hq, 92, 262);
+    } else {
+      g.fillStyle = '#2fb3a3'; g.beginPath(); g.moveTo(0, 215); g.lineTo(W, 190); g.lineTo(W, 450); g.lineTo(0, 470); g.closePath(); g.fill(); g.clip();
+      drawCat(g, 270, 455, { type: cat.type, face: -1, scale: 4, pose: 'deadpan', t: 0, acc: selAcc });
+      g.font = `800 40px ${FONT}`; g.lineWidth = 8; g.strokeStyle = '#fff'; g.strokeText('……', 90, 270); g.fillStyle = '#4a2f1d'; g.fillText('……', 90, 270);
+    }
     g.restore();
   }
 }
@@ -2298,6 +2380,7 @@ function draw() {
   drawBark();
   drawLight();
   drawParts();
+  drawSpace();
   drawHints();
   drawTut();
   // 足音の予告
@@ -2381,6 +2464,7 @@ function draw() {
 function update(dt) {
   tAnim += dt; if (shake > 0) shake -= dt;
   if (lever) lever.tilt += ((cat && cat.plat === LEVP ? 0.6 : 0) - lever.tilt) * Math.min(1, dt * 6);   // 板の傾き：乗っている間は外の端が下がる
+  if (spaceT > 0) { spaceT -= dt; if (state === 'play') dt *= 0.25; }   // 宇宙猫の間はゆっくり
   if (slowT > 0 && state === 'play') { slowT -= dt; dt *= 0.3; }   // 高額品が割れたときのスロー
   if (state === 'play') {
     stageT += dt; if (introT > 0) introT -= dt; updCat(dt);

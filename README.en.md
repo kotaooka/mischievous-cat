@@ -69,6 +69,7 @@ Want to play one-handed? Turn on **One-hand** on the title screen. Tap where you
 </tr>
 </table>
 
+- **Cat-meme moments included.** Break something pricey and the cat hops for joy; a big chain sends it to space. Watch its face when it gets caught. Stand still for a bit and it starts vibing to the music
 - **Hungry? Meow.** A cute meow next to the owner might get you food (= more time)
 
 ## 🏠 Four rooms
@@ -98,7 +99,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 
 - **World ranking**: register a nickname on the result screen to join the top 50 of all players (one entry per device)
 - **This device**: your own top 10
-- **Titles**: 29 of them, and how to earn them is a secret. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
+- **Titles**: 30 of them, and how to earn them is a secret. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
 - **Crime scene photo**: the moment you're caught becomes a Polaroid. Share it with `#MischievousCat`
 
 ## ❓ FAQ
