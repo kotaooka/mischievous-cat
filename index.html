@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.8.5', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.8.6', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1653,8 +1653,8 @@ function drawSpot() {
   g.beginPath(); g.moveTo(s.x, y + 12); g.lineTo(s.x - 10, y); g.lineTo(s.x - 4, y); g.lineTo(s.x - 4, y - 12); g.lineTo(s.x + 4, y - 12); g.lineTo(s.x + 4, y); g.lineTo(s.x + 10, y); g.closePath(); g.stroke(); g.fill();
   g.restore();
 }
-// 隠れ場所：ダンボール（中に入る）・キャットタワーの上・本棚の上・カーテンレールの上・吊り棚の上（手が届かない高い所。エアコンの上も隠れ場所だが、矢印は出さない）
-function escSpots() { return [[BOX.x, FLOOR - BOX.h - 14], [(PL.tower.x0 + PL.tower.x1) / 2, PL.tower.y - 14], [(PL.book.x0 + PL.book.x1) / 2, PL.book.y - 14], [(PL.rail.x0 + PL.rail.x1) / 2, PL.rail.y - 14], [(PL.hang.x0 + PL.hang.x1) / 2, PL.hang.y - 14]]; }
+// 隠れ場所：ダンボール（中に入る）・キャットタワーの上・本棚の上・カーテンレールの上
+function escSpots() { return [[BOX.x, FLOOR - BOX.h - 14], [(PL.tower.x0 + PL.tower.x1) / 2, PL.tower.y - 14], [(PL.book.x0 + PL.book.x1) / 2, PL.book.y - 14], [(PL.rail.x0 + PL.rail.x1) / 2, PL.rail.y - 14]]; }
 function drawEsc(a, label) {
   const b = Math.abs(Math.sin(tAnim * 8)) * 8;
   g.save(); g.globalAlpha = a; g.lineJoin = 'round';
@@ -2536,8 +2536,8 @@ function startChase() {
   if (o.mode === 'away') { o.x = cat.x < 200 ? 380 : -40; }
   setMode('chase'); setPulse(null); tapTarget = null; o.face = Math.sign(cat.x - o.x) || 1; say(lt('待てーっ!!', 'Get back here!!'), 3); sfx.alert(); sfx.bark(); buzz([40, 30, 40]); shake = 0.3;
 }
-// 隠れ場所の高い所：本棚の上・カーテンレール・吊り棚・エアコン（手が届かない）
-const isHigh = () => !!cat.plat && cat.plat !== VACP && cat.plat.y <= PL.book.y + 5;
+// 隠れ場所の高い所：本棚の上・カーテンレールの上（手が届かない）。吊り棚・エアコンの上は 4.8.6 から隠れ場所ではない（見つかる・追いかけっこで捕まる）
+const isHigh = () => !!cat.plat && (cat.plat === PL.book || cat.plat === PL.rail);
 const inEscape = () => !!cat && (cat.hidden || cat.safe || isHigh());   // 隠れ場所にいる
 const isHiding = () => inEscape() && !(cat.punchT > 0) && !cat.scratch;   // 隠れ場所でじっとしている（見つからない）
 let hideWas = false;
