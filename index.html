@@ -304,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.22.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.22.3', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2886,12 +2886,24 @@ function drawEnding() {
   // 最初はふわっと明るく
   if (e < 0.8) { g.fillStyle = `rgba(20,14,40,${1 - e / 0.8})`; g.fillRect(0, -OY, W, VH); }
 }
+// 確認用の再生：エンディングを種類の順（いつもの夜 → 完全犯罪 → 解体の日々 → いい子）に見る。記録には残さない
+const PREVIEW_ORDER = ['normal', 'perfect', 'wrecker', 'good'];
+let previewIx = 0;
+function previewEnding(ix) {
+  previewIx = ((ix % PREVIEW_ORDER.length) + PREVIEW_ORDER.length) % PREVIEW_ORDER.length;
+  ov.hidden = true; newRun(); run.preview = true; setupStage(DAY_LEN * END_DAY);
+  run.yen = 123456; run.broke = { cup: 7, vase: 2, phone: 1 }; run.bigs = ['living'];   // スタッフロールの見本用
+  startEnding(); run.endType = PREVIEW_ORDER[previewIx];
+}
 function showEnding() {
   if (run.preview) {
     // 確認用の再生：締めの画面を出し、押したらタイトルへ（記録には残さない）
     state = 'endmenu'; ov.hidden = false;
-    ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.6rem">${lt('エンディング', 'THE END')}</div><p class="sub">${lt('（確認用の再生）', '(Preview)')}</p>
-      <button class="btn go" id="enBack" type="button">${lt('タイトルへ', 'Title')}</button></div>`;
+    const nx = PREVIEW_ORDER[(previewIx + 1) % PREVIEW_ORDER.length];
+    ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.6rem">${lt('エンディング', 'THE END')}</div><p class="sub">${lt('（確認用の再生）', '(Preview)')} ${previewIx + 1} / ${PREVIEW_ORDER.length}「${ENDINGS[run.endType].n}」</p>
+      <button class="btn go" id="enNext" type="button">${lt('次：', 'Next: ') + '「' + ENDINGS[nx].n + '」'}</button>
+      <div class="row"><button class="btn w" id="enBack" type="button">${lt('タイトルへ', 'Title')}</button></div></div>`;
+    $('enNext').addEventListener('click', () => { audio(); previewEnding(previewIx + 1); });
     $('enBack').addEventListener('click', () => { run.preview = false; showTitle(); });
     return;
   }
@@ -5315,7 +5327,7 @@ function showSettings(back) {
   if (vEl) { let taps = []; vEl.addEventListener('click', e => {
     if (e.target.tagName === 'A') return;
     const now = performance.now(); taps = taps.filter(t => now - t < 2000); taps.push(now);
-    if (taps.length >= 5) { taps = []; audio(); ov.hidden = true; newRun(); run.preview = true; setupStage(DAY_LEN * END_DAY); startEnding(); }
+    if (taps.length >= 5) { taps = []; audio(); previewEnding(0); }
   }); }
 }
 // ---------- 通算記録 ----------
