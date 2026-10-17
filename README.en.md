@@ -97,7 +97,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 
 ## 🏆 Rankings and titles
 
-- **World ranking**: register a nickname on the result screen to join the top 50 of all players (one entry per device)
+- **World ranking**: register a nickname on the result screen to join the top 50 of all players (one entry per device). A record is sent only when you beat your personal best, and a new nickname appears the next time you do
 - **This device**: your own top 10
 - **Titles**: 30 of them, and how to earn them is a secret. Collecting them unlocks **accessories** like a bell collar, a ribbon and a crown
 - **Crime scene photo**: the moment you're caught becomes a Polaroid. Share it with `#MischievousCat`

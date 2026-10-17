@@ -206,7 +206,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '2.4.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '2.4.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2567,25 +2567,13 @@ const onlineOn = () => !!ONLINE.projectId;
 const FS = () => `https://firestore.googleapis.com/v1/projects/${ONLINE.projectId}/databases/(default)/documents`;
 const esc = t => String(t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 let myName = store.get('nekoName', '');
-// 本人の確認：Firebase の匿名ログイン（REST API）。端末ごとに1つの ID（uid）ができ、記録にはこの uid を入れる
-// ルール（firestore.rules）で「記録を足せるのはログイン中の本人だけ」「名前を書き換えられるのは、その記録の本人だけ」にしている
-// 古い版で使っていた乱数の ID（nekoUid）は、一覧で自分の記録に色を付けるためだけに残す
-const AUTH = { token: null, exp: 0, refresh: store.get('nekoRefresh', ''), uid: store.get('nekoAuthUid', '') };
-const oldUid = store.get('nekoUid', '');
-const isMe = uid => !!uid && (uid === AUTH.uid || uid === oldUid);
-async function authToken() {
-  // ID トークン（1時間有効）を返す。期限が近ければ更新用トークンで取り直し、なければ匿名で新しくログインする
-  if (AUTH.token && Date.now() < AUTH.exp - 60000) return AUTH.token;
-  const key = encodeURIComponent(ONLINE.apiKey);
-  const set = (tok, ref, uid, sec) => { AUTH.token = tok; AUTH.refresh = ref; AUTH.uid = uid; AUTH.exp = Date.now() + (+sec || 3600) * 1000; store.set('nekoRefresh', ref); store.set('nekoAuthUid', uid); };
-  if (AUTH.refresh) {
-    const r = await fetch(`https://securetoken.googleapis.com/v1/token?key=${key}`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(AUTH.refresh) });
-    if (r.ok) { const j = await r.json(); set(j.id_token, j.refresh_token, j.user_id, j.expires_in); return AUTH.token; }
-  }
-  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${key}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ returnSecureToken: true }) });
-  if (!r.ok) throw new Error('auth ' + r.status);
-  const j = await r.json(); set(j.idToken, j.refreshToken, j.localId, j.expiresIn); return AUTH.token;
-}
+// 端末ごとのランダムな ID（記録に入れて、同じ人の記録を1件にまとめるのに使う）
+let myUid = store.get('nekoUid', '');
+if (!myUid) { myUid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); store.set('nekoUid', myUid); }
+const authUid = store.get('nekoAuthUid', '');   // v2.4.1 で一時的に使った匿名ログインの ID（その記録にも色を付ける）
+const isMe = uid => !!uid && (uid === myUid || uid === authUid);
+// みんなのランキングに送った自己ベスト（この端末）。これを超えたときだけ送る
+let sentBest = +store.get('nekoWorldBest', 0) || 0;
 let worldCache = null, worldAt = 0, worldNow = null, worldBest = 0;   // worldNow：今回の記録の「みんな」での順位（null は未送信、0 は圏外）
 // ニックネームの確認：1〜10文字、制御文字なし、よくない言葉を含まない（かんたんな確認だけ）
 const NG = ['死ね', 'しね', 'ころす', '殺す', 'ちんこ', 'まんこ', 'うんこ', 'fuck', 'shit', 'sex', 'http', 'www.'];
@@ -2612,38 +2600,29 @@ async function fetchWorld(force) {
   return worldCache;
 }
 async function sendScore() {
-  // 今回の記録を送る（1プレイにつき1回）。送ったあと、みんなの中での順位を出す
-  if (!onlineOn() || !myName || !run || run.sent || run.yen <= 0) return;
-  run.sent = true; worldNow = null;
-  const I = v => ({ integerValue: String(Math.round(v)) }), S = v => ({ stringValue: v });
-  let res;
-  try {
-    const tok = await authToken();
-    const body = { fields: { name: S(myName), y: I(run.yen), s: I(run.stage), st: I(run.stars), c: S(CATS[selCat].id), uid: S(AUTH.uid), sk: I(Math.min(run.skill, run.yen)), v: I(3) } };
-    res = await fetch(`${FS()}/scores?key=${encodeURIComponent(ONLINE.apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify(body) });
-  } catch (e) { run.sent = false; throw e; }
-  if (!res.ok) { run.sent = false; throw new Error('HTTP ' + res.status); }
-  const list = await fetchWorld(true), i = list.findIndex(r => r.uid === AUTH.uid && r.y === Math.round(run.yen));
-  worldNow = i >= 0 ? i + 1 : 0;
-  // 同じ人は一番よい記録だけ載るので、今回が自己ベスト未満なら、載っている自己ベストの順位を出す
-  worldBest = i >= 0 ? 0 : list.findIndex(r => isMe(r.uid)) + 1;
-}
-async function renameScores(name) {
-  // 名前を変えたら、これまでに登録した自分の記録の名前も書き換える（返り値は書き換えた件数）
-  if (!onlineOn()) return 0;
-  const tok = await authToken(), key = encodeURIComponent(ONLINE.apiKey), hd = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok };
-  const q = await fetch(`${FS()}:runQuery?key=${key}`, { method: 'POST', headers: hd, body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'scores' }], where: { fieldFilter: { field: { fieldPath: 'uid' }, op: 'EQUAL', value: { stringValue: AUTH.uid } } }, limit: 300 } }) });
-  if (!q.ok) throw new Error('HTTP ' + q.status);
-  const docs = (await q.json()).filter(r => r.document).map(r => r.document.name);
-  let n = 0;
-  for (const d of docs) {
-    const r = await fetch(`https://firestore.googleapis.com/v1/${d}?updateMask.fieldPaths=name&key=${key}`, { method: 'PATCH', headers: hd, body: JSON.stringify({ fields: { name: { stringValue: name } } }) });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    n++;
+  // 今回の記録を送る。送るのは、この端末の自己ベストを更新したときだけ（そのときの名前で載る）
+  // 記録は追加だけで、書き換え・削除はしない（firestore.rules）。同じ人の記録は、一覧で一番よいものだけ表示する
+  if (!onlineOn() || !myName || !run || run.sent || run.skip || run.yen <= 0) return;
+  run.sent = true; worldNow = null; worldBest = 0;
+  let list = null;
+  try { list = await fetchWorld(); } catch (e) {}
+  // 自己ベストは、端末に覚えた値と、一覧に載っている自分の記録の大きいほう（古い版で送った記録も数える）
+  const mine = (list || []).filter(r => isMe(r.uid)), known = Math.max(sentBest, ...mine.map(r => r.y), 0);
+  if (Math.round(run.yen) <= known) {
+    run.sent = false; run.skip = true; skipBest = known;
+    worldBest = (list || []).findIndex(r => isMe(r.uid)) + 1;
+    return;
   }
-  worldCache = null;
-  return n;
+  const I = v => ({ integerValue: String(Math.round(v)) }), S = v => ({ stringValue: v });
+  const body = { fields: { name: S(myName), y: I(run.yen), s: I(run.stage), st: I(run.stars), c: S(CATS[selCat].id), uid: S(myUid), sk: I(Math.min(run.skill, run.yen)), v: I(2) } };
+  const res = await fetch(`${FS()}/scores?key=${encodeURIComponent(ONLINE.apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!res.ok) { run.sent = false; throw new Error('HTTP ' + res.status); }
+  sentBest = Math.round(run.yen); store.set('nekoWorldBest', String(sentBest));
+  list = await fetchWorld(true);
+  const i = list.findIndex(r => isMe(r.uid) && r.y === Math.round(run.yen));
+  worldNow = i >= 0 ? i + 1 : 0;
 }
+let skipBest = 0;
 const NM_PH = () => lt('ニックネーム（10文字まで）', 'Nickname (up to 10 chars)');
 const NM_ERR = () => lt('1〜10文字で、使えない言葉を含まない名前にしてください', 'Use 1–10 characters without banned words');
 function onlineBox() {
@@ -2651,8 +2630,10 @@ function onlineBox() {
   if (!onlineOn() || run.yen <= 0) return '';
   if (!myName) return `<div class="online"><p class="best">${lt('みんなのランキングに登録する', 'Join the world ranking')}</p>
     <div class="row"><input id="nmIn" class="nm" maxlength="10" placeholder="${NM_PH()}" autocomplete="off"><button class="btn t" id="nmGo" type="button" style="flex:none;padding:10px 14px">${lt('登録', 'Join')}</button></div><p class="nm-err" id="nmErr"></p></div>`;
-  const msg = worldNow == null ? (run.sent ? lt('送信中…', 'Sending…') : lt('送信できませんでした', "Couldn't send")) : worldNow ? lt(`みんなのランキング ${worldNow}位`, `World ranking #${worldNow}`) : worldBest ? lt(`自己ベスト未満（あなたの最高は ${worldBest}位）`, `Below your best (your best: #${worldBest})`) : lt('みんなのランキング 50位圏外', 'World ranking: outside top 50');
-  return `<div class="online"><p class="best rank-in" id="wMsg">${msg}</p><p class="sub" style="margin:0">${lt(esc(myName) + ' で登録', 'Joined as ' + esc(myName))}</p></div>`;
+  const msg = run.skip
+    ? lt(`自己ベスト（${yen(skipBest)}）に届かなかったので、送っていません`, `Not sent: below your best (${yen(skipBest)})`) + (worldBest ? lt(`　いまの順位 ${worldBest}位`, ` · Current rank #${worldBest}`) : '')
+    : worldNow == null ? (run.sent ? lt('送信中…', 'Sending…') : lt('送信できませんでした', "Couldn't send")) : worldNow ? lt(`自己ベスト更新！ みんなのランキング ${worldNow}位`, `New best! World ranking #${worldNow}`) : lt('自己ベスト更新！（50位圏外）', 'New best! (outside top 50)');
+  return `<div class="online"><p class="best rank-in" id="wMsg">${msg}</p><p class="sub" style="margin:0">${run.skip ? lt('名前：' + esc(myName), 'Name: ' + esc(myName)) : lt(esc(myName) + ' で登録', 'Joined as ' + esc(myName))}</p></div>`;
 }
 function bindOnline() {
   const go = $('nmGo'); if (!go) return;
@@ -2706,13 +2687,9 @@ function showRank(tab) {
   sv.addEventListener('click', () => {
     const n = cleanName(inp.value), msg = $('nmErr2');
     if (!n) { msg.textContent = NM_ERR(); return; }
-    myName = n; store.set('nekoName', n); sv.disabled = true; msg.textContent = lt('保存中…', 'Saving…');
-    // 登録済みの自分の記録も、新しい名前に書き換える
-    renameScores(n).then(k => {
-      msg.textContent = k ? lt(`保存しました（登録済みの ${k} 件も変更）`, `Saved (updated ${k} record${k > 1 ? 's' : ''})`) : lt('保存しました（次の記録からこの名前で載ります）', 'Saved (used from your next record)');
-      showList(true);
-    }, () => { msg.textContent = lt('名前は保存しました。登録済みの記録は変えられませんでした（通信を確認してください）', "Name saved, but your records couldn't be updated (check your connection)"); })
-      .finally(() => { sv.disabled = false; });
+    // 名前は端末に保存するだけ。ランキングには、次に自己ベストを更新したときに、この名前で載る
+    myName = n; store.set('nekoName', n);
+    msg.textContent = lt('保存しました。次に自己ベストを更新したときに、この名前で載ります', 'Saved. This name will appear when you next beat your best');
   });
   showList(false);
 }

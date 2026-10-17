@@ -1,29 +1,18 @@
 rules_version = '2';
 // こっそりネコ：みんなのランキングのルール
-// 読み取りはだれでも可。
-// 記録を足せるのは、匿名ログイン中の本人だけ（記録の uid がログインした人の uid と同じこと）。
-// 書き換えは、その記録の本人が「名前」だけを変えるときに限る。削除はできない。
+// 読み取りはだれでも可。書き込みは「新しい記録を1件足す」だけを許し、書き換え・削除はできない。
 // 値の範囲を確かめて、明らかにおかしい記録をはじく（ブラウザから送るので、完全には改ざんを防げない）。
 service cloud.firestore {
   match /databases/{database}/documents {
     match /scores/{id} {
       allow read: if true;
-      allow create: if request.auth != null
-        && valid(request.resource.data)
-        && request.resource.data.uid == request.auth.uid;
-      allow update: if request.auth != null
-        && resource.data.uid == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
-        && validName(request.resource.data.name);
-      allow delete: if false;
-    }
-    function validName(n) {
-      return n is string && n.size() >= 1 && n.size() <= 10;
+      allow create: if valid(request.resource.data);
+      allow update, delete: if false;
     }
     function valid(d) {
       return d.keys().hasOnly(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'v'])
         && d.keys().hasAll(['name', 'y', 's', 'st', 'c', 'uid', 'sk', 'v'])
-        && validName(d.name)
+        && d.name is string && d.name.size() >= 1 && d.name.size() <= 10
         && d.s is int && d.s >= 1 && d.s <= 200
         // 被害額：1円以上、ステージ数 × 100万円以下
         && d.y is int && d.y >= 1 && d.y <= d.s * 1000000
