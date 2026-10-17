@@ -79,7 +79,7 @@
   /* 怪しまれ度は色だけでなく、言葉・しま模様・目の開き具合でも段階を示す */
   #meter.l5 .lvl { background: #4a2f1d; color: #fff; animation: lvb .4s steps(2) infinite; }
   #meter.l5 .bar { border-color: #4a2f1d; box-shadow: 0 0 0 2px rgba(74,47,29,.4); }
-  #meter #hFace { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--line); background: #fff; }
+  #meter #hFace { flex: none; width: 44px; height: 44px; margin: -8px 0; border-radius: 50%; border: 2.5px solid var(--line); background: #fff; box-shadow: 0 2px 0 rgba(94,58,28,.25); }
   #meter #hFace[hidden] { display: none; }
   #meter #hFace.shake { animation: faceShake .25s ease-in-out infinite; }
   @keyframes faceShake { 0%, 100% { transform: translateX(-1px) rotate(-4deg); } 50% { transform: translateX(1px) rotate(4deg); } }
@@ -297,7 +297,7 @@
   <div id="meter" aria-label="怪しまれ度">
     <svg viewBox="0 0 26 18" aria-hidden="true"><path d="M1 9C5 2 21 2 25 9C21 16 5 16 1 9Z" fill="#fff" stroke="#4a2f1d" stroke-width="2"/><circle cx="13" cy="9" r="4" fill="#4a2f1d"/></svg>
     <span class="bar"><i id="hB"></i></span>
-    <canvas id="hFace" width="64" height="64" aria-label="飼い主の機嫌" hidden></canvas>
+    <canvas id="hFace" width="88" height="88" aria-label="飼い主の機嫌" hidden></canvas>
     <b class="lvl" id="hS" aria-live="polite">へいき</b>
   </div>
   <button id="upd" type="button" hidden></button>
@@ -331,7 +331,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.31.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.32.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -879,6 +879,7 @@ const MODE = {
   sad:    { range: 40, rate: 20, omni: true },    // チュールを断られてしょんぼり   // 片付け中：下を向いていて、すぐそばしか見えない
   sky:    { range: 0, rate: 0 },                  // お祭り：花火を見上げている
   nap:    { range: 0, rate: 0 },                  // 最後の夜：うたた寝
+  shoo:   { range: 60, rate: 20, omni: true },    // ボス猫を追い回している（足もとしか見えない）
   chase:  { range: 0, rate: 0 }
 };
 const REACT = [tx('こらーっ!!', 'HEY!!'), tx('見〜た〜ぞ〜', 'I saw that!'), tx('またお前か!!', 'You again?!'), tx('ちょっと!?', 'Excuse me?!'), tx('何してんの!!', 'What are you doing?!'), tx('現行犯!!', 'Caught red-pawed!'), tx('ストップ!!', 'STOP!!'), tx('つかまえた!', 'Got you!'),
@@ -1671,11 +1672,11 @@ function setupStageCore(L) {
   tank = room === 'kids' ? { fish: [{ x: 44, d: 0.6, vx: 14, sc: 0 }, { x: 76, d: 0.4, vx: -11, sc: 0 }], n: 0, anim: 0 } : null;
   rival = room === 'kids' || ph.rule === 'bossday' || ph.special === 'bossnight' || (L > NPH && room !== 'bath' && Math.random() < 0.35)
     ? { mode: 'wait', t: rnd(4, 7), x: 14, y: FLOOR, vx: 0, vy: 0, plat: PL.floor, face: 1, hp: 3, back: 1, cd: 0, stun: 0, anim: 0, punchT: 0, swipeT: 0, rest: 0, target: null, tt: 0, aim: 0, jumpBuf: 0, jump: 1, airX: null } : null;
-  if (rival && ph.rule === 'bossday') rival.keep = true;
+  if (rival && ph.rule === 'bossday') Object.assign(rival, { keep: true, bossday: true, t: rnd(2, 4), back: 3 });   // ボス猫の日：早く来て、叱られても 3 回まで戻る
   if (rival && ph.special === 'bossnight') Object.assign(rival, { keep: true, ally: true, t: 2.5, back: 3 });   // ボス猫の夜：味方。叱られても3回まで戻ってくる
   // 第2週：攻撃してくる相手と、新しい特別な夜
   foe = ph.foe ? makeFoe(ph.foe) : null; fest = null; bones = []; nap = null;
-  if (ph.special === 'festival') fest = { t: 3.5, show: 0, bursts: [], n: 0 };
+  if (ph.special === 'festival') fest = { t: 2.5, show: 0, bursts: [], rockets: [], n: 0 };
   if (ph.special === 'dognight') { dog = { x: 300, alertT: 0, cd: 0, barkT: 0, keep: true, roam: true, dir: -1, t: 2, chewT: 0, target: null }; bones = [{ x: 150, vx: 0 }, { x: 330, vx: 0 }].map(b => (Math.abs(b.x - BOX.x) < 40 ? Object.assign(b, { x: b.x - 50 }) : b)); }
   if (ph.special === 'lastnight') { nap = { asleep: true, t: 6, cyc: 0, sayT: 0 }; owner.x = 62; owner.face = 1; owner.up = false; setMode('nap', 99); }
   pruneGimmicks(L, ph);
@@ -1920,6 +1921,7 @@ function updOwner(dt) {
       break;
     case 'chase': break;
     case 'sky': o.t -= dt; o.up = true; if (o.t <= 0) nextStop(); break;   // 花火を見上げている
+    case 'shoo': { o.t -= dt; const r = rival; if (r && r.mode === 'flee' && r.plat === PL.floor) { const d = r.x - o.x; if (Math.abs(d) > 30) { o.x += Math.sign(d) * 95 * dt; o.face = Math.sign(d); o.step += dt * 1.3; } } if (o.t <= 0 || !r || r.mode !== 'flee') nextStop(); break; }   // ボスを追い回す
     case 'nap': break;
     case 'tv': o.t -= dt; o.face = Math.sign(308 - o.x) || 1; if (o.t <= 0 || !tv || tv.on <= 0) nextStop(); break;
     case 'sad': o.t -= dt; if (o.t <= 0) nextStop(); break;
@@ -2417,7 +2419,7 @@ function breakItem(it, plat) {
   }
   if (it.byRival) {
     // ボス猫が落とした：被害額はネコのものにならない。飼い主が見ていればボスが叱られ、見ていなければネコが疑われる
-    breakFx(it, plat); pops.push({ x: it.x, y: plat.y - 30, text: lt('ボスに取られた…', 'Boss got it…'), life: 1.4, col: '#8a8f96', size: 15 });
+    breakFx(it, plat); pops.push({ x: it.x, y: plat.y - 30, text: Math.random() < 0.4 ? lt('ボス「へへっ」', 'Boss: heh heh') : lt('ボスに取られた…', 'Boss got it…'), life: 1.4, col: '#8a8f96', size: 15 });
     if (rival && owner.mode !== 'away' && ownerSees(it.x)) scoldRival(); else hearNoise(it.x, d.noise * 0.7);
     return;
   }
@@ -2734,7 +2736,12 @@ function fur(x, y) { for (let k = 0; k < 6; k++) addPart({ k: 'paper', x: x + rn
 function scoldRival() {
   const r = rival; if (!r || r.mode === 'flee' || r.mode === 'wait' || r.mode === 'gone') return;
   r.mode = 'flee'; say(pick(LINES.boss), 1.6); owner.face = Math.sign(r.x - owner.x) || owner.face; sfx.yowl();
+  // 4.32.0：飼い主はボスを追い回す（2.5 秒。足もとしか見えない＝ネコのチャンス）。ボスの捨て台詞
+  const o = owner;
+  if (['walk', 'warn', 'look', 'up', 'search', 'busy', 'phone', 'tidy'].includes(o.mode)) { setMode('shoo', 2.5); o.lureT = 0; o.up = false; }
+  pops.push({ x: clamp(r.x, 40, W - 40), y: r.y - 70, text: pick([lt('「へっ、下手くそ」', '"Heh, amateur"'), lt('「またな」', '"Later"'), lt('「おまえもやれよ」', '"Your turn"'), lt('「飼い主、おそ〜い」', '"Too slow, human"')]), life: 1.6, col: '#5d7a9a', size: 15 });
 }
+
 function hitRival(strong) {
   const r = rival, c = cat;
   r.hp -= strong ? 2 : 1; r.stun = 0.45; r.vx = c.face * (strong ? 430 : 270); r.face = -c.face;
@@ -2752,6 +2759,7 @@ function updRival(dt) {
   if (r.mode === 'wait') {
     r.t -= dt;
     if (r.t <= 0) { Object.assign(r, { mode: 'roam', x: 14, y: FLOOR, plat: PL.floor, vx: 0, vy: 0, hp: 3, rest: 1, target: null, airX: null }); sfx.yowl();
+      if (r.bossday) pops.push({ x: 60, y: FLOOR - 96, text: pick([lt('「よう、下手くそ」', '"Yo, amateur"'), lt('「今日はおれの家だ」', '"My house today"'), lt('「見てろよ」', '"Watch this"')]), life: 1.8, col: '#5d7a9a', size: 15 });
       if (r.ally && !r.said) { r.said = true; setTimeout(() => { if (rival && rival.ally && state === 'play') pops.push({ x: 90, y: FLOOR - 96, text: lt('「どうせなら派手にやるぞ」', '"Might as well go big"'), life: 1.8, col: '#5d7a9a', size: 16 }); }, 1700); } pops.push({ x: 50, y: FLOOR - 70, text: r.ally ? lt('ボス「おまえのせいで俺が疑われてんだよ」', 'Boss: "They blame ME for your mess"') : lt('ボス猫だ!', 'Boss cat!'), life: 1.6, col: '#5d7a9a', size: 18 }); }
     return;
   }
@@ -2760,7 +2768,7 @@ function updRival(dt) {
     // 逃げる：床に降りて、左の端から出ていく（一度だけ戻ってくる）
     dir = r.plat && r.plat !== PL.floor ? (r.x < (r.plat.x0 + r.plat.x1) / 2 ? -1 : 1) : -1;
     bodyStep(r, r.stun > 0 ? 0 : dir, 190, dt);
-    if (r.plat === PL.floor && r.x <= 14) { if (r.back > 0) { r.back--; r.mode = 'wait'; r.t = r.ally ? rnd(6, 9) : rnd(14, 20); } else r.mode = 'gone'; }   // 味方のボスは早めに戻る
+    if (r.plat === PL.floor && r.x <= 14) { if (r.back > 0) { r.back--; r.mode = 'wait'; r.t = r.ally || r.bossday ? rnd(5, 8) : rnd(14, 20); } else r.mode = 'gone'; }   // 味方のボス・ボス猫の日は早めに戻る
     return;
   }
   const same = !!cat.plat && r.plat === cat.plat && !cat.hidden && cat.plat !== VACP && cat.bathT <= 0, dx = cat.x - r.x;
@@ -3054,24 +3062,57 @@ function updFest(dt) {
   const f = fest; if (!f) return;
   if (f.show > 0) f.show -= dt;
   f.t -= dt;
-  if (f.t <= 0) {
-    f.t = rnd(6, 9); f.show = 3.2; f.n = (f.n || 0) + 1; sfx.whoosh(); setTimeout(() => { if (fest) sfx.gatan(); }, 500);
-    const col = pick(['#ff5a5a', '#ffc94a', '#7fe0d0', '#ff9fb2', '#9cc8ef', '#ffffff']);
-    f.bursts.push({ x: rnd(110, 360), y: rnd(60, 150) - OY * 0.5, r: 0, col, t: 0 });
-    pops.push({ x: W / 2, y: 180, text: lt('ドーン!', 'BOOM!'), life: 1, col: '#ffc94a', size: 26 });
-    const o = owner;
-    if (o.mode !== 'away' && !['search', 'chase', 'sky', 'churu'].includes(o.mode) && !(o.stunT > 0)) { o.up = true; setMode('sky', 3); o.lureT = 0; say(pick([lt('たまやー!', 'Ooooh!'), lt('きれい…', 'So pretty…'), lt('今年もいいねえ', 'Lovely as always')]), 1.6); }
+  // 打ち上げ：ヒューと上がって 0.7 秒後に開く（大きいのに小さいのが続くことがある）
+  for (let i = f.rockets.length - 1; i >= 0; i--) {
+    const r = f.rockets[i]; r.t += dt;
+    if (r.t >= 0.7) {
+      f.rockets.splice(i, 1); f.show = Math.max(f.show, 3.2); f.n = (f.n || 0) + 1; sfx.gatan(); shake = Math.max(shake, 0.12);
+      f.bursts.push({ x: r.x, y: r.y, col: r.col, col2: r.col2, t: 0, big: r.big, n: r.big ? 28 : 20 });
+      if (r.big) pops.push({ x: W / 2, y: 180, text: lt('ドーン!', 'BOOM!'), life: 1, col: '#ffc94a', size: 28 });
+      const o = owner;
+      if (o.mode !== 'away' && !['search', 'chase', 'sky', 'churu'].includes(o.mode) && !(o.stunT > 0)) { o.up = true; setMode('sky', 3); o.lureT = 0; say(pick([lt('たまやー!', 'Ooooh!'), lt('きれい…', 'So pretty…'), lt('今年もいいねえ', 'Lovely as always'), lt('かぎやー!', 'Aaah!')]), 1.6); }
+    }
   }
-  for (let i = f.bursts.length - 1; i >= 0; i--) { const b = f.bursts[i]; b.t += dt; if (b.t > 2.2) f.bursts.splice(i, 1); }
+  if (f.t <= 0) {
+    f.t = rnd(6, 9); sfx.whoosh();
+    const cols = [['#ff5a5a', '#ffc94a'], ['#ffc94a', '#ffffff'], ['#7fe0d0', '#9cc8ef'], ['#ff9fb2', '#ffffff'], ['#9cc8ef', '#ff9fb2'], ['#ffffff', '#ffe36b']], c = pick(cols);
+    f.rockets.push({ x: rnd(120, 340), y: rnd(50, 130) - OY * 0.6, x0: rnd(140, 320), t: 0, col: c[0], col2: c[1], big: true });
+    if (Math.random() < 0.5) { const c2 = pick(cols); f.rockets.push({ x: rnd(80, 380), y: rnd(90, 170) - OY * 0.6, x0: rnd(100, 350), t: -0.35, col: c2[0], col2: c2[1], big: false }); }
+  }
+  for (let i = f.bursts.length - 1; i >= 0; i--) { const b = f.bursts[i]; b.t += dt; if (b.t > 2.6) f.bursts.splice(i, 1); }
 }
 function drawFest() {
   const f = fest; if (!f) return;
-  // 花火：広がる火の粉
-  for (const b of f.bursts) { const k = clamp(b.t / 1.8, 0, 1), r = 20 + k * 70; g.globalAlpha = 1 - k; g.fillStyle = b.col; for (let i = 0; i < 18; i++) { const a = i * TAU / 18, rr2 = r * (1 - 0.3 * (i % 2)); g.beginPath(); g.arc(b.x + Math.cos(a) * rr2, b.y + Math.sin(a) * rr2 + k * k * 30, 2.5 - k, 0, TAU); g.fill(); } g.globalAlpha = 1; }
-  if (f.show > 2.6) { g.fillStyle = `rgba(255,240,200,${(f.show - 2.6) * 0.5})`; g.fillRect(0, -OY, W, FLOOR + OY); }
-  // ちょうちんの列（パーゴラの上の方）
+  // 空の明るさ：開いた直後はふわっと明るく
+  if (f.show > 2.6) { g.fillStyle = `rgba(255,240,200,${(f.show - 2.6) * 0.45})`; g.fillRect(0, -OY, W, FLOOR + OY); }
+  // 打ち上げ中：光の点が上がっていく（尾を引く）
+  for (const r of f.rockets) { if (r.t < 0) continue; const k = r.t / 0.7, x = r.x0 + (r.x - r.x0) * k, y = FLOOR - 40 + (r.y - (FLOOR - 40)) * (1 - (1 - k) * (1 - k)); g.strokeStyle = 'rgba(255,230,160,.6)'; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y); g.lineTo(x - (r.x - r.x0) * 0.05, y + 26); g.stroke(); g.fillStyle = '#fff6c8'; g.beginPath(); g.arc(x, y, 2.5, 0, TAU); g.fill(); }
+  // 花火：大きな輪（外の輪は尾を引き、内の輪は色違い）、落ちていく火の粉
+  for (const b of f.bursts) {
+    const k = clamp(b.t / 2.2, 0, 1), R = (b.big ? 150 : 95) * (1 - Math.pow(1 - k, 2.2)), fall = k * k * 60, n = b.n;
+    g.save(); g.globalAlpha = clamp(1.15 - k * 1.15, 0, 1); g.lineCap = 'round';
+    if (b.t < 0.25) { g.fillStyle = `rgba(255,255,255,${1 - b.t / 0.25})`; g.beginPath(); g.arc(b.x, b.y, 14 + b.t * 80, 0, TAU); g.fill(); }   // 開く瞬間の光
+    for (let i = 0; i < n; i++) {
+      const a = i * TAU / n, c = Math.cos(a), sn = Math.sin(a), rr1 = R * (1 - 0.08 * (i % 2)), px = b.x + c * rr1, py = b.y + sn * rr1 + fall;
+      g.strokeStyle = b.col; g.lineWidth = b.big ? 2.2 : 1.6; g.beginPath(); g.moveTo(b.x + c * rr1 * 0.55, b.y + sn * rr1 * 0.55 + fall * 0.5); g.lineTo(px, py); g.stroke();   // 尾
+      g.fillStyle = (b.t * 10 + i) % 2 < 1 ? b.col : '#fff'; g.beginPath(); g.arc(px, py, (b.big ? 3.2 : 2.4) * (1 - k * 0.6), 0, TAU); g.fill();
+    }
+    const n2 = Math.floor(n * 0.6), R2 = R * 0.5;
+    for (let i = 0; i < n2; i++) { const a = i * TAU / n2 + 0.3, px = b.x + Math.cos(a) * R2, py = b.y + Math.sin(a) * R2 + fall * 0.7; g.fillStyle = b.col2; g.beginPath(); g.arc(px, py, (b.big ? 2.6 : 2) * (1 - k * 0.5), 0, TAU); g.fill(); }
+    g.restore();
+  }
+  // ちょうちんの列（パーゴラの上の方）：ひとつずつ光り、まわりをほんのり照らす
   g.strokeStyle = '#4a2f1d'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, 150); g.quadraticCurveTo(W / 2, 170, W, 150); g.stroke();
-  for (let i = 0; i < 7; i++) { const x = 30 + i * 65, y = 152 + 10 * Math.sin(i / 6 * Math.PI); g.fillStyle = i % 2 ? '#ff5a5a' : '#ffc94a'; rr(g, x - 7, y + 4, 14, 20, 5); g.fill(); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(x - 5, y + 8, 10, 1.5); g.fillRect(x - 5, y + 16, 10, 1.5); g.fillStyle = '#4a2f1d'; g.fillRect(x - 3, y + 2, 6, 3); }
+  for (let i = 0; i < 7; i++) {
+    const x = 30 + i * 65, y = 152 + 10 * Math.sin(i / 6 * Math.PI) + 14, red = i % 2 === 1, fl = 0.85 + 0.15 * Math.sin(tAnim * 5 + i * 1.7);
+    const gl = g.createRadialGradient(x, y, 4, x, y, 40); gl.addColorStop(0, `rgba(255,${red ? 150 : 220},80,${0.42 * fl})`); gl.addColorStop(1, 'rgba(255,200,80,0)');
+    g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gl; g.beginPath(); g.arc(x, y, 40, 0, TAU); g.fill(); g.restore();
+    const body = g.createLinearGradient(x - 8, y, x + 8, y); body.addColorStop(0, red ? '#c93a3a' : '#e0a52e'); body.addColorStop(0.5, red ? '#ff7a6a' : '#ffe08a'); body.addColorStop(1, red ? '#c93a3a' : '#e0a52e');
+    g.fillStyle = body; rr(g, x - 8, y - 10, 16, 22, 6); g.fill();
+    g.strokeStyle = 'rgba(80,40,20,.35)'; g.lineWidth = 1; [-4, 0, 4].forEach(dy => { g.beginPath(); g.moveTo(x - 7, y + dy); g.lineTo(x + 7, y + dy); g.stroke(); });
+    g.fillStyle = '#4a2f1d'; g.fillRect(x - 4, y - 13, 8, 3); g.fillRect(x - 3, y + 12, 6, 3);
+    g.fillStyle = `rgba(255,255,220,${0.5 * fl})`; g.beginPath(); g.ellipse(x, y + 1, 3, 6, 0, 0, TAU); g.fill();
+  }
 }
 // ---------- 犬が起きている夜（リビング）：犬が歩き回り、床のネコに近づくと吠えて飼い主がすぐ戻る。骨をパンチで投げると4秒かじる ----------
 function updBones(dt) {
@@ -5098,7 +5139,7 @@ function drawOwner() {
   g.save(); g.translate(x, FLOOR); g.scale(o.face, 1);
   if (kid) g.scale(0.8, 0.8);   // 子ども部屋では子どもが見回る
   if (m === 'tidy') { g.scale(1, 0.84); g.rotate(0.12); }   // かがんで拾う
-  const walking = (m === 'walk' || m === 'leave' || m === 'chase' || (m === 'search' && Math.abs(o.gx - o.x) > 6)) && o.lureT <= 0;
+  const walking = (m === 'walk' || m === 'leave' || m === 'chase' || m === 'shoo' || (m === 'search' && Math.abs(o.gx - o.x) > 6)) && o.lureT <= 0;
   const sw = walking ? Math.sin(o.step * 9) * 9 : 0;
   g.lineCap = 'round';
   const wt = watcherOf(), night = phaseOf(level).night && !kid, shirt = kid ? '#ffb020' : wt === 'grandma' ? '#9b7fc0' : wt === 'dad' ? '#4f8a5b' : night ? '#a9bdf0' : '#5d8fd0';
@@ -5146,7 +5187,7 @@ function drawOwner() {
     else if (a === 'game') { g.lineTo(14, -94); g.stroke(); g.fillStyle = '#2b8fd9'; rr(g, 10, -102, 18, 10, 3); g.fill(); g.fillStyle = (tAnim * 4) % 1 < 0.5 ? '#bff27a' : '#9cc8ef'; g.fillRect(15, -100, 8, 6); }
     else { g.lineTo(12, -124); g.stroke(); g.strokeStyle = '#ff5a5a'; g.lineWidth = 3; g.beginPath(); g.moveTo(10, -128); g.lineTo(18, -132); g.stroke(); }
   }
-  else if (m === 'chase') { g.lineTo(24, -110); g.stroke(); }
+  else if (m === 'chase' || m === 'shoo') { g.lineTo(24, -110); g.stroke(); }
   else if (m === 'churu') { g.lineTo(22, -74); g.stroke(); g.fillStyle = '#ff7a95'; rr(g, 20, -82, 6, 18, 2); g.fill(); const k = (tAnim * 1.5) % 1; g.globalAlpha = 1 - k; g.fillStyle = '#ff7a95'; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.fillText('♥', 30 + k * 6, -90 - k * 16); g.globalAlpha = 1; }
   else if (m === 'tv' || m === 'nap') { g.lineTo(10, -80); g.stroke(); }
   else if (m === 'sky') { g.lineTo(18, -130); g.stroke(); }
@@ -5743,7 +5784,7 @@ function hud() {
   meterEl.className = 'l' + lv; frameEl.className = (state === 'play' || state === 'clear') ? 'l' + lv : '';
   // 飼い主の顔（4.30.1）：追いかけっこの残りを表情で見せる。残り 2 にこにこ → 残り 1 むっ → 残り 0 かんかん。追いかけっこ中・「次はない!」のときは震える
   { const fc = $('hFace'), sh = state === 'play' || state === 'clear' || state === 'pause' || state === 'caught'; fc.hidden = !sh;
-    if (sh) { const c2 = fc.getContext('2d'); c2.setTransform(1, 0, 0, 1, 0, 0); c2.clearRect(0, 0, 64, 64); c2.fillStyle = '#fff'; c2.fillRect(0, 0, 64, 64); drawOwnerFace(c2, 32, 34, 0.62, chaseN <= 0 ? true : chaseN === 1 ? 'grim' : false, room); fc.classList.toggle('shake', lv === 3 || lv === 5); } } hS.textContent = [lt('へいき', 'Calm'), lt('あやしい', 'Wary'), lt('やばい!', 'Danger!'), lt('にげろ!', 'RUN!'), lt('かくれ中', 'Hidden'), lt('次はない!', 'NO CHANCE!')][lv];
+    if (sh) { const c2 = fc.getContext('2d'); c2.setTransform(1, 0, 0, 1, 0, 0); c2.clearRect(0, 0, 88, 88); c2.fillStyle = '#fff'; c2.fillRect(0, 0, 88, 88); drawOwnerFace(c2, 44, 46, 0.86, chaseN <= 0 ? true : chaseN === 1 ? 'grim' : false, room); fc.classList.toggle('shake', lv === 3 || lv === 5); } } hS.textContent = [lt('へいき', 'Calm'), lt('あやしい', 'Wary'), lt('やばい!', 'Danger!'), lt('にげろ!', 'RUN!'), lt('かくれ中', 'Hidden'), lt('次はない!', 'NO CHANCE!')][lv];
 }
 const ohLabel = () => lt('スティック操作：', 'Touch stick: ') + (oneHand ? 'ON' : 'OFF');
 // 言語を切り替える：保存して、HTML に直接書いた文字（下のボタン・読み上げ用のラベル・ページの題名）も書き換える
