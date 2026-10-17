@@ -134,6 +134,10 @@
   .btn.go { font-size: 1.4rem; padding: 12px; width: 100%; }
   .btn.w { background: #fff; color: var(--org-d); box-shadow: 0 4px 0 var(--line); border: 2px solid var(--line); }
   .btn.t { background: var(--teal); box-shadow: 0 4px 0 var(--teal-d); }
+  .btn.y { background: var(--yel); color: var(--ink); box-shadow: 0 4px 0 #d9a526; }
+  .btn.b { background: var(--brn); color: #fff; box-shadow: 0 4px 0 var(--brn-d); }
+  .btn.y:active { box-shadow: 0 1px 0 #d9a526; } .btn.b:active { box-shadow: 0 1px 0 var(--brn-d); } .btn.t:active { box-shadow: 0 1px 0 var(--teal-d); }
+  .btn .ic { display: inline-block; width: 1.3em; height: 1.3em; vertical-align: -0.3em; margin-right: .25em; fill: currentColor; }
   /* 結果画面の下の支援リンク（Buy Me a Coffee）。遊ぶボタンより目立たせない */
   .coffee { display: inline-block; margin: 6px 0 2px; padding: 6px 14px; border-radius: 999px; background: #ffdd00; color: #3b2a1a; font-size: .82rem; font-weight: 800; text-decoration: none; }
   .coffee:active { transform: translateY(1px); }
@@ -322,7 +326,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.28.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.28.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -5774,8 +5778,8 @@ function showTitle() {
     <div class="first-cat"><canvas width="360" height="270"></canvas><b>${T.name}</b><span>${T.tag || T.note}${selAcc !== 'none' ? '　' + (ACCS.find(a => a.id === selAcc) || {}).name : ''}</span></div>
     ${sv ? `<button class="btn go" id="resBtn" type="button">${lt('つづきから', 'Continue')}<small style="display:block;font-size:.72rem;font-weight:500">${stageLabel(sv.level).replace(/^\d+　/, '')}${sv.cont ? lt('（朝から）', ' (from morning)') : ''}</small></button><div class="row"><button class="btn w" id="goBtn" type="button">${lt('はじめから', 'New game')}</button></div>` : `<button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>`}
     ${keysBox()}
-    <div class="row"><button class="btn w" id="catBtn" type="button">${lt('ネコとおしゃれ', 'Cat & style')}</button></div>
-    <div class="row"><button class="btn w" id="recBtn" type="button">${lt('きろく', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('せってい', 'Settings')}</button></div>
+    <div class="row"><button class="btn t" id="catBtn" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21c-5 0-8-3-8-7 0-3 1-5 3-7l1-4 3 3h2l3-3 1 4c2 2 3 4 3 7 0 4-3 7-8 7zm-3-8a1.3 1.3 0 100 2.6 1.3 1.3 0 000-2.6zm6 0a1.3 1.3 0 100 2.6 1.3 1.3 0 000-2.6z"/></svg>${lt('ネコとおしゃれ', 'Cat & style')}</button></div>
+    <div class="row"><button class="btn y" id="recBtn" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M5 3h14v18l-7-4-7 4z"/></svg>${lt('きろく', 'Records')}</button><button class="btn b" id="seBtn" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm9 4l-2.2-.6-.5-1.3 1.2-2-1.6-1.6-2 1.2-1.3-.5L14 5h-4l-.6 2.2-1.3.5-2-1.2L4.5 8.1l1.2 2-.5 1.3L3 12v0l2.2.6.5 1.3-1.2 2 1.6 1.6 2-1.2 1.3.5L10 19h4l.6-2.2 1.3-.5 2 1.2 1.6-1.6-1.2-2 .5-1.3z"/></svg>${lt('せってい', 'Settings')}</button></div>
     ${a2hsBox()}</div>`;
   { const cn = ov.querySelector('.first-cat canvas'), c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 90, 125, { type: catLook(selCat), face: 1, scale: 2, t: 0, pose: 'walk', acc: selAcc });
     cn.addEventListener('click', () => { audio(); bgmStart(); sfx.meow(T.voice, pickVoice()); }); }
