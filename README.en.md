@@ -142,3 +142,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 - **No vibration (Android)?** If **Touch feedback** (Settings → Sound → Vibration & haptics) is set to 0, browsers cannot vibrate the phone. Raise it a little (confirmed on Xperia / Chrome)
 - **I updated, but it looks the same.** Close it and open it again (an older version may still be saved for offline play)
 - **What about my data?** Your records stay on your device. Only when you join the world ranking are your nickname and record sent
+
+---
+
+The full rulebook with every number (time limits, bonus rates, item prices, title conditions) is in Japanese: [docs/rules.md](docs/rules.md).
