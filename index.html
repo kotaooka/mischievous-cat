@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.12.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.12.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2439,7 +2439,7 @@ function drawEnding() {
   // ごはん皿
   if (e > 1.5) { g.fillStyle = '#ff7a95'; g.beginPath(); g.moveTo(166, F - 9); g.lineTo(194, F - 9); g.lineTo(190, F); g.lineTo(170, F); g.closePath(); g.fill(); if (e < 4.4) { g.fillStyle = '#c98a4f'; for (let i = -2; i <= 2; i++) { g.beginPath(); g.arc(180 + i * 4, F - 10, 2.6, 0, TAU); g.fill(); } } }
   // ネコ：食べる → なでられてゴロゴロ → 振り向いてニヤリ → パンチ
-  const zoom = e > 7.6 && e < 10.4 ? Math.min(1, (e - 7.6) / 0.5) : e >= 10.4 ? Math.max(0, 1 - (e - 10.4) / 0.4) : 0, cx = 214, cy = F - 24;
+  const zoom = e > 7.6 && e < 12.2 ? Math.min(1, (e - 7.6) / 0.5) : e >= 12.2 ? Math.max(0, 1 - (e - 12.2) / 0.5) : 0, cx = 214, cy = F - 24;
   g.save(); if (zoom) { const z = 1 + 1.2 * zoom; g.translate(cx, cy); g.scale(z, z); g.translate(-cx, -cy); }
   let pose = 'walk', eyes = null, face = -1, tail = 'up';
   if (e < 4.4) { pose = e > 1.6 ? 'hunt' : 'walk'; eyes = e > 1.6 ? 'happy' : null; }
@@ -2448,7 +2448,7 @@ function drawEnding() {
   else if (e < 9.2) { pose = 'punch'; face = 1; }
   else { pose = 'smug'; face = 1; }
   drawCat(g, 214, F, { type: cat.type, face, scale: 1, t: tAnim, pose, eyes, tail, acc: selAcc });
-  if (e > 7.9 && e < 10.4) { const k = (tAnim * 2) % 1; g.fillStyle = '#fff6a8'; g.globalAlpha = Math.sin(k * Math.PI); g.beginPath(); g.arc(214 + 26, F - 34, 2 + 3 * Math.sin(k * Math.PI), 0, TAU); g.fill(); g.globalAlpha = 1; }   // 目がきらり
+  if (e > 7.9 && e < 12.2) { const k = (tAnim * 2) % 1; g.fillStyle = '#fff6a8'; g.globalAlpha = Math.sin(k * Math.PI); g.beginPath(); g.arc(214 + 26, F - 34, 2 + 3 * Math.sin(k * Math.PI), 0, TAU); g.fill(); g.globalAlpha = 1; }   // 目がきらり
   g.restore();
   if (e > 2 && e < 7.6 && Math.random() < 0.08) addPart({ k: 'drop', x: 214 + rnd(-12, 12), y: F - 50, vx: rnd(-20, 20), vy: rnd(-90, -40), life: 0.9, gy: F - 300, c: '#ff7a95', s: 3, rot: 0, vr: 0 });
   drawParts();
@@ -2458,16 +2458,23 @@ function drawEnding() {
   if (e > 2.8 && e < 4.4) bubble(150, F - 140, lt('はい、ごはん', "Here's dinner"));
   if (e > 4.6 && e < 6.6) bubble(150, F - 140, lt('やっぱり、いい子だね〜', "You're a good cat after all~"));
   if (e > 4.6 && e < 7.4) { g.font = `800 14px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(lt('ゴロゴロ', 'Purr purr'), 250, F - 60); g.fillStyle = '#c95f17'; g.fillText(lt('ゴロゴロ', 'Purr purr'), 250, F - 60); }
-  if (e > 8.0 && e < 10.4) { g.font = `800 ${40 + Math.sin(tAnim * 8) * 2}px ${FONT}`; g.lineWidth = 8; g.strokeStyle = '#fff'; const t = lt('ニヤリ', 'Heh.'); g.strokeText(t, W / 2, 200); g.fillStyle = '#4a2f1d'; g.fillText(t, W / 2, 200); }
+  if (e > 8.0 && e < 12.2) { g.font = `800 ${40 + Math.sin(tAnim * 8) * 2}px ${FONT}`; g.lineWidth = 8; g.strokeStyle = '#fff'; const t = lt('ニヤリ', 'Heh.'); g.strokeText(t, W / 2, 200); g.fillStyle = '#4a2f1d'; g.fillText(t, W / 2, 200); }
   if (e > 9.5 && e < 11) { g.font = `800 15px ${FONT}`; const t = lt('あーっ!!', 'HEY!!'), w = g.measureText(t).width + 18; g.fillStyle = '#fff'; g.strokeStyle = '#4a2f1d'; g.lineWidth = 2; rr(g, 6, F - 250, w, 26, 12); g.fill(); g.stroke(); g.fillStyle = '#e0362c'; g.fillText(t, 6 + w / 2, F - 237); }
   // 終わりの札
-  const k2 = clamp((e - 10.4) / 0.6, 0, 1);
+  const k2 = clamp((e - 12.2) / 0.6, 0, 1);   // 「ニヤリ」のあとに、終わりの札（約3秒見せてから締めの画面）
   if (k2 > 0) { g.fillStyle = `rgba(20,14,40,${0.55 * k2})`; g.fillRect(0, -OY, W, VH); g.globalAlpha = k2; g.fillStyle = '#fff6c8'; g.font = `800 34px ${FONT}`; g.fillText(lt('おしまい……？', 'The end…?'), W / 2, 220); g.font = `800 16px ${FONT}`; g.fillText(lt(END_DAY + '日間の被害額 ', END_DAY + '-day damage ') + yen(run.yen), W / 2, 262); g.globalAlpha = 1; }
   // 最初はふわっと明るく
   if (e < 0.8) { g.fillStyle = `rgba(20,14,40,${1 - e / 0.8})`; g.fillRect(0, -OY, W, VH); }
 }
 function showEnding() {
-  if (run.preview) { run.preview = false; showTitle(); return; }   // 確認用の再生は、終わったらタイトルへ
+  if (run.preview) {
+    // 確認用の再生：締めの画面を出し、押したらタイトルへ（記録には残さない）
+    state = 'endmenu'; ov.hidden = false;
+    ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.6rem">${lt('エンディング', 'THE END')}</div><p class="sub">${lt('（確認用の再生）', '(Preview)')}</p>
+      <button class="btn go" id="enBack" type="button">${lt('タイトルへ', 'Title')}</button></div>`;
+    $('enBack').addEventListener('click', () => { run.preview = false; showTitle(); });
+    return;
+  }
   state = 'endmenu'; ov.hidden = false;
   ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.6rem">${lt('エンディング', 'THE END')}</div>
     <p class="sub">${lt(END_DAY + '日間、いたずらしきった！', 'You survived ' + END_DAY + ' days of mischief!')}</p>
@@ -4424,7 +4431,7 @@ function update(dt) {
     updCat(dt); updItems(dt); updBall(dt); updVac(dt); clearT -= dt;
     if (clearT <= 0) { setupStage(level + 1); state = 'play'; }
   } else if (state === 'ending') {
-    endT += dt; if (endT > 11.2 && !endShown) { endShown = true; showEnding(); }
+    endT += dt; if (endT > 15.8 && !endShown) { endShown = true; showEnding(); }
   } else if (state === 'dayend') {
     dayT -= dt; if (dayT <= 0) { setupStage(level + 1); state = 'play'; }
   } else if (state === 'caught') {
