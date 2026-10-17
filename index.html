@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.9.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.9.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1672,7 +1672,6 @@ function drawEsc(a, label) {
   }
   g.restore();
 }
-// のこり：落とすべきものを、絵と個数で並べる（右上。1段目は時計の右、入りきらなければ2段目）
 // 季節の飾り（日本時間の日付）：10月 ハロウィン、12/1〜25 クリスマス、12/26〜1/10 お正月。庭では出さない
 function seasonNow() { const d = jstDay(), m = +d.slice(5, 7), dd = +d.slice(8, 10); return m === 10 ? 'halloween' : m === 12 && dd <= 25 ? 'xmas' : (m === 12 || (m === 1 && dd <= 10)) ? 'newyear' : ''; }
 function drawSeason() {
@@ -1700,24 +1699,23 @@ function drawSeason() {
   }
   g.restore();
 }
+// のこり：落とすべきものを、絵と個数で右上に縦に並べる（1行に1種類。多いときは最後の行を「+n」に）
 function drawLeftItems() {
   const ms = mains(); if (!ms.length) return;
   const cnt = new Map(); for (const it of ms) cnt.set(it.t, (cnt.get(it.t) || 0) + 1);
-  g.font = `800 14px ${FONT}`;
-  const cells = [...cnt.entries()].map(([t, n]) => { const d = IT[t], sc = Math.min(1.1, 18 / d.h, 22 / d.w); return { t, n, sc, iw: d.w * sc, w: d.w * sc + 3 + g.measureText('×' + n).width }; });
-  const maxW = [W - 10 - (W / 2 + 56), W - 16], rows = [[]], rw = [0];
-  for (const c of cells) { const r = rows.length - 1; if (rw[r] + c.w + 8 > maxW[Math.min(r, 1)] && rows[r].length) { if (rows.length >= 2) break; rows.push([]); rw.push(0); } rows[rows.length - 1].push(c); rw[rw.length - 1] += c.w + 8; }
-  const shown = rows.flat().reduce((a, c) => a + c.n, 0), more = ms.length - shown;
-  rows.forEach((row, r) => {
-    const tw = rw[r] + (r === rows.length - 1 && more > 0 ? 26 : 0), y = 30 + r * 27 - OY, x0 = W - 8 - tw;
-    g.fillStyle = 'rgba(255,250,242,.86)'; rr(g, x0 - 4, y - 21, tw + 6, 26, 9); g.fill();
-    let x = x0;
-    for (const c of row) {
-      g.save(); g.translate(x + c.iw / 2, y); g.scale(c.sc, c.sc); drawItem(g, c.t, 0, 0, 0, false); g.restore();
-      g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#c93636'; g.fillText('×' + c.n, x + c.iw + 3, y - 2); x += c.w + 8;
-    }
-    if (r === rows.length - 1 && more > 0) { g.fillStyle = '#8a6a4f'; g.fillText('+' + more, x, y - 2); }
+  g.font = `800 14px ${FONT}`; g.textBaseline = 'alphabetic';
+  let rows = [...cnt.entries()].map(([t, n]) => { const d = IT[t], sc = Math.min(1.1, 17 / d.h, 22 / d.w); return { t, n, sc, iw: d.w * sc }; });
+  const MAXR = 6; let more = 0;
+  if (rows.length > MAXR) { more = rows.slice(MAXR - 1).reduce((a, r) => a + r.n, 0); rows = rows.slice(0, MAXR - 1); }
+  const tw = Math.max(...rows.map(r => 24 + 4 + g.measureText('×' + r.n).width), more ? g.measureText('+' + more).width + 8 : 0), lh = 23, y0 = 10 - OY, x1 = W - 8;
+  const n = rows.length + (more ? 1 : 0);
+  g.fillStyle = 'rgba(255,250,242,.86)'; rr(g, x1 - tw - 6, y0, tw + 10, n * lh + 6, 9); g.fill();
+  rows.forEach((r, i) => {
+    const y = y0 + 4 + (i + 1) * lh - 3;
+    g.save(); g.translate(x1 - tw + 11, y); g.scale(r.sc, r.sc); drawItem(g, r.t, 0, 0, 0, false); g.restore();
+    g.textAlign = 'right'; g.fillStyle = '#c93636'; g.fillText('×' + r.n, x1, y - 2);
   });
+  if (more) { g.textAlign = 'right'; g.fillStyle = '#8a6a4f'; g.fillText('+' + more, x1, y0 + 4 + n * lh - 5); }
 }
 function drawNavMark() {
   // 自動移動の行き先に、肉球の目印を出す
