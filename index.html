@@ -246,6 +246,11 @@
   .first-cat { display: flex; flex-direction: column; align-items: center; margin: 10px 0 6px; }
   .first-cat canvas { width: 180px; height: 135px; }
   .first-cat b { font-size: 1.05rem; line-height: 1.3; }
+  .accs.icons button { width: 44px; height: 44px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
+  .accs.icons button canvas { width: 40px; height: 40px; display: block; }
+  .accs.icons button.lock { opacity: .45; background: #fbf3e6; }
+  .acc-info { min-height: 2.4em; font-size: .78rem; color: var(--ink2); font-weight: 500; margin: 0 0 8px; }
+  .acc-info b { color: var(--ink); font-weight: 800; }
   .first-cat span { font-size: .78rem; color: var(--ink2); }
   .panel.first .btn.go { margin-top: 12px; padding: 18px 0; font-size: 1.5rem; }
   #pad #bM { --c: var(--teal); --s: var(--teal-d); }
@@ -308,7 +313,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.27.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.28.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -5730,33 +5735,67 @@ function showTitle() {
     $('seBtn').addEventListener('click', () => showSettings(showTitle));
     return;
   }
-  const sv = loadSave();
+  const sv = loadSave(), T = CATS[selCat];
+  // 4.28.0：トップは「あそぶ」中心。ネコ選びときせかえは「ネコとおしゃれ」の画面へ
   ov.innerHTML = `<div class="panel">
     <div class="big-logo">${lt('こっそり<span>ネコ</span>', 'Mischievous <span>Cat</span>')}</div><p class="sub">${lt('MISCHIEVOUS CAT', 'こっそりネコ')}</p>
-    <div class="cats" role="group" aria-label="${lt('ネコをえらぶ', 'Choose a cat')}">${CATS.map((c, i) => { const ok = catsOpen.has(c.id); return `<button type="button" data-i="${i}" aria-pressed="${i === selCat}" ${ok ? '' : 'disabled'}><canvas width="144" height="108"></canvas><b>${ok ? c.name : '？？？'}</b><span>${ok ? c.note : CAT_LOCK[c.id]}</span></button>`; }).join('')}</div>
-    <div class="stats" id="stats"></div>
-    <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : a.ending ? lt('エンディング', 'Ending') : a.trueEnd ? lt('7日目', 'Day 7') : a.secret ? '？？？' : '🔒' + accCardName(a)}</button>`; }).join('')}</div>
+    <div class="first-cat"><canvas width="360" height="270"></canvas><b>${T.name}</b><span>${T.tag || T.note}${selAcc !== 'none' ? '　' + (ACCS.find(a => a.id === selAcc) || {}).name : ''}</span></div>
     ${sv ? `<button class="btn go" id="resBtn" type="button">${lt('つづきから', 'Continue')}<small style="display:block;font-size:.72rem;font-weight:500">${stageLabel(sv.level).replace(/^\d+　/, '')}${sv.cont ? lt('（朝から）', ' (from morning)') : ''}</small></button><div class="row"><button class="btn w" id="goBtn" type="button">${lt('はじめから', 'New game')}</button></div>` : `<button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>`}
     ${keysBox()}
+    <div class="row"><button class="btn w" id="catBtn" type="button">${lt('ネコとおしゃれ', 'Cat & style')}</button></div>
     <div class="row"><button class="btn w" id="recBtn" type="button">${lt('きろく', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('せってい', 'Settings')}</button></div>
     ${a2hsBox()}</div>`;
-  ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
-  ov.querySelectorAll('.cats button').forEach(b => b.addEventListener('click', () => {
-    selCat = +b.dataset.i; store.set('nekoCat', String(selCat)); audio(); bgmStart(); sfx.meow(CATS[selCat].voice, pickVoice());
-    ov.querySelectorAll('.cats button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); setupStage(1); showStats();
-  }));
-  ov.querySelectorAll('.accs button').forEach(b => b.addEventListener('click', () => {
-    selAcc = b.dataset.a; store.set('nekoAcc', selAcc); audio(); sfx.bowl(); showStats();
-    ov.querySelectorAll('.accs button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.setTransform(2, 0, 0, 2, 0, 0); c2.clearRect(0, 0, 72, 54); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
-  }));
-  showStats();
+  { const cn = ov.querySelector('.first-cat canvas'), c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 90, 125, { type: catLook(selCat), face: 1, scale: 2, t: 0, pose: 'walk', acc: selAcc });
+    cn.addEventListener('click', () => { audio(); bgmStart(); sfx.meow(T.voice, pickVoice()); }); }
   // はじめから：セーブがあるときは、2 秒以内にもう一度押したときだけ（消えるので）
   { let armed = 0; $('goBtn').addEventListener('click', () => { audio(); if (sv && performance.now() - armed > 2000) { armed = performance.now(); toast(lt('もう一度押すと、つづきを消して始めます', 'Press again to delete the save and start over'), 2200); return; } startGame(); }); }
   if ($('resBtn')) $('resBtn').addEventListener('click', () => { audio(); resumeSave(); });
+  $('catBtn').addEventListener('click', () => { audio(); showCatShop(); });
   bindA2hs();
   $('recBtn').addEventListener('click', () => showRank());
   $('seBtn').addEventListener('click', () => showSettings(showTitle));
+}
+// ネコとおしゃれ（4.28.0）：ネコ 6 匹、能力の目盛り、きせかえ（絵のボタン）。ここからも あそぶ を押せる
+function accIcon(cn, id, ok) {
+  const c2 = cn.getContext('2d'); c2.setTransform(2, 0, 0, 2, 0, 0); c2.clearRect(0, 0, 40, 40);
+  const T = ok ? CATS[selCat] : Object.assign({}, CATS[selCat], { body: '#c9b39a', belly: '#d9c9b0', eye: '#b39a80', stripe: null, patch: null, point: null });
+  // 頭が真ん中に来るように（頭の中心はネコの原点から (20, -28)×大きさ）
+  const sc = 0.95 * (T.big || 1); drawCat(c2, 20 - 20 * sc, 20 + 28 * sc, { type: T, face: 1, scale: 0.95, t: 0, pose: 'walk', acc: id });
+}
+function showCatShop() {
+  state = 'title'; ov.hidden = false;
+  ov.innerHTML = `<div class="panel">
+    <div class="big-logo" style="font-size:1.5rem">${lt('ネコとおしゃれ', 'Cat & style')}</div>
+    <div class="cats" role="group" aria-label="${lt('ネコをえらぶ', 'Choose a cat')}">${CATS.map((c, i) => { const ok = catsOpen.has(c.id); return `<button type="button" data-i="${i}" aria-pressed="${i === selCat}" ${ok ? '' : 'disabled'}><canvas width="144" height="108"></canvas><b>${ok ? c.name : '？？？'}</b><span>${ok ? c.note : CAT_LOCK[c.id]}</span></button>`; }).join('')}</div>
+    <div class="stats" id="stats"></div>
+    <div class="accs icons" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" class="${ok ? '' : 'lock'}" aria-pressed="${a.id === selAcc}" aria-label="${a.name}"><canvas width="80" height="80"></canvas></button>`; }).join('')}</div>
+    <p class="acc-info" id="accInfo"></p>
+    <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
+    <div class="row"><button class="btn w" id="csBack" type="button">${lt('もどる', 'Back')}</button></div></div>`;
+  const drawCats = () => ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.setTransform(2, 0, 0, 2, 0, 0); c2.clearRect(0, 0, 72, 54); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
+  const drawAccs = () => ov.querySelectorAll('.accs button').forEach(b => accIcon(b.querySelector('canvas'), b.dataset.a, !b.classList.contains('lock')));
+  const info = () => {
+    const a = ACCS.find(q => q.id === selAcc) || ACCS[0], fx = ACC_FX[selAcc] || ACC_FX.none;
+    $('accInfo').innerHTML = `<b>${a.name}</b>　${fx.note}`;
+  };
+  drawCats(); drawAccs(); showStats(); info();
+  ov.querySelectorAll('.cats button').forEach(b => b.addEventListener('click', () => {
+    selCat = +b.dataset.i; store.set('nekoCat', String(selCat)); audio(); bgmStart(); sfx.meow(CATS[selCat].voice, pickVoice());
+    ov.querySelectorAll('.cats button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); setupStage(1); showStats(); drawAccs();
+  }));
+  ov.querySelectorAll('.accs button').forEach(b => b.addEventListener('click', () => {
+    audio();
+    if (b.classList.contains('lock')) {
+      const a = ACCS.find(q => q.id === b.dataset.a), c = a && a.card ? CARDS.find(x => x.id === a.card) : null;
+      toast(c ? lt(`「${a.name}」：カード「${c.name}」（${c.desc}）で手に入る`, `"${a.name}": earn the card "${c.name}" (${c.desc})`) : a.ending ? lt(`「${a.name}」：エンディングを見ると手に入る`, `"${a.name}": see an ending`) : a.trueEnd ? lt(`「${a.name}」：7日目の夜を越えると手に入る`, `"${a.name}": get past the seventh night`) : lt('？？？', '???'), 3000);
+      return;
+    }
+    selAcc = b.dataset.a; store.set('nekoAcc', selAcc); sfx.bowl();
+    ov.querySelectorAll('.accs button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    drawCats(); showStats(); info();
+  }));
+  $('goBtn').addEventListener('click', () => { audio(); if (loadSave()) { showTitle(); return; } startGame(); });   // セーブがあるときはトップで選ばせる
+  $('csBack').addEventListener('click', () => showTitle());
 }
 // ---------- みんなのランキング（Firebase Cloud Firestore の REST API）----------
 // projectId を空にしておくと、みんなのランキングは出さない（この端末のランキングだけ）
@@ -5927,7 +5966,7 @@ function showStats() {
   el.innerHTML = PIPS.map((n, i) => {
     const d = (fx.pip && fx.pip[keys[i]]) || 0, base = T.pip[i], v = clamp(base + d, 1, 5);
     return `<span>${n}</span><span class="pips">${[1, 2, 3, 4, 5].map(k => `<i class="${k <= v ? (d > 0 && k > base ? 'on up' : 'on') : (d < 0 && k <= base ? 'dn' : '')}"></i>`).join('')}</span>`;
-  }).join('') + (T.tag ? `<span class="tag">${T.tag}</span>` : '') + (selAcc !== 'none' && acc ? `<span class="tag acc">${acc.name}：${fx.note}</span>` : '');
+  }).join('') + (T.tag ? `<span class="tag">${T.tag}</span>` : '');
 }
 // きろく：ランキング・称号図鑑・通算記録を、上のタブで切り替える（もどるは、開いた画面＝タイトルか結果へ）
 function recTabs(cur) {
