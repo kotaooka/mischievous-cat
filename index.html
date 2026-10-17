@@ -308,7 +308,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.26.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.26.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -5943,12 +5943,18 @@ function bindPager(i, n, go) {
 }
 // いたずらカード図鑑：1ページ6枚（低い画面は4枚）。取ったカードは写真つき、まだのカードは取り方だけ
 function showCards(page) {
-  const PER = ov.clientHeight && ov.clientHeight < 560 ? 4 : 6, n = Math.ceil(CARDS.length / PER) + 1; cdPage = clamp(page == null ? cdPage : page, 0, n - 1);   // 最後のページは被害額の称号とエンディング
-  const list = CARDS.slice(cdPage * PER, cdPage * PER + PER), last = cdPage === n - 1;
+  // 一覧：いたずらカード → 被害額の称号 → エンディング（同じ札の形で続けて並べる）
+  const extra = TITLES.filter(t => t.tier != null).map(t => ({ kind: 'title', ok: unlocked.has(t.id), name: t.name, desc: TDESC[t.id] ? String(TDESC[t.id]) : '' }))
+    .concat(Object.entries(ENDINGS).map(([k, E]) => ({ kind: 'ending', ok: endingsSeen.has(k), name: 'ENDING ' + E.n, desc: E.how })));
+  const ALL = CARDS.concat(extra);
+  const PER = ov.clientHeight && ov.clientHeight < 560 ? 4 : 6, n = Math.ceil(ALL.length / PER); cdPage = clamp(page == null ? cdPage : page, 0, n - 1);
+  const list = ALL.slice(cdPage * PER, cdPage * PER + PER);
   ov.hidden = false;
   ov.innerHTML = `<div class="panel paged" style="height:${pagedH()}px">${recTabs('cards')}
     <div class="big-logo" style="font-size:1.5rem">${lt('いたずら図鑑', 'Mischief Cards')}</div><p class="sub">${cardsGot.size} / ${CARDS.length}</p>
-    <div class="pager">${last ? `<div class="zukan">${TITLES.filter(t => t.tier != null).map(t => `<div class="${unlocked.has(t.id) ? '' : 'off'}">${unlocked.has(t.id) ? t.name : '？？？'}<small>${TDESC[t.id] ? String(TDESC[t.id]) : ''}</small></div>`).join('')}${Object.entries(ENDINGS).map(([k, E]) => `<div class="${endingsSeen.has(k) ? '' : 'off'}">ENDING ${endingsSeen.has(k) ? E.n : '？？？'}<small>${E.how}</small></div>`).join('')}</div>` : ''}<div class="cards"${last ? ' hidden' : ''}>${list.map(cd => { const ok = cardsGot.has(cd.id), pic = ok && cardPics[cd.id]; return `<div class="${ok ? '' : 'off'}">${pic ? `<img src="${pic}" alt="" width="128" height="128">` : `<i>${ok ? '🐾' : '？'}</i>`}<b>${ok ? cd.name : '？？？'}</b><small>${cd.desc}</small></div>`; }).join('')}</div></div>
+    <div class="pager"><div class="cards">${list.map(cd => {
+      if (cd.kind) return `<div class="${cd.ok ? '' : 'off'}"><i>${cd.ok ? (cd.kind === 'title' ? '🏆' : '🎬') : '？'}</i><b>${cd.ok ? cd.name : (cd.kind === 'ending' ? 'ENDING ？？？' : '？？？')}</b><small>${cd.desc}</small></div>`;
+      const ok = cardsGot.has(cd.id), pic = ok && cardPics[cd.id]; return `<div class="${ok ? '' : 'off'}">${pic ? `<img src="${pic}" alt="" width="128" height="128">` : `<i>${ok ? '🐾' : '？'}</i>`}<b>${ok ? cd.name : '？？？'}</b><small>${cd.desc}</small></div>`; }).join('')}</div></div>
     ${pagerNav(cdPage, n)}
     <button class="btn go" id="cdBack" type="button">${lt('もどる', 'Back')}</button></div>`;
   $('cdBack').addEventListener('click', recBack()); bindRecTabs(); bindPager(cdPage, n, showCards);
