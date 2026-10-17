@@ -139,7 +139,8 @@
   .share-row .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
   .btn.sm { padding: 7px 6px; font-size: .92rem; border-radius: 12px; }
   .btn.go small { display: block; font-size: .7rem; font-weight: 500; line-height: 1.3; margin-top: 2px; }
-  .coffee { display: inline-block; margin: 6px 0 2px; padding: 6px 14px; border-radius: 999px; background: #ffdd00; color: #3b2a1a; font-size: .82rem; font-weight: 800; text-decoration: none; }
+  .coffee { display: inline-flex; align-items: center; gap: 4px; margin: 6px 0 2px; padding: 5px 12px; border-radius: 999px; background: #fff; border: 2px solid var(--line); color: var(--ink2); font-size: .78rem; font-weight: 800; text-decoration: none; }
+  .coffee .ic { width: 1.1em; height: 1.1em; margin: 0; fill: currentColor; }
   .coffee:active { transform: translateY(1px); }
   /* ボタン・ゲームパッド・キーボードでメニューを選ぶときの枠 */
   #ov .navf { outline: 4px solid #2b8fd9; outline-offset: 3px; position: relative; z-index: 1; }
@@ -205,6 +206,7 @@
   .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
   .cards div { border: 2px solid var(--line); border-radius: 12px; padding: 5px; background: #fff; display: flex; flex-direction: column; align-items: center; text-align: center; }
   .cards div.off { background: #fbf3e6; color: #c9b39a; }
+  .cards i svg { width: 46%; height: 46%; }
   .cards img, .cards i { width: 100%; aspect-ratio: 1; border-radius: 8px; object-fit: cover; background: #e9d7b8; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: 1.6rem; color: #b39a80; }
   .cards b { font-size: .74rem; line-height: 1.25; margin-top: 4px; }
   .cards small { display: block; font-weight: 500; font-size: .62rem; color: var(--ink2); line-height: 1.3; margin-top: 2px; }
@@ -326,7 +328,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.32.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.33.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1105,6 +1107,14 @@ const ACC_FX = {
 const accFx = () => ACC_FX[selAcc] || ACC_FX.none;
 const catStat = k => (cat && cat.type ? cat.type : CATS[selCat])[k] * (accFx()[k] || 1);
 const accOk = a => a.ending ? store.get('nekoEnded', '') === '1' : a.trueEnd ? store.get('nekoTrueEnd', '') === '1' : a.secret ? store.get('nekoShades', '') === '1' : a.card ? cardsGot.has(a.card) : true;   // 4.26.1：決まったカードで手に入る
+// 小さなアイコン（OS の絵文字は端末で見た目が変わるので、インライン SVG）
+const ICO = {
+  trophy: '<svg viewBox="0 0 24 24" fill="#e0a52e"><path d="M7 3h10v2h3v3a4 4 0 01-4 4h-.3A5 5 0 0113 15.9V18h3v2H8v-2h3v-2.1A5 5 0 018.3 12H8a4 4 0 01-4-4V5h3zm-1 4v1a2 2 0 002 2V7zm12 0h-2v3a2 2 0 002-2z"/></svg>',
+  clap: '<svg viewBox="0 0 24 24" fill="#5d7a9a"><path d="M3 9l1-4 16 3-1 4zm0 2h18v9a1 1 0 01-1 1H4a1 1 0 01-1-1zm4-5.3l2.2.4-1.5 2.5-2.2-.4zm5 1l2.2.4-1.5 2.5-2.2-.4zm5 1l2.2.4-1.5 2.5-2.2-.4z"/></svg>',
+  paw: '<svg viewBox="0 0 24 24" fill="#c98a4f"><ellipse cx="12" cy="15.5" rx="5" ry="4.2"/><circle cx="5.5" cy="10" r="2.2"/><circle cx="9.5" cy="6.3" r="2.2"/><circle cx="14.5" cy="6.3" r="2.2"/><circle cx="18.5" cy="10" r="2.2"/></svg>',
+  q: '<svg viewBox="0 0 24 24" fill="#b39a80"><path d="M12 3a6 6 0 016 6c0 2.4-1.4 3.6-2.6 4.6-1 .8-1.6 1.3-1.6 2.4v1h-3.6v-1.2c0-2.3 1.3-3.3 2.5-4.3 1-.8 1.5-1.3 1.5-2.5a2.2 2.2 0 00-4.4 0H6a6 6 0 016-6zm-1.8 16h3.6v3h-3.6z"/></svg>',
+  coffee: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 8h13v6a5 5 0 01-5 5H9a5 5 0 01-5-5zm15 1h1a3 3 0 010 6h-1v-2h1a1 1 0 000-2h-1zM7 2h2v3H7zm4 0h2v3h-2zm-6 19h14v2H5z"/></svg>'
+};
 const accCardName = a => { const c = CARDS.find(x => x.id === a.card); return c ? String(c.name) : ''; };
 
 // ---------- 状態 ----------
@@ -3315,13 +3325,13 @@ function drawTv() {
 let endT = 0, endShown = false, endCup = null;
 // エンディングの種類：遊び方で4つ。台詞と最後のオチが変わる。見た種類は nekoEndings に集める
 const ENDINGS = {
-  perfect: { n: tx('完全犯罪', 'Perfect Crime'), how: tx('一度も見つからずに3日目の夜を越える', 'Reach the third night without ever getting caught'),
+  perfect: { n: tx('完全犯罪', 'Perfect Crime'), how: tx('朝からの続きなしで、12面のうち8面を怪しまれ度30%未満で越える', 'No morning restarts, and 8 of the 12 stages with suspicion under 30%'),
     say: [tx('今日もいろいろ割れてたけど…', 'Lots of things broke again today…'), tx('はい、ごはん', "Here's dinner"), tx('お前じゃないよね。いい子だもんね', "It wasn't you, right? You're a good cat")],
     oops: tx('…今、何か聞こえた？', '…Did I just hear something?'), punch: true },
-  wrecker: { n: tx('解体の日々', 'Days of Demolition'), how: tx('3日間で大技を3回以上、または被害額 ¥500,000 以上', '3+ big ones or ¥500,000+ damage in 3 days'),
+  wrecker: { n: tx('解体の日々', 'Days of Demolition'), how: tx('3日間で大技を3回以上', '3+ big ones in 3 days'),
     say: [tx('保険屋さん、来週も来るって', 'The insurance guy is coming again next week'), tx('はい、ごはん。これは落とさないでね', "Here's dinner. Don't knock THIS over"), tx('もう何も残ってないよ…', 'There\'s nothing left to break…')],
     oops: tx('まだ割るものあった!?', 'There was still something to break?!'), punch: true },
-  good: { n: tx('いい子（自称）', 'A "Good" Cat'), how: tx('3日間の被害額 ¥60,000 未満', 'Under ¥60,000 damage in 3 days'),
+  good: { n: tx('いい子（自称）', 'A "Good" Cat'), how: tx('追いかけっこもお守りも朝からの続きもなしで3日目の夜を越える', 'Get through the third night with no chases, no charm revives and no morning restarts'),
     say: [tx('今日はおとなしかったね', 'You were calm today'), tx('はい、ごはん', "Here's dinner"), tx('ずっとこのままでいてね', 'Stay like this forever, okay?')],
     oops: tx('あーっ!!', 'HEY!!'), punch: true },
   normal: { n: tx('いつもの夜', 'Just Another Night'), how: tx('3日目の夜を越える', 'Get through the third night'),
@@ -3333,10 +3343,12 @@ const ENDINGS = {
     oops: tx('……明日かたづけるよ', '……I\'ll clean it up tomorrow'), punch: true }
 };
 function endingType(r) {
+  // 4.33.0：被害額の条件はやめた（クリアに全部落とす必要があるので「¥60,000 未満」は取れなかった）。行動で決める
   if (r.trueEnded) return 'true';
-  if (!(r.conts || 0) && !(r.revives || 0) && (r.perfect || 0) >= 4) return 'perfect';
-  if ((r.bigs || []).length >= 3 || r.yen >= 500000) return 'wrecker';
-  if (r.yen < 60000) return 'good';
+  const clean = !(r.conts || 0) && !(r.revives || 0);
+  if (clean && (r.perfect || 0) >= 8) return 'perfect';
+  if ((r.bigs || []).length >= 3) return 'wrecker';
+  if (clean && !(r.chases || 0)) return 'good';
   return 'normal';
 }
 let endingsSeen = new Set();
@@ -3822,7 +3834,7 @@ function updSus(dt) {
 }
 // 見つかったら、1ステージに1回だけ追いかけっこ。3秒以内にダンボールかタワーへ逃げ込めば助かる
 function startChase() {
-  const o = owner; chaseN++; chaseT = chaseN >= 2 ? 1.5 : 3; o.lureT = 0; o.up = false;
+  const o = owner; chaseN++; run.chases = (run.chases || 0) + 1; chaseT = chaseN >= 2 ? 1.5 : 3; o.lureT = 0; o.up = false;
   if (o.mode === 'away') { o.x = cat.x < 200 ? 380 : -40; }
   setMode('chase'); setPulse(null); tapTarget = null; o.face = Math.sign(cat.x - o.x) || 1; say(chaseN >= 2 ? lt('言ったでしょ!!', 'I TOLD you!!') : lt('待てーっ!!', 'Get back here!!'), 3); sfx.alert(); sfx.bark(); buzz([40, 30, 40]); shake = 0.3;
 }
@@ -5669,9 +5681,10 @@ function draw() {
     g.restore();
     if (run && run.charm) drawCharmIcon(g, W / 2 + 66 + Math.sin(tAnim * 3) * 1.5, 24 - OY, 1.2);
     // 飼い主の顔（4.32.1：ゲーム画面の中、時計の左）：追いかけっこの残り。残り 2 にこにこ → 残り 1 むっ → 残り 0 かんかん。追いかけっこ中・「次はない!」は震える
-    { const hot = chaseT > 0 || (chaseN >= 2 && sus >= 70 && state === 'play'), sh = hot && !SET.calm ? Math.sin(tAnim * 40) * 2 : 0;
-      g.save(); g.translate(W / 2 - 74 + sh, 24 - OY); g.fillStyle = '#fff'; g.strokeStyle = hot ? '#e0362c' : '#4a2f1d'; g.lineWidth = 2.5; g.beginPath(); g.arc(0, 0, 19, 0, TAU); g.fill(); g.stroke();
-      g.beginPath(); g.arc(0, 0, 17.5, 0, TAU); g.clip(); drawOwnerFace(g, 0, 2, 0.42, chaseN <= 0 ? true : chaseN === 1 ? 'grim' : false, room); g.restore(); }
+    { const hot = chaseT > 0 || (chaseN >= 2 && sus >= 70 && state === 'play'), sh = hot && !SET.calm ? Math.sin(tAnim * 40) * 2 : 0, R = 32;
+      const fy = 50 - OY + 12 + (tasks.length ? tasks.length * 22 + 12 : 0) + R + 8;   // お題の札のすぐ下（左上）。4.33.0：直径 64
+      g.save(); g.translate(14 + R + sh, fy); g.fillStyle = '#fff'; g.strokeStyle = hot ? '#e0362c' : '#4a2f1d'; g.lineWidth = 3; g.beginPath(); g.arc(0, 0, R, 0, TAU); g.fill(); g.stroke();
+      g.beginPath(); g.arc(0, 0, R - 2, 0, TAU); g.clip(); drawOwnerFace(g, 0, 4, 0.72, chaseN <= 0 ? true : chaseN === 1 ? 'grim' : false, room); g.restore(); }
   }
   if (state === 'caught') drawCutscene();
   // ポーズから戻るときの 3・2・1
@@ -6127,8 +6140,8 @@ function showCards(page) {
   ov.innerHTML = `<div class="panel paged" style="height:${pagedH()}px">${recTabs('cards')}
     <div class="big-logo" style="font-size:1.5rem">${lt('いたずら図鑑', 'Mischief Cards')}</div><p class="sub">${cardsGot.size} / ${CARDS.length}</p>
     <div class="pager"><div class="cards">${list.map(cd => {
-      if (cd.kind) return `<div class="${cd.ok ? '' : 'off'}"><i>${cd.ok ? (cd.kind === 'title' ? '🏆' : '🎬') : '？'}</i><b>${cd.ok ? cd.name : (cd.kind === 'ending' ? 'ENDING ？？？' : '？？？')}</b><small>${cd.desc}</small></div>`;
-      const ok = cardsGot.has(cd.id), pic = ok && cardPics[cd.id]; return `<div class="${ok ? '' : 'off'}">${pic ? `<img src="${pic}" alt="" width="128" height="128">` : `<i>${ok ? '🐾' : '？'}</i>`}<b>${ok ? cd.name : '？？？'}</b><small>${cd.desc}</small></div>`; }).join('')}</div></div>
+      if (cd.kind) return `<div class="${cd.ok ? '' : 'off'}"><i>${cd.ok ? (cd.kind === 'title' ? ICO.trophy : ICO.clap) : ICO.q}</i><b>${cd.ok ? cd.name : (cd.kind === 'ending' ? 'ENDING ？？？' : '？？？')}</b><small>${cd.desc}</small></div>`;
+      const ok = cardsGot.has(cd.id), pic = ok && cardPics[cd.id]; return `<div class="${ok ? '' : 'off'}">${pic ? `<img src="${pic}" alt="" width="128" height="128">` : `<i>${ok ? ICO.paw : ICO.q}</i>`}<b>${ok ? cd.name : '？？？'}</b><small>${cd.desc}</small></div>`; }).join('')}</div></div>
     ${pagerNav(cdPage, n)}
     <button class="btn go" id="cdBack" type="button">${lt('もどる', 'Back')}</button></div>`;
   $('cdBack').addEventListener('click', recBack()); bindRecTabs(); bindPager(cdPage, n, showCards);
@@ -6439,7 +6452,7 @@ async function showOver() {
     <div class="row"><button class="btn ${canCont() || canPostEnd() ? 'w' : 'go'}" id="bAgain" type="button">${lt(canCont() || canPostEnd() ? '1日目からやりなおす' : 'もう一回', canCont() || canPostEnd() ? 'Restart from Day 1' : 'Play again')}</button></div>
     <div class="share-row"><img id="card" alt="${lt('犯行現場写真', 'Crime scene photo')}" width="1200" height="630"><div class="col"><button class="btn t sm" id="bShare" type="button">${lt('シェア', 'Share')}</button><a class="btn sm" id="bLine" href="${lineUrl}" target="_blank" rel="noopener" style="background:#06c755;box-shadow:0 4px 0 #04963f">${lt('LINEで送る', 'Send on LINE')}</a><button class="btn w sm" id="bSave" type="button">${lt('画像を保存', 'Save image')}</button></div></div>
     <div class="row"><button class="btn w" id="bChange" type="button">${lt('トップへ', 'Title')}</button><button class="btn w" id="bRk" type="button">${lt('きろく', 'Records')}</button></div>
-    <a class="coffee" href="https://buymeacoffee.com/kotaooka" target="_blank" rel="noopener">${lt('☕ 作者にコーヒーをおごる', '☕ Buy me a coffee')}</a></div>`;
+    <a class="coffee" href="https://buymeacoffee.com/kotaooka" target="_blank" rel="noopener">${ICO.coffee}${lt('作者にコーヒーをおごる', 'Buy me a coffee')}</a></div>`;
   $('bAgain').addEventListener('click', () => { audio(); startGame(); });
   foldBadges();
   if ($('bCont')) $('bCont').addEventListener('click', () => { audio(); continueDay(); });
