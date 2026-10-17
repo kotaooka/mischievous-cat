@@ -136,6 +136,12 @@
   .res-yen { font-weight: 800; font-size: 1rem; margin: 0; color: var(--ink2); }
   .res-yen b { display: block; font-size: 2.2rem; color: var(--red-d); line-height: 1.15; }
   .badges { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 6px 0; }
+  .badge.hid { display: none; }
+  .badge.more { font: inherit; font-weight: 800; font-size: .8rem; cursor: pointer; background: var(--card); color: var(--org-d); border: 2px solid var(--org); }
+  /* 次の目標：結果画面の被害額の下に小さく */
+  .goal { margin: 2px 0 4px; font-size: .78rem; font-weight: 800; color: var(--teal-d); line-height: 1.5; }
+  .goal span { display: block; }
+  .goal span::before { content: '▶ '; color: var(--org); }
   .badge { background: var(--brn); color: var(--yel); font-weight: 800; border-radius: 999px; padding: 3px 12px; font-size: .9rem; }
   .badge.new { background: var(--red); color: #fff; }
   .panel img { width: 100%; height: auto; border-radius: 12px; display: block; margin: 6px 0; background: #f6e2c4; aspect-ratio: 1200 / 630; }
@@ -298,7 +304,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.18.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.19.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -821,7 +827,7 @@ let state = 'title', level = 1, sus = 0, muted = store.get('nekoMute', '0') === 
 let selCat = clamp((+store.get('nekoCat', 2)) | 0, 0, CATS.length - 1), bestYen = +store.get('nekoBestYen', 0) || 0;
 let tutDone = store.get('nekoTut', '0') === '1';
 let stageT = 0, clearT = 0, caughtT = 0, shake = 0, tAnim = 0, susCd = 0, slowT = 0, chainSeq = 0;
-let timeLeft = 40, timeMax = 40, lastTick = 99, bowl = null, feeds = 0, pausedFrom = null;
+let timeLeft = 40, timeMax = 40, lastTick = 99, bowl = null, feeds = 0, pausedFrom = null, resumeT = 0;   // resumeT：ポーズから戻るときの 3・2・1 の残り
 let room = 'living', kb = null, snack = null, dayT = 0, introT = 0, newAccs = [];
 let tasks = [], chaseT = 0, chaseUsed = false, hideT = 0, rideStage = 0, tapTarget = null, oneHand = store.get('nekoOneHand', '0') === '1';
 if (!catsOpen.has(CATS[selCat].id)) selCat = 2;
@@ -1364,7 +1370,7 @@ const diffL = L => L <= 4 ? L : L <= 12 ? 4 + (L - 4) * 0.65 : 9.2 + (L - 12);
 const postK = () => dayOf(level) > END_DAY ? 1 + 0.1 * (dayOf(level) - END_DAY) : 1;   // エンディング後の厳しさ
 const awayRange = L0 => { const L = diffL(L0), ex = Math.max(0, dayOf(L0) - END_DAY), f = L0 > 12 ? [Math.max(2.2, 3 - 0.2 * ex), Math.max(3.5, 4.5 - 0.25 * ex)] : [3.5, 5]; return [Math.max(f[0], 5.5 - 0.35 * L), Math.max(f[1], 8.5 - 0.5 * L)]; };   // 飼い主のいない時間（下限：3日目まで 3.5〜5 秒、エンディング後 3〜4.5 秒）
 const warnTime = L0 => Math.max(L0 > 12 ? 0.7 : 0.75, 0.95 - 0.04 * diffL(L0));   // 「？」から振り向くまで（4.7.0 で下限を 0.5 → 0.7 秒に）
-const lookTime = L => Math.min(3.2, 1.6 + 0.12 * diffL(L));
+const lookTime = L => Math.min(2.8, 1.4 + 0.11 * diffL(L));   // 4.19.0：3.2/1.6/0.12 → 2.8/1.4/0.11（じっとしている時間を1割ほど短く）
 const walkSpeed = L => Math.min(110, 60 + 4 * diffL(L));
 // 部屋ごとの見張り役：owner 飼い主／kid 子ども（速いが近くしか見ない）／grandma おばあちゃん（遅いが歩きながら振り返る）／dad お父さん（棚の上をよく見上げる）
 const WATCHER = { owner: { spd: 1 }, kid: { spd: 1.45, walkR: 150, lookR: 330 }, grandma: { spd: 0.7, walkR: 260, glance: 0.5 }, dad: { spd: 1, shelf: true } };
@@ -1445,7 +1451,7 @@ function arrive() {
 function startSearch() {
   susCd = 14;
   if (owner.mode === 'away') { owner.x = -40; owner.face = 1; owner.spd = walkSpeed(level); }
-  owner.lureT = 0; owner.up = false; setMode('search', 7);
+  owner.lureT = 0; owner.up = false; setMode('search', 6);   // 4.19.0：7 → 6 秒
   owner.gx = clamp(cat.x + rnd(-80, 80), 30, 330); owner.searchRetarget = 1.2;
   say(pick(LINES.search), 2.2); sfx.alert();
 }
@@ -2834,7 +2840,7 @@ function updSus(dt) {
     const key = cat.hidden ? 'box' : cat.safe ? 'tower' : cat.plat === PL.book ? 'book' : 'rail';
     if (cat.hideKey !== key) { cat.hideKey = key; cat.hideT = 0; } cat.hideT += dt;
     if (cat.hideT > 8 && o.mode !== 'away' && o.mode !== 'chase' && o.mode !== 'leave' && o.mode !== 'churu') {
-      if (o.mode !== 'search') { setMode('search', 6); say(lt('…あそこ、あやしい', '…Something\'s off over there'), 1.6); }
+      if (o.mode !== 'search') { setMode('search', 5); say(lt('…あそこ、あやしい', '…Something\'s off over there'), 1.6); }
       const sx = cat.hidden ? BOX.x : cat.x; o.gx = clamp(sx, 20, 335); o.searchRetarget = 1; o.t = Math.max(o.t, 2);
       if (Math.abs(o.x - clamp(sx, 20, 335)) < 40) evictHide(sx);
     }
@@ -4596,6 +4602,13 @@ function draw() {
     if (run && run.charm) drawCharmIcon(g, W / 2 + 66 + Math.sin(tAnim * 3) * 1.5, 24 - OY, 1.2);
   }
   if (state === 'caught') drawCutscene();
+  // ポーズから戻るときの 3・2・1
+  if (state === 'pause' && resumeT > 0) {
+    const n = Math.ceil(resumeT), k = resumeT - Math.floor(resumeT), sc = 1 + 0.25 * k;
+    g.fillStyle = 'rgba(74,47,29,.35)'; g.fillRect(0, -OY, W, VH);
+    g.save(); g.translate(W / 2, -OY + VH / 2); g.scale(sc, sc); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `800 96px ${FONT}`;
+    g.lineWidth = 12; g.strokeStyle = '#4a2f1d'; g.strokeText(String(n), 0, 0); g.fillStyle = '#ffc94a'; g.fillText(String(n), 0, 0); g.restore();
+  }
   g.restore();
 }
 
@@ -5125,9 +5138,16 @@ function navMove(dir) {
   if (best) navSet(best); else if (dir === 'D' || dir === 'R') navMove('next'); else navMove('prev');
 }
 function navRange(el, d) { el.value = clamp(+el.value + d, +el.min || 0, +el.max || 100); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); }
+// タイトル・結果画面の既定のボタン（あそぶ・もう一回・つづける）。Enter やパッドの A で、枠を出さずにそのまま押せる。結果画面は出てから 0.6 秒は受け付けない（連打の誤爆よけ）
+let overAt = 0;
+function defaultBtn() {
+  if (state !== 'title' && state !== 'over') return null;
+  if (state === 'over' && performance.now() - overAt < 600) return null;
+  return ov.querySelector('.btn.go:not([disabled])');
+}
 function navOk() {
   const cur = navCur(); if (!cur) return;
-  if (!navOn) { navOn = true; navSet(cur); return; }
+  if (!navOn) { const d = defaultBtn(); if (d) { audio(); d.click(); return; } navOn = true; navSet(cur); return; }
   audio(); if (cur.type === 'range') return; cur.click();
 }
 function navBack() {
@@ -5148,10 +5168,12 @@ function menuKey(k) {
 new MutationObserver(() => { navEl = null; if (navOn && menuActive()) navSet(navCur()); }).observe(ov, { childList: true });
 ov.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || navOn) { navOn = false; if (navEl) navEl.classList.remove('navf'); } });
 function pauseGame() {
+  if (state === 'pause' && resumeT > 0) { resumeT = 0; showPause(); return; }   // カウント中にまたポーズ
   if (state !== 'play' && state !== 'clear') return;
   pausedFrom = state; state = 'pause'; stick = null; keys.L = keys.R = false; punchUp(); setPulse(null); showPause();
 }
-function resumeGame() { if (state !== 'pause') return; ov.hidden = true; state = pausedFrom; }
+// つづける：画面を閉じて 3・2・1 を数えてから動かす（見た瞬間に捕まらないように）。数えている間にもう一度ポーズするとメニューに戻る
+function resumeGame() { if (state !== 'pause') return; if (resumeT > 0) { resumeT = 0; showPause(); return; } ov.hidden = true; resumeT = pausedFrom === 'play' ? 3 : 0.01; }
 function showPause() {
   ov.hidden = false;
   ov.innerHTML = `<div class="panel">
@@ -5174,7 +5196,33 @@ function shareText() {
   return lt(`本日の被害額 ${yen(run.yen)}\nステージ${run.stage}（${dayName(run.stage)}・${phaseOf(run.stage).name}）／★${run.stars}／称号「${titleOf(run.yen)}」\n飼い主「${run.comment}」\n#MischievousCat #こっそりネコ`,
     `Today's damage: ${yen(run.yen)}\nStage ${run.stage} (${dayName(run.stage)} · ${phaseOf(run.stage).name}) / ★${run.stars} / Title: ${titleOf(run.yen)}\nOwner: "${run.comment}"\n#MischievousCat #こっそりネコ`);
 }
+// 次の目標：結果画面に1〜2行。近い順に「ベスト更新まで」「次の被害額の称号まで」、集めもの（きせかえ・カード）
+function nextGoal() {
+  const rows = [];
+  const y = Math.round(run.yen);
+  const tt = TITLES.filter(t => t.tier != null && t.tier > y && !unlocked.has(t.id)).sort((a, b) => a.tier - b.tier)[0];
+  const cands = [];
+  if (!newRec && bestYen > y) cands.push({ gap: bestYen - y, text: lt(`あと ${yen(bestYen - y)} でベスト更新`, `${yen(bestYen - y)} to your best`) });
+  if (tt) cands.push({ gap: tt.tier - y, text: lt(`あと ${yen(tt.tier - y)} で「${tt.name}」`, `${yen(tt.tier - y)} to "${tt.name}"`) });
+  cands.sort((a, b) => a.gap - b.gap); if (cands.length) rows.push(cands[0].text);
+  const acc = ACCS.filter(a => a.need > 0 && !a.ending && a.need > unlocked.size).sort((a, b) => a.need - b.need)[0];
+  const left = CARDS.length - cardsGot.size;
+  if (acc && acc.need - unlocked.size <= 3) rows.push(lt(`称号あと ${acc.need - unlocked.size} 個で きせかえ「${acc.name}」`, `${acc.need - unlocked.size} more title${acc.need - unlocked.size > 1 ? 's' : ''} for "${acc.name}"`));
+  else if (left > 0 && cardsGot.size > 0) rows.push(lt(`いたずらカード あと ${left} 枚`, `${left} mischief card${left > 1 ? 's' : ''} to go`));
+  if (!rows.length) return '';
+  return `<p class="goal">${rows.map(r => `<span>${r}</span>`).join('')}</p>`;
+}
+// バッジ（NEW 称号・カード・きせかえ）が4つ以上なら、3つだけ見せて残りは「+N」で開く
+function foldBadges() {
+  const box = ov.querySelector('.badges'); if (!box) return;
+  const bs = [...box.querySelectorAll('.badge')]; if (bs.length <= 3) return;
+  bs.slice(3).forEach(b => b.classList.add('hid'));
+  const more = document.createElement('button'); more.type = 'button'; more.className = 'badge more'; more.textContent = '+' + (bs.length - 3);
+  more.addEventListener('click', () => { bs.forEach(b => b.classList.remove('hid')); more.remove(); });
+  box.appendChild(more);
+}
 async function showOver() {
+  overAt = performance.now();
   // X は x.com/intent/post だと、スマホのアプリで本文が空になることがあるので、互換の twitter.com/intent/tweet を使う
   // LINE は画像つきで共有すると文章が消えるので、文章とリンクだけを送るボタンを別に置く
   const lineUrl = 'https://line.me/R/share?text=' + encodeURIComponent(shareText() + '\n' + SITE);
@@ -5184,6 +5232,7 @@ async function showOver() {
     <p class="best" style="font-size:.8rem;font-weight:500;margin-top:2px">★${run.stars}${run.skill > 0 ? lt(`　・　腕前 +${yen(run.skill)}`, ` · Skill +${yen(run.skill)}`) : ''}</p>
     ${newRec ? `<p class="best" style="color:var(--red-d)">${lt('ベスト更新!', 'New best!')}</p>` : ''}
     ${onlineBox()}
+    ${nextGoal()}
     <div class="badges">${newTitles.includes(titleOf(run.yen)) ? '' : `<span class="badge">${titleOf(run.yen)}</span>`}${newTitles.map(n => `<span class="badge new">NEW ${n}</span>`).join('')}${newCards.map(n => `<span class="badge new" style="background:var(--teal-d)">${lt('カード', 'CARD')} ${n}</span>`).join('')}${newAccs.map(n => `<span class="badge new" style="background:var(--teal)">${lt('きせかえ', 'NEW')} ${n}</span>`).join('')}${newCats.map(n => `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ', 'NEW CAT')} ${n}</span>`).join('')}</div>
     ${canPostEnd() ? `<div class="row"><button class="btn go" id="bNext" type="button">${lt(dayName(run.stage + 1) + 'からつづける', 'Continue to ' + dayName(run.stage + 1))}</button></div>` : ''}
     ${canCont() ? `<div class="row"><button class="btn go" id="bCont" type="button">${lt(dayName(run.ck.level) + 'の朝からつづける', 'Continue from ' + dayName(run.ck.level) + ' morning')}</button></div><p class="best" style="margin:0 0 6px;font-weight:500;font-size:.78rem">${lt('被害額は朝の時点に戻ります。続けた回数はランキングに載ります', 'Damage goes back to that morning. Restarts are shown in the ranking')}</p>` : ''}
@@ -5194,6 +5243,7 @@ async function showOver() {
     <div class="row"><button class="btn w" id="bChange" type="button">${lt('トップへ', 'Title')}</button><button class="btn w" id="bRk" type="button">${lt('きろく', 'Records')}</button></div>
     <a class="coffee" href="https://buymeacoffee.com/kotaooka" target="_blank" rel="noopener">${lt('☕ 作者にコーヒーをおごる', '☕ Buy me a coffee')}</a></div>`;
   $('bAgain').addEventListener('click', () => { audio(); startGame(); });
+  foldBadges();
   if ($('bCont')) $('bCont').addEventListener('click', () => { audio(); continueDay(); });
   if ($('bNext')) $('bNext').addEventListener('click', () => { audio(); ov.hidden = true; run.sent = false; carryT = 0; setupStage(run.stage + 1); state = 'play'; bgmStart(); });
   $('bChange').addEventListener('click', showTitle);
@@ -5408,7 +5458,7 @@ window.addEventListener('keydown', e => {
   if (menuActive() && !(e.target && e.target.tagName === 'INPUT' && e.target.type !== 'range')) {
     const dir = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D' }[k];
     if (dir) { e.preventDefault(); const cur = navOn ? navCur() : null; if (cur && cur.type === 'range' && (dir === 'L' || dir === 'R')) navRange(cur, dir === 'L' ? -5 : 5); else navMove(dir); return; }
-    if (k === 'Enter' || k === ' ') { if (navOn) { e.preventDefault(); navOk(); return; } }
+    if (k === 'Enter' || k === ' ') { if (navOn) { e.preventDefault(); navOk(); return; } if (k === 'Enter' && defaultBtn()) { e.preventDefault(); audio(); defaultBtn().click(); return; } }
     if (k === 'Escape' || k === 'Backspace') { if (state !== 'pause') { e.preventDefault(); navBack(); return; } }
   }
   if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.L = true;
@@ -5444,6 +5494,7 @@ function frame(ts) {
   pollPad();
   if (hitStop > 0 && state === 'play') { hitStop -= dt; tAnim += dt * 0.2; } else { hitStop = 0; update(dt); }
   if (zoomK > 0) zoomK = Math.max(0, zoomK - dt * 3.5);
+  if (state === 'pause' && resumeT > 0) { const n0 = Math.ceil(resumeT); resumeT -= dt; if (resumeT <= 0) { resumeT = 0; state = pausedFrom; } else if (Math.ceil(resumeT) !== n0) sfx.tick(); }
   updStick(dt); if (state === 'play') updHideMark(); draw(); drawStick(); hud();
   requestAnimationFrame(frame);
 }
