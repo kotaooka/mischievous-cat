@@ -238,7 +238,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.5.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.5.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1079,7 +1079,7 @@ function setupStage(L) {
     }
     Object.assign(shelfTilt, { a: 0, dir: 0, t: 0, cd: 2, wob: 0 }); churuRes = 0;
   }
-  guest = phaseOf(L).special === 'guest' ? { x: 405, face: -1, mode: 'chat', t: 4, say: '', sayT: 0, warn: 0 } : null; talkQ = []; offSay = null;
+  guest = phaseOf(L).special === 'guest' ? { x: 405, face: -1, mode: 'chat', t: 3, say: '', sayT: 0, warn: 0 } : null; talkQ = []; offSay = null;
   if (L >= 2 && run && !run.charm && Math.random() < 0.12) {
     const sp = pick(avail.filter(k => k !== 'table' || room !== 'bath')), r = spotOf(sp);
     charm = { plat: PL[sp], x: rnd(r[0], r[1]) };
@@ -1228,7 +1228,7 @@ function rush(x) {
 }
 function hearNoise(x, loud) {
   const o = owner;
-  if (guest && loud >= 0.3) guestHear(x);
+  if (guest && loud >= 0.6) guestHear(x);
   if (room === 'kids' && loud >= 0.5 && o.mode !== 'away' && !talkQ.length && Math.random() < 0.5) talkQ = [{ who: 'owner', text: lt('ママー！', 'MOM!'), at: stageT + 0.6 }, { who: 'off', text: lt('なにー？ どうしたのー？', 'What is it, honey?'), at: stageT + 1.6 }];
   // 物音だけ（見られていない）では見つからない：部屋にいないときは 55%、いても見ていないときは 80% までしか上げない
   const noise = (v, cap) => { sus = Math.max(sus, Math.min(sus + v, cap)); };
@@ -2280,10 +2280,12 @@ const BANTER = [
 ];
 const GUEST_HEAR = [tx('今の音なに？', 'What was that?'), tx('え、何か落ちた？', 'Did something fall?'), tx('ネコちゃん？', 'Was that the cat?')];
 const OWNER_REPLY = [tx('ネコかなあ…', 'Probably the cat…'), tx('気のせいじゃない？', 'Just your imagination?'), tx('ちょっと見てくる', "I'll go check")];
-function guestSees(x) { const q = guest; if (!q || q.warn > 0) return false; if (q.mode !== 'chat') return Math.abs(x - q.x) < 40; return (x - q.x) * q.face >= -10 && Math.abs(x - q.x) <= 250; }
+// お客さんの見張り（4.5.2 で易しく）：見える幅 GUEST_R、話している（見ている）時間、よそ見の時間、振り向く前の「？」の時間
+const GUEST_R = 170, GUEST_CHAT = [2.5, 3.5], GUEST_AWAY = [3.5, 5], GUEST_WARN = 1;
+function guestSees(x) { const q = guest; if (!q || q.warn > 0) return false; if (q.mode !== 'chat') return Math.abs(x - q.x) < 40; return (x - q.x) * q.face >= -10 && Math.abs(x - q.x) <= GUEST_R; }
 function guestHear(x) {
-  const q = guest; if (!q || stageT - (q.heard || -9) < 3) return; q.heard = stageT;
-  q.face = Math.sign(x - q.x) || q.face; if (q.mode !== 'chat') { q.mode = 'chat'; q.t = rnd(2.5, 4); }
+  const q = guest; if (!q || stageT - (q.heard || -9) < 5) return; q.heard = stageT;
+  q.face = Math.sign(x - q.x) || q.face; if (q.mode !== 'chat') { q.mode = 'chat'; q.t = rnd(...GUEST_CHAT); }
   talkQ = [{ who: 'guest', text: pick(GUEST_HEAR), at: stageT }, { who: 'owner', text: pick(OWNER_REPLY), at: stageT + 1.3 }];
 }
 function updTalk(dt) {
@@ -2292,8 +2294,8 @@ function updTalk(dt) {
   const q = guest;
   if (q) {
     if (q.sayT > 0) q.sayT -= dt;
-    if (q.warn > 0) { q.warn -= dt; if (q.warn <= 0) { q.mode = 'chat'; q.t = rnd(3, 5); q.face = -1; } }
-    else { q.t -= dt; if (q.t <= 0) { if (q.mode === 'chat') { q.mode = pick(['phone', 'drink']); q.t = rnd(2.5, 4); } else q.warn = 0.7; } }
+    if (q.warn > 0) { q.warn -= dt; if (q.warn <= 0) { q.mode = 'chat'; q.t = rnd(...GUEST_CHAT); q.face = -1; } }
+    else { q.t -= dt; if (q.t <= 0) { if (q.mode === 'chat') { q.mode = pick(['phone', 'drink']); q.t = rnd(...GUEST_AWAY); } else q.warn = GUEST_WARN; } }
     if (!talkQ.length && owner.mode !== 'away' && owner.mode !== 'search' && owner.mode !== 'chase' && stageT - (q.lastTalk || 0) > 7 && Math.random() < dt * 0.3) {
       const p = pick(BANTER); q.lastTalk = stageT; talkQ.push({ who: p[0], text: p[1], at: stageT }, { who: p[2], text: p[3], at: stageT + 1.6 });
     }
@@ -2309,7 +2311,7 @@ function drawGuest() {
   const q = guest; if (!q) return;
   const x = q.x, y = FLOOR;
   // 見える範囲
-  if (q.mode === 'chat' && q.warn <= 0) { g.fillStyle = 'rgba(255,120,180,.1)'; if (q.face < 0) g.fillRect(x - 250, -OY, 250, FLOOR + OY); else g.fillRect(x, -OY, 250, FLOOR + OY); }
+  if (q.mode === 'chat' && q.warn <= 0) { g.fillStyle = 'rgba(255,120,180,.1)'; if (q.face < 0) g.fillRect(x - GUEST_R, -OY, GUEST_R, FLOOR + OY); else g.fillRect(x, -OY, GUEST_R, FLOOR + OY); }
   // スツール
   g.fillStyle = '#8a5a34'; g.fillRect(x - 14, y - 34, 28, 6); g.fillRect(x - 12, y - 28, 4, 28); g.fillRect(x + 8, y - 28, 4, 28);
   g.save(); g.translate(x, y - 34); g.scale(q.face, 1);
@@ -2443,7 +2445,7 @@ function updSus(dt) {
   // ほかの見張り：お客さんとペットカメラ（ネコのいたずら・動いているものを見ると上がる）
   if (!cat.hidden && !cat.safe && chaseT <= 0) {
     const ex = [];
-    if (guestSees(cat.x)) ex.push(guest.mode === 'chat' ? 45 : 20);
+    if (guestSees(cat.x)) ex.push(guest.mode === 'chat' ? 30 : 15);
     for (const cm of cams) if (camSees(cm, cat.x)) { ex.push(40); cm.rec = 0.6; }
     for (const r of ex) {
       if (cat.punchT > 0) { gain += r * cat.type.sus; cat.mark = 0.4; }
@@ -2452,7 +2454,7 @@ function updSus(dt) {
     }
     if (ex.length) { seen = true; exSeen = true; }
   }
-  if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { gain += 24; it.mark = 0.4; it.spotted = true; break; } }
+  if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { gain += cams.some(cm => camSees(cm, it.x)) ? 24 : 16; it.mark = 0.4; it.spotted = true; break; } }
   if (o.mode === 'search') gain *= 1.15;
   if (gain > 0) sus += gain * dt;
   else if (o.mode !== 'search') sus -= (seen ? 6 : (o.mode === 'away' ? 24 : 14)) * dt;
