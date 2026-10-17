@@ -238,7 +238,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.8.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.8.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1265,7 +1265,7 @@ function hearNoise(x, loud) {
   // 物音だけ（見られていない）では見つからない：部屋にいないときは 55%、いても見ていないときは 80% までしか上げない
   const noise = (v, cap) => { sus = Math.max(sus, Math.min(sus + v, cap)); };
   if (o.mode === 'away' || o.x < 6 || o.x > W - 6) { noise(12 * loud, 55); if (o.mode === 'away') { o.t = Math.min(o.t, 0.8); o.hint = x; } return; }
-  if (ownerSees(x)) { sus += 40 * loud; if (loud >= 0.5 && o.mode !== 'search') { o.shock = 0.9; say(pick(LINES.seen), 1.2); } }
+  if (ownerSees(x)) { if (inEscape()) noise(40 * loud, 90); else sus += 40 * loud; if (loud >= 0.5 && o.mode !== 'search') { o.shock = 0.9; say(pick(LINES.seen), 1.2); } }
   else { noise(12 * loud, 80); if (o.mode !== 'search') { o.face = Math.sign(x - o.x) || o.face; o.lureT = Math.max(o.lureT, 1.2); say(pick(LINES.unseen), 1.2); } }
   if (dog && dog.cd <= 0 && Math.abs(x - dog.x) < 70 && loud >= 0.8) dogBark();
 }
@@ -2502,6 +2502,9 @@ function updSus(dt) {
   }
   if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { const ic = cams.some(cm => camSees(cm, it.x)); gain += ic ? 24 : 16; exBy = exBy || (ic ? 'cam' : 'guest'); it.mark = 0.4; it.spotted = true; break; } }
   if (o.mode === 'search') gain *= 1.15;
+  // 逃げ場所（ダンボール・キャットタワーの上・高い所）でじっとしている間は、足跡や転がるもの・音があっても上げない。探している最中でも少しずつ下げる
+  const hiding = inEscape() && !(cat.punchT > 0) && !cat.scratch;
+  if (hiding) { gain = 0; if (o.mode === 'search') sus -= 6 * dt; }
   if (gain > 0) { sus += gain * dt; run.lastBy = gain - g0 > g0 && exBy ? exBy : watcherOf(); }   // いちばん多く上げた見張りを、見つかった原因として覚える
   else if (o.mode !== 'search') sus -= (seen ? 6 : (o.mode === 'away' ? 24 : 14)) * dt;
   if (susCd > 0) susCd -= dt;
@@ -2514,6 +2517,7 @@ function updSus(dt) {
   stageMaxSus = Math.max(stageMaxSus, sus);
   // 飼い主が部屋の外にいるときは、100% になっても見つからない（戻ってくるまで 99% で待つ）。お客さん・カメラに見られているときは別
   if (sus >= 100 && !exSeen && (o.mode === 'away' || o.x < 6 || o.x > W - 6)) sus = 99;
+  if (sus >= 100 && hiding) sus = 99;   // 逃げ場所にいる間は見つからない
   if (sus >= 100) { sus = 100; if (!chaseUsed) startChase(); else caught(); }
 }
 // 見つかったら、1ステージに1回だけ追いかけっこ。3秒以内にダンボールかタワーへ逃げ込めば助かる
@@ -2524,6 +2528,7 @@ function startChase() {
 }
 // 逃げ場所の高い所：本棚の上・カーテンレール・吊り棚・エアコン（手が届かない）
 const isHigh = () => !!cat.plat && cat.plat !== VACP && cat.plat.y <= PL.book.y + 5;
+const inEscape = () => !!cat && (cat.hidden || cat.safe || isHigh());   // 逃げ場所にいる
 function updChase(dt) {
   const o = owner; chaseT -= dt;
   const high = isHigh();
