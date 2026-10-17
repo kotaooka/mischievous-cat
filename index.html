@@ -79,10 +79,6 @@
   /* 怪しまれ度は色だけでなく、言葉・しま模様・目の開き具合でも段階を示す */
   #meter.l5 .lvl { background: #4a2f1d; color: #fff; animation: lvb .4s steps(2) infinite; }
   #meter.l5 .bar { border-color: #4a2f1d; box-shadow: 0 0 0 2px rgba(74,47,29,.4); }
-  #meter #hFace { flex: none; width: 44px; height: 44px; margin: -8px 0; border-radius: 50%; border: 2.5px solid var(--line); background: #fff; box-shadow: 0 2px 0 rgba(94,58,28,.25); }
-  #meter #hFace[hidden] { display: none; }
-  #meter #hFace.shake { animation: faceShake .25s ease-in-out infinite; }
-  @keyframes faceShake { 0%, 100% { transform: translateX(-1px) rotate(-4deg); } 50% { transform: translateX(1px) rotate(4deg); } }
   #meter .lvl { flex: none; min-width: 4.6em; text-align: center; font-weight: 800; font-size: .8rem; border: 2px solid var(--line); border-radius: 999px; padding: 0 6px; background: var(--card); color: var(--ink); line-height: 1.5; white-space: nowrap; }
   #meter svg circle { transform-origin: 13px 9px; transition: transform .2s; }
   #meter.l0 svg circle { transform: scale(.55); }
@@ -297,7 +293,6 @@
   <div id="meter" aria-label="怪しまれ度">
     <svg viewBox="0 0 26 18" aria-hidden="true"><path d="M1 9C5 2 21 2 25 9C21 16 5 16 1 9Z" fill="#fff" stroke="#4a2f1d" stroke-width="2"/><circle cx="13" cy="9" r="4" fill="#4a2f1d"/></svg>
     <span class="bar"><i id="hB"></i></span>
-    <canvas id="hFace" width="88" height="88" aria-label="飼い主の機嫌" hidden></canvas>
     <b class="lvl" id="hS" aria-live="polite">へいき</b>
   </div>
   <button id="upd" type="button" hidden></button>
@@ -331,7 +326,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.32.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.32.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -5673,6 +5668,10 @@ function draw() {
     g.fillStyle = ic; g.font = `800 19px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(sec), 9, 1);
     g.restore();
     if (run && run.charm) drawCharmIcon(g, W / 2 + 66 + Math.sin(tAnim * 3) * 1.5, 24 - OY, 1.2);
+    // 飼い主の顔（4.32.1：ゲーム画面の中、時計の左）：追いかけっこの残り。残り 2 にこにこ → 残り 1 むっ → 残り 0 かんかん。追いかけっこ中・「次はない!」は震える
+    { const hot = chaseT > 0 || (chaseN >= 2 && sus >= 70 && state === 'play'), sh = hot && !SET.calm ? Math.sin(tAnim * 40) * 2 : 0;
+      g.save(); g.translate(W / 2 - 74 + sh, 24 - OY); g.fillStyle = '#fff'; g.strokeStyle = hot ? '#e0362c' : '#4a2f1d'; g.lineWidth = 2.5; g.beginPath(); g.arc(0, 0, 19, 0, TAU); g.fill(); g.stroke();
+      g.beginPath(); g.arc(0, 0, 17.5, 0, TAU); g.clip(); drawOwnerFace(g, 0, 2, 0.42, chaseN <= 0 ? true : chaseN === 1 ? 'grim' : false, room); g.restore(); }
   }
   if (state === 'caught') drawCutscene();
   // ポーズから戻るときの 3・2・1
@@ -5782,9 +5781,7 @@ function hud() {
   hY.textContent = y; hB.style.width = b + '%';
   hB.style.background = b >= 70 ? 'var(--red)' : b >= 40 ? 'var(--yel)' : 'var(--teal)';
   meterEl.className = 'l' + lv; frameEl.className = (state === 'play' || state === 'clear') ? 'l' + lv : '';
-  // 飼い主の顔（4.30.1）：追いかけっこの残りを表情で見せる。残り 2 にこにこ → 残り 1 むっ → 残り 0 かんかん。追いかけっこ中・「次はない!」のときは震える
-  { const fc = $('hFace'), sh = state === 'play' || state === 'clear' || state === 'pause' || state === 'caught'; fc.hidden = !sh;
-    if (sh) { const c2 = fc.getContext('2d'); c2.setTransform(1, 0, 0, 1, 0, 0); c2.clearRect(0, 0, 88, 88); c2.fillStyle = '#fff'; c2.fillRect(0, 0, 88, 88); drawOwnerFace(c2, 44, 46, 0.86, chaseN <= 0 ? true : chaseN === 1 ? 'grim' : false, room); fc.classList.toggle('shake', lv === 3 || lv === 5); } } hS.textContent = [lt('へいき', 'Calm'), lt('あやしい', 'Wary'), lt('やばい!', 'Danger!'), lt('にげろ!', 'RUN!'), lt('かくれ中', 'Hidden'), lt('次はない!', 'NO CHANCE!')][lv];
+ hS.textContent = [lt('へいき', 'Calm'), lt('あやしい', 'Wary'), lt('やばい!', 'Danger!'), lt('にげろ!', 'RUN!'), lt('かくれ中', 'Hidden'), lt('次はない!', 'NO CHANCE!')][lv];
 }
 const ohLabel = () => lt('スティック操作：', 'Touch stick: ') + (oneHand ? 'ON' : 'OFF');
 // 言語を切り替える：保存して、HTML に直接書いた文字（下のボタン・読み上げ用のラベル・ページの題名）も書き換える
