@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.12.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.12.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -4513,7 +4513,7 @@ function showTitle() {
     <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
     <div class="row"><button class="btn w" id="stBtn" type="button">${lt('通算記録', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('設定', 'Settings')}</button></div>
     <div class="row"><button class="btn w" id="rkBtn" type="button">${lt('ランキング', 'Ranking')}</button><button class="btn w" id="zkBtn" type="button">${lt('称号図鑑', 'Titles')} ${unlocked.size}/${TITLES.length}</button></div>
-    ${a2hsBox()}<p class="best">${lt('ベスト被害額', 'Best damage')} ${yen(bestYen)}</p>${verLine()}</div>`;
+    ${a2hsBox()}</div>`;
   ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
   ov.querySelectorAll('.cats button').forEach(b => b.addEventListener('click', () => {
     selCat = +b.dataset.i; store.set('nekoCat', String(selCat)); audio(); bgmStart(); sfx.meow(CATS[selCat].voice, pickVoice());
@@ -4529,13 +4529,7 @@ function showTitle() {
   bindA2hs();
   $('zkBtn').addEventListener('click', showZukan);
   $('rkBtn').addEventListener('click', () => showRank());
-  // 確認用の隠し操作：通算記録を2秒以内に5回押すと、エンディングだけを再生する（記録・称号には残さない）
-  let stTaps = [];
-  $('stBtn').addEventListener('click', () => {
-    const now = performance.now(); stTaps = stTaps.filter(t => now - t < 2000); stTaps.push(now);
-    if (stTaps.length >= 5) { stTaps = []; audio(); ov.hidden = true; newRun(); run.preview = true; setupStage(DAY_LEN * END_DAY); startEnding(); return; }
-    setTimeout(() => { if (stTaps.length && state === 'title' && performance.now() - stTaps[stTaps.length - 1] >= 380 && ov.querySelector('#stBtn')) { stTaps = []; showLife(); } }, 400);
-  });
+  $('stBtn').addEventListener('click', showLife);
   $('seBtn').addEventListener('click', () => showSettings(showTitle));
 }
 // ---------- みんなのランキング（Firebase Cloud Firestore の REST API）----------
@@ -4719,7 +4713,7 @@ function showSettings(back) {
     <div class="row"><button class="btn w" id="sOh" type="button">${ohLabel()}</button><button class="btn w" id="sLg" type="button" lang="${lt('en', 'ja')}">${lt('English', '日本語')}</button></div>
     <div class="row"><button class="btn w" id="sFx" type="button">${lt('演出：', 'Effects: ') + (SET.calm ? lt('ひかえめ（揺れ・ズーム・点滅なし）', 'Reduced (no shake, zoom, flashing)') : lt('ふつう', 'Full'))}</button></div>
     <p class="best" style="font-weight:500;font-size:.78rem">${lt('ゲームパッド：十字キー／左スティックで移動、A ジャンプ、X か B パンチ（長押しで強）、Y 鳴く、START ポーズ', 'Gamepad: D-pad/stick move, A jump, X or B punch (hold = power), Y meow, START pause')}</p>
-    <button class="btn go" id="sBack" type="button">${lt('もどる', 'Back')}</button></div>`;
+    <button class="btn go" id="sBack" type="button">${lt('もどる', 'Back')}</button>${verLine()}</div>`;
   const bind = (id, key, store_) => { const el = $(id); el.addEventListener('input', () => { SET[key] = +el.value; $(id + 'V').textContent = el.value; store.set(store_, String(SET[key])); audio(); applySettings(); }); };
   bind('sBgm', 'bgm', 'nekoBgmVol'); bind('sSe', 'se', 'nekoSeVol');
   $('sSe').addEventListener('change', () => sfx.meow(CATS[selCat].voice, pickVoice()));
@@ -4729,6 +4723,13 @@ function showSettings(back) {
   $('sFx').addEventListener('click', () => { SET.calm = !SET.calm; store.set('nekoCalm', SET.calm ? '1' : '0'); applySettings(); showSettings(back); });
   $('sLg').addEventListener('click', () => { setLang(lt('en', 'ja')); showSettings(back); });
   $('sBack').addEventListener('click', back);
+  // 確認用の隠し操作：バージョン表示を2秒以内に5回押すと、エンディングだけを再生する（記録・称号には残さない）
+  const vEl = ov.querySelector('.ver');
+  if (vEl) { let taps = []; vEl.addEventListener('click', e => {
+    if (e.target.tagName === 'A') return;
+    const now = performance.now(); taps = taps.filter(t => now - t < 2000); taps.push(now);
+    if (taps.length >= 5) { taps = []; audio(); ov.hidden = true; newRun(); run.preview = true; setupStage(DAY_LEN * END_DAY); startEnding(); }
+  }); }
 }
 // ---------- 通算記録 ----------
 const CAUSE_N = { owner: tx('飼い主', 'Owner'), kid: tx('子ども', 'Kid'), grandma: tx('おばあちゃん', 'Grandma'), dad: tx('お父さん', 'Dad'), guest: tx('お客さん', 'Guest'), cam: tx('ペットカメラ', 'Pet camera'), time: tx('時間切れ', 'Time up') };
@@ -4874,7 +4875,7 @@ function showPause() {
     <button class="btn go" id="pResume" type="button">${lt('つづける', 'Resume')}</button>
     <div class="row"><button class="btn w" id="pRetry" type="button">${lt('やりなおす', 'Restart')}</button><button class="btn w" id="pTop" type="button">${lt('トップへ', 'Title')}</button></div>
     <div class="row"><button class="btn w" id="pSnd" type="button">${muted ? lt('音をオンにする', 'Sound on') : lt('音をオフにする', 'Sound off')}</button><button class="btn w" id="pSet" type="button">${lt('設定', 'Settings')}</button></div>
-${verLine()}</div>`;
+</div>`;
   $('pResume').addEventListener('click', resumeGame);
   $('pRetry').addEventListener('click', () => { audio(); startGame(); });
   $('pTop').addEventListener('click', showTitle);
@@ -4994,9 +4995,15 @@ async function makeCard() {
 }
 
 // ---------- 入力 ----------
+// ステージクリア・1日の終わりの画面：タップやボタンですぐ次へ（出てすぐ 0.4 秒は受け付けない。連打の勢いで飛ばさないように）
+function skipInterlude() {
+  if (state === 'clear' && clearT < 2.0) { clearT = 0; return true; }
+  if (state === 'dayend' && dayT < 3.6) { dayT = 0; return true; }
+  return false;
+}
 function churuMash() { if (owner.mode === 'churu' && cat && cat.churuPull) { churuRes = Math.min(1.4, churuRes + 0.24); } }
-function jumpPress() { churuMash(); if (state === 'play' || state === 'clear') cat.jumpBuf = 0.12; }
-function punchDown() { churuMash(); if (state !== 'play' || cat.pDown) return; cat.pDown = true; cat.pHeld = 0; }
+function jumpPress() { if (skipInterlude()) return; churuMash(); if (state === 'play' || state === 'clear') cat.jumpBuf = 0.12; }
+function punchDown() { if (skipInterlude()) return; churuMash(); if (state !== 'play' || cat.pDown) return; cat.pDown = true; cat.pHeld = 0; }
 function punchUp() {
   if (!cat.pDown) return; cat.pDown = false;
   // 長押しで爪とぎをしていたなら、離してもパンチはしない
@@ -5041,6 +5048,7 @@ function stickEnd(cancel) {
   if (Math.abs(w.x - cat.x) > 16 && !cat.hang) cat.face = Math.sign(w.x - cat.x);
   punchDown(); punchUp();
 }
+cv.addEventListener('pointerdown', e => { if (skipInterlude()) e.preventDefault(); });
 cv.addEventListener('pointerdown', e => {
   if ((state !== 'play' && state !== 'clear') || !oneHand) return;
   e.preventDefault(); audio();
@@ -5097,6 +5105,7 @@ bPause.addEventListener('click', pauseGame);
 soundLabel();
 window.addEventListener('keydown', e => {
   const k = e.key;
+  if ((k === 'Enter' || k === ' ') && skipInterlude()) { e.preventDefault(); return; }
   if (menuActive() && !(e.target && e.target.tagName === 'INPUT' && e.target.type !== 'range')) {
     const dir = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D' }[k];
     if (dir) { e.preventDefault(); const cur = navOn ? navCur() : null; if (cur && cur.type === 'range' && (dir === 'L' || dir === 'R')) navRange(cur, dir === 'L' ? -5 : 5); else navMove(dir); return; }
