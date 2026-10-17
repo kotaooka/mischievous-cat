@@ -244,7 +244,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.13.2', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.14.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -4558,8 +4558,7 @@ function showTitle() {
     <div class="stats" id="stats"></div>
     <div class="accs" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" aria-pressed="${a.id === selAcc}" ${ok ? '' : 'disabled'}>${ok ? a.name : a.ending ? lt('エンディング', 'Ending') : '★' + a.need}</button>`; }).join('')}</div>
     <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
-    <div class="row"><button class="btn w" id="stBtn" type="button">${lt('通算記録', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('設定', 'Settings')}</button></div>
-    <div class="row"><button class="btn w" id="rkBtn" type="button">${lt('ランキング', 'Ranking')}</button><button class="btn w" id="zkBtn" type="button">${lt('称号図鑑', 'Titles')} ${unlocked.size}/${TITLES.length}</button></div>
+    <div class="row"><button class="btn w" id="recBtn" type="button">${lt('きろく', 'Records')}</button><button class="btn w" id="seBtn" type="button">${lt('せってい', 'Settings')}</button></div>
     ${a2hsBox()}</div>`;
   ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.scale(2, 2); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
   ov.querySelectorAll('.cats button').forEach(b => b.addEventListener('click', () => {
@@ -4574,9 +4573,7 @@ function showTitle() {
   showStats();
   $('goBtn').addEventListener('click', () => { audio(); startGame(); });
   bindA2hs();
-  $('zkBtn').addEventListener('click', showZukan);
-  $('rkBtn').addEventListener('click', () => showRank());
-  $('stBtn').addEventListener('click', showLife);
+  $('recBtn').addEventListener('click', () => showRank());
   $('seBtn').addEventListener('click', () => showSettings(showTitle));
 }
 // ---------- みんなのランキング（Firebase Cloud Firestore の REST API）----------
@@ -4712,12 +4709,12 @@ function showRank(tab) {
     ? (ranking.length ? `<table class="rank"><tbody>${ranking.map(local).join('')}</tbody></table>` : `<p class="best">${lt('まだ記録がありません', 'No records yet')}</p>`)
     : `<div id="wList"><p class="best">${lt('読み込み中…', 'Loading…')}</p></div>`;
   const nameRow = tab !== 'local' ? `<div class="row"><input id="nmIn2" class="nm" maxlength="10" placeholder="${NM_PH()}" value="${esc(myName)}" autocomplete="off"><button class="btn w" id="nmSave" type="button" style="flex:none;padding:10px 14px">${lt('保存', 'Save')}</button></div><p class="nm-err" id="nmErr2"></p>` : '';
-  ov.innerHTML = `<div class="panel">
+  ov.innerHTML = `<div class="panel">${recTabs('rank')}
     <div class="big-logo" style="font-size:1.5rem">${lt('ランキング', 'Ranking')}</div><p class="sub">${tab === 'local' ? lt('この端末の上位10件', 'Top 10 on this device') : tab === 'daily' ? lt(`今日（${dailyKey}）の上位50人`, `Today (${dailyKey}): top 50 players`) : lt('総合の上位50人（1人1件）', 'All-time top 50 (best per player)')}</p>
     ${tabs}${nameRow}${body}
     <div class="row"><button class="btn" id="rkBack" type="button">${lt('もどる', 'Back')}</button></div></div>`;
-  $('rkBack').addEventListener('click', back);
-  ov.querySelectorAll('.tabs button').forEach(bt => bt.addEventListener('click', () => showRank(bt.dataset.t)));
+  $('rkBack').addEventListener('click', back); bindRecTabs();
+  ov.querySelectorAll('.tabs:not(.rec-tabs) button').forEach(bt => bt.addEventListener('click', () => showRank(bt.dataset.t)));
   if (tab === 'local') return;
   const sv = $('nmSave'), inp = $('nmIn2');
   ['keydown', 'keyup'].forEach(ev => inp.addEventListener(ev, e => e.stopPropagation()));
@@ -4743,18 +4740,25 @@ function showStats() {
   const T = CATS[selCat], el = $('stats'); if (!el) return;
   el.innerHTML = PIPS.map((n, i) => `<span>${n}</span><span class="pips">${[1, 2, 3, 4, 5].map(k => `<i class="${k <= T.pip[i] ? 'on' : ''}"></i>`).join('')}</span>`).join('') + (T.tag ? `<span class="tag">${T.tag}</span>` : '');
 }
+// きろく：ランキング・称号図鑑・通算記録を、上のタブで切り替える（もどるは、開いた画面＝タイトルか結果へ）
+function recTabs(cur) {
+  const b = (id, lab) => `<button type="button" data-rt="${id}" aria-pressed="${id === cur}">${lab}</button>`;
+  return `<div class="tabs rec-tabs">${b('rank', lt('ランキング', 'Ranking'))}${b('zukan', lt('称号', 'Titles') + ' ' + unlocked.size + '/' + TITLES.length)}${b('life', lt('通算', 'Stats'))}</div>`;
+}
+function bindRecTabs() { ov.querySelectorAll('.rec-tabs button').forEach(bt => bt.addEventListener('click', () => { const t = bt.dataset.rt; if (t === 'rank') showRank(); else if (t === 'zukan') showZukan(); else showLife(); })); }
+const recBack = () => state === 'over' ? showOver : showTitle;
 function showZukan() {
   ov.hidden = false;
-  ov.innerHTML = `<div class="panel">
+  ov.innerHTML = `<div class="panel">${recTabs('zukan')}
     <div class="big-logo" style="font-size:1.5rem">${lt('称号図鑑', 'Titles')}</div><p class="sub">${unlocked.size} / ${TITLES.length}</p>
     <div class="zukan">${TITLES.map(t => `<div class="${unlocked.has(t.id) ? '' : 'off'}">${unlocked.has(t.id) ? t.name : '？？？'}<small>${TDESC[t.id] ? String(TDESC[t.id]) : ''}</small></div>`).join('')}</div>
     <button class="btn" id="zkBack" type="button">${lt('もどる', 'Back')}</button></div>`;
-  $('zkBack').addEventListener('click', state === 'over' ? showOver : showTitle);
+  $('zkBack').addEventListener('click', recBack()); bindRecTabs();
 }
 function showSettings(back) {
   ov.hidden = false;
   const sl = (id, lab, v) => `<label class="set-row"><span>${lab}</span><input type="range" id="${id}" min="0" max="100" step="5" value="${v}"><b id="${id}V">${v}</b></label>`;
-  ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.5rem">${lt('設定', 'Settings')}</div><p class="sub">SETTINGS</p>
+  ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.5rem">${lt('せってい', 'Settings')}</div><p class="sub">SETTINGS</p>
     ${sl('sBgm', lt('BGM', 'Music'), SET.bgm)}${sl('sSe', lt('効果音', 'Sound FX'), SET.se)}
     <div class="row"><button class="btn w" id="sVib" type="button">${lt('振動：', 'Vibration: ') + (SET.vib ? 'ON' : 'OFF')}</button><button class="btn w" id="sSwap" type="button">${lt('ボタン：', 'Buttons: ') + (SET.swap ? lt('左右反転', 'Mirrored') : lt('ふつう', 'Normal'))}</button></div>
     <div class="row"><button class="btn w" id="sOh" type="button">${ohLabel()}</button><button class="btn w" id="sLg" type="button" lang="${lt('en', 'ja')}">${lt('English', '日本語')}</button></div>
@@ -4796,7 +4800,7 @@ function showLife() {
   const top = Object.entries(L.broke || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
   const brokeN = Object.values(L.broke || {}).reduce((a, b) => a + b, 0), m = Math.floor((L.sec || 0) / 60);
   ov.hidden = false;
-  ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.5rem">${lt('通算記録', 'Records')}</div><p class="sub">${lt('この端末での記録', 'On this device')}</p>
+  ov.innerHTML = `<div class="panel">${recTabs('life')}<div class="big-logo" style="font-size:1.5rem">${lt('通算記録', 'Stats')}</div><p class="sub">${lt('この端末での記録', 'On this device')}</p>
     <div class="stat-list">
       ${row(lt('遊んだ回数', 'Runs'), n(L.plays))}${row(lt('遊んだ時間', 'Time played'), lt(m + '分', m + ' min'))}
       ${row(lt('通算の被害額', 'Total damage'), yen(L.yen || 0))}${row(lt('最高の被害額', 'Best damage'), yen(L.best || 0))}
@@ -4813,7 +4817,7 @@ function showLife() {
       ${L.where ? `<h4>${lt('よく見つかった場所', 'Where you got caught')}</h4>` + Object.entries(L.where).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s, v]) => { const ph = phaseOf(+s); return row(dayName(+s) + lt('・', ' · ') + (ph.special ? String(ph.spTitle) : ph.name + lt('の', ' · ') + ph.roomName), n(v)); }).join('') : ''}
       ${top.length ? `<h4>${lt('よく割ったもの', 'Most broken')}</h4>` + top.map(([k, v]) => row(String(IT[k].n), n(v))).join('') : ''}
     </div><button class="btn go" id="lfBack" type="button">${lt('もどる', 'Back')}</button></div>`;
-  $('lfBack').addEventListener('click', showTitle);
+  $('lfBack').addEventListener('click', recBack()); bindRecTabs();
 }
 // ---------- ゲームパッド（Gamepad API） ----------
 let padPrev = {};
@@ -4955,12 +4959,11 @@ async function showOver() {
     <img id="card" alt="${lt('犯行現場写真', 'Crime scene photo')}" width="1200" height="630">
     <div class="row"><button class="btn t" id="bShare" type="button">${lt('シェア', 'Share')}</button><button class="btn w" id="bSave" type="button">${lt('保存', 'Save')}</button><a class="btn w" id="bX" href="${xUrl}" target="_blank" rel="noopener">${lt('Xに投稿', 'Post on X')}</a></div>
     <div class="row"><a class="btn" id="bLine" href="${lineUrl}" target="_blank" rel="noopener" style="background:#06c755;box-shadow:0 4px 0 #04963f">${lt('LINEで送る（文章とリンク）', 'Send on LINE (text + link)')}</a></div>
-    <div class="row"><button class="btn w" id="bChange" type="button">${lt('トップへ', 'Title')}</button><button class="btn w" id="bRk" type="button">${lt('ランキング', 'Ranking')}</button><button class="btn w" id="bZk" type="button">${lt('称号図鑑', 'Titles')}</button></div></div>`;
+    <div class="row"><button class="btn w" id="bChange" type="button">${lt('トップへ', 'Title')}</button><button class="btn w" id="bRk" type="button">${lt('きろく', 'Records')}</button></div></div>`;
   $('bAgain').addEventListener('click', () => { audio(); startGame(); });
   if ($('bCont')) $('bCont').addEventListener('click', () => { audio(); continueDay(); });
   if ($('bNext')) $('bNext').addEventListener('click', () => { audio(); ov.hidden = true; run.sent = false; carryT = 0; setupStage(run.stage + 1); state = 'play'; bgmStart(); });
   $('bChange').addEventListener('click', showTitle);
-  $('bZk').addEventListener('click', showZukan);
   $('bRk').addEventListener('click', () => showRank());
   bindOnline();
   $('bShare').addEventListener('click', doShare);
