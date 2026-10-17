@@ -77,6 +77,13 @@
   #meter .bar { flex: 1; height: 19px; background: #f6e2c4; border: 2px solid var(--line); border-radius: 999px; overflow: hidden; }
   #meter .bar i { display: block; height: 100%; width: 0; background: var(--teal); border-radius: 999px; transition: background .2s; }
   /* 怪しまれ度は色だけでなく、言葉・しま模様・目の開き具合でも段階を示す */
+  #meter .esc { flex: none; display: inline-flex; align-items: center; gap: 2px; font-weight: 800; font-size: .72rem; border: 2px solid var(--line); border-radius: 999px; padding: 0 6px; height: 19px; background: var(--card); color: var(--teal-d); }
+  #meter .esc svg { width: 18px; height: 12px; }
+  #meter .esc.used { color: #b39a80; background: #fbf3e6; text-decoration: line-through; }
+  #meter .esc.used svg { opacity: .5; }
+  #meter .esc[hidden] { display: none; }
+  #meter.l5 .lvl { background: #4a2f1d; color: #fff; animation: lvb .4s steps(2) infinite; }
+  #meter.l5 .bar { border-color: #4a2f1d; box-shadow: 0 0 0 2px rgba(74,47,29,.4); }
   #meter .lvl { flex: none; min-width: 4.6em; text-align: center; font-weight: 800; font-size: .8rem; border: 2px solid var(--line); border-radius: 999px; padding: 0 6px; background: var(--card); color: var(--ink); line-height: 1.5; white-space: nowrap; }
   #meter svg circle { transform-origin: 13px 9px; transition: transform .2s; }
   #meter.l0 svg circle { transform: scale(.55); }
@@ -168,9 +175,10 @@
   #frame.l1 canvas#c { border-color: #e8a800; box-shadow: 0 0 0 3px rgba(255,201,74,.55); }
   #frame.l2 canvas#c { border-color: #e0362c; animation: frmBlink 1s ease-in-out infinite; }
   #frame.l3 canvas#c { border-color: #ff3b30; animation: frmBlink .4s ease-in-out infinite; }
+  #frame.l5 canvas#c { border-color: #4a2f1d; animation: frmBlink .5s ease-in-out infinite; }
   #frame.l4 canvas#c { border-color: var(--teal-d); box-shadow: 0 0 0 3px rgba(47,179,163,.5); }
   @keyframes frmBlink { 0%, 100% { box-shadow: 0 0 0 2px rgba(255,59,48,.35); } 50% { box-shadow: 0 0 0 6px rgba(255,59,48,.85), 0 0 18px rgba(255,59,48,.6); } }
-  body.calm #frame.l2 canvas#c, body.calm #frame.l3 canvas#c { animation: none; box-shadow: 0 0 0 4px rgba(255,59,48,.6); }
+  body.calm #frame.l2 canvas#c, body.calm #frame.l3 canvas#c, body.calm #frame.l5 canvas#c { animation: none; box-shadow: 0 0 0 4px rgba(255,59,48,.6); }
   .pager { touch-action: pan-y; flex: 1; min-height: 0; overflow-y: auto; }
   .panel.paged { display: flex; flex-direction: column; }
   .panel.paged > * { flex: none; }
@@ -280,6 +288,7 @@
   <div id="meter" aria-label="怪しまれ度">
     <svg viewBox="0 0 26 18" aria-hidden="true"><path d="M1 9C5 2 21 2 25 9C21 16 5 16 1 9Z" fill="#fff" stroke="#4a2f1d" stroke-width="2"/><circle cx="13" cy="9" r="4" fill="#4a2f1d"/></svg>
     <span class="bar"><i id="hB"></i></span>
+    <b class="esc" id="hEsc" aria-label="追いかけっこ" hidden><svg viewBox="0 0 24 16" aria-hidden="true"><path d="M3 13c0-4 3-7 7-7h5l3-3v4l2 1-2 2v2c0 1-1 2-2 2h-2l-1-2H9l-1 2H5c-1 0-2-1-2-3z" fill="currentColor"/><circle cx="16" cy="8" r="1" fill="#fff"/></svg><span>×1</span></b>
     <b class="lvl" id="hS" aria-live="polite">へいき</b>
   </div>
   <button id="upd" type="button" hidden></button>
@@ -313,7 +322,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.28.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.28.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -4133,6 +4142,7 @@ function drawCat(c, x, y, o) {
   else if (pose === 'stretch') c.translate(3, 7);
   else c.translate(0, -bob + (o.nod || 0) * 2.4);
   if (o.nod) { c.translate(20, -28); c.rotate((o.nod - 0.5) * 0.12); c.translate(-20, 28); }   // BGM に合わせて頭をふる
+  if (o.eyesOut) { try { const m = c.getTransform(); o.eyesOut.p = [[25, -29], [16.5, -29]].map(([ex, ey]) => { const q = new DOMPoint(ex, ey).matrixTransform(m); return [q.x, q.y]; }); o.eyesOut.k = Math.hypot(m.a, m.b); } catch (e) { o.eyesOut.p = null; } }   // 停電の夜：実際に描いた目の位置（画面のピクセル）を覚える
   c.fillStyle = body; c.beginPath(); c.arc(20, -28, 11, 0, TAU); c.fill();
   if (T.point) { c.fillStyle = T.point; c.globalAlpha *= 0.85; c.beginPath(); c.ellipse(22.5, -25.5, 7.5, 6, 0, 0, TAU); c.fill(); c.globalAlpha /= 0.85; c.fillStyle = pt; }   // シャム猫：顔の真ん中が濃い
   else c.fillStyle = body;
@@ -4983,7 +4993,7 @@ function drawFurniture() {
   g.fillStyle = '#ff5a5a'; g.beginPath(); g.arc(310, 456, 4, 0, TAU); g.fill(); g.strokeStyle = '#ff5a5a'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(310, 448); g.lineTo(310, 452); g.stroke();
   g.restore(); }
 }
-let darkCv = null;
+let darkCv = null, catEyes = { p: null, k: 1 };
 function drawDark() {
   if (phaseOf(level).special !== 'blackout' || (state !== 'play' && state !== 'clear' && state !== 'pause' && state !== 'caught')) return;
   if (!darkCv) darkCv = document.createElement('canvas');
@@ -5014,8 +5024,8 @@ function drawDark() {
     g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gr; g.beginPath(); g.moveTo(hx, hy); g.arc(hx, hy, len, base - 0.42, base + 0.42); g.closePath(); g.fill(); g.restore();
     g.fillStyle = '#3a3f46'; rr(g, hx - 5, hy - 4, 12, 7, 2); g.fill(); g.fillStyle = '#fff6c8'; g.fillRect(hx + (o.face > 0 ? 6 : -7), hy - 3, 2, 5);
   }
-  // 暗やみで光るネコの目
-  g.fillStyle = cat.type.eye; const ex = cat.x + cat.face * 18, ey = cat.y - 29; g.beginPath(); g.arc(ex + cat.face * 4, ey, 2.2, 0, TAU); g.arc(ex - cat.face * 4, ey, 2.2, 0, TAU); g.fill();
+  // 暗やみで光るネコの目：drawCat が覚えた実際の目の位置に描く（4.28.2。前は原点からのおおよその位置で、ずれていた）
+  if (catEyes.p && !cat.hidden) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = cat.type.eye; g.beginPath(); for (const [px, py] of catEyes.p) g.arc(px, py, 2.4 * catEyes.k, 0, TAU); g.fill(); g.restore(); }
 }
 function drawLight() {
   // 夕方・夜の色かぶりと、照明の明かり
@@ -5327,13 +5337,13 @@ function drawCatNow() {
     // 後ろ足を支点に体を起こし、左右にゆれる。音符も出す
     const k = c.danceT, sway = Math.sin(k * 16) * 0.16, up = Math.min(1, (1.6 - k) / 0.15, k / 0.15), px = c.x - c.face * 12;
     g.save(); g.translate(px, c.y); g.rotate(-c.face * (1.05 * up) + sway * up); g.translate(-px, -c.y);
-    drawCat(g, c.x, c.y - Math.abs(Math.sin(k * 16)) * 3 * up, { type: c.type, face: c.face, scale: 1, t: c.anim, pose: 'walk', move: true, acc: selAcc, eyes: 'happy', tail: 'up' });
+    drawCat(g, c.x, c.y - Math.abs(Math.sin(k * 16)) * 3 * up, { type: c.type, face: c.face, scale: 1, t: c.anim, pose: 'walk', move: true, acc: selAcc, eyes: 'happy', tail: 'up', eyesOut: catEyes });
     g.restore();
     const n = (tAnim * 1.2) % 1; g.globalAlpha = 1 - n; g.fillStyle = '#9b7fc0'; g.font = `800 15px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
     g.fillText('♪', c.x - 18, c.y - 58 - n * 18); g.fillText('♫', c.x + 18, c.y - 66 - ((n + 0.5) % 1) * 18); g.globalAlpha = 1;
   } else {
     if (rubTilt) { g.save(); g.translate(c.x, c.y); g.rotate(rubTilt); g.translate(-c.x, -c.y); }
-    drawCat(g, c.x, c.y - hop + sdy, { type: c.type, face: c.face, scale: 1, t: c.anim, move: moving, pose, sq: hop ? -0.1 : c.sq, acc: selAcc, sweat: c.seen && c.onFurn && play, eyes, ears, tail, air: !c.plat && play && !c.inBath, nod });
+    drawCat(g, c.x, c.y - hop + sdy, { type: c.type, face: c.face, scale: 1, t: c.anim, move: moving, pose, sq: hop ? -0.1 : c.sq, acc: selAcc, sweat: c.seen && c.onFurn && play, eyes, ears, tail, eyesOut: catEyes, air: !c.plat && play && !c.inBath, nod });
     if (rubTilt) g.restore();
   }
   if (c.churuPull && play) { const w = 40, k = clamp(churuRes, 0, 1); g.fillStyle = 'rgba(255,255,255,.9)'; rr(g, c.x - w / 2, c.y - 70, w, 7, 3.5); g.fill(); g.fillStyle = '#ff7a95'; rr(g, c.x - w / 2, c.y - 70, w * k, 7, 3.5); g.fill(); g.strokeStyle = '#4a2f1d'; g.lineWidth = 1.5; rr(g, c.x - w / 2, c.y - 70, w, 7, 3.5); g.stroke(); }   // がまんゲージ（連打でためる）
@@ -5696,11 +5706,13 @@ function hud() {
   const showP = state === 'play' || state === 'clear'; if (bPause.hidden === showP) bPause.hidden = !showP;
   { const sh = updReady && (state === 'title' || state === 'over' || state === 'endmenu'); if (updB.hidden === sh) { updB.hidden = !sh; updB.textContent = lt('新しい版があります（タップで更新）', 'New version available (tap to update)'); } }
   // 段階：0 へいき（40未満）、1 あやしい（40〜69）、2 やばい（70以上）、3 追いかけっこ中
-  const lv = (state === 'play' || state === 'clear') && owner.mode === 'chase' ? 3 : state === 'play' && isHiding() ? 4 : b >= 70 ? 2 : b >= 40 ? 1 : 0;
-  const key = s + '|' + y + '|' + b + '|' + lv + '|' + lang + '|' + state; if (key === lastHud) return; lastHud = key;
+  // 5：追いかけっこを使ったあとの「やばい」（次に 100% になると即アウト）
+  const lv = (state === 'play' || state === 'clear') && owner.mode === 'chase' ? 3 : state === 'play' && isHiding() ? 4 : b >= 70 ? (chaseUsed && state === 'play' ? 5 : 2) : b >= 40 ? 1 : 0;
+  const key = s + '|' + y + '|' + b + '|' + lv + '|' + lang + '|' + state + '|' + chaseUsed; if (key === lastHud) return; lastHud = key;
+  { const el = $('hEsc'), sh = state === 'play' || state === 'clear' || state === 'pause' || state === 'caught'; el.hidden = !sh; el.classList.toggle('used', chaseUsed); el.querySelector('span').textContent = chaseUsed ? '×0' : '×1'; }
   hY.textContent = y; hB.style.width = b + '%';
   hB.style.background = b >= 70 ? 'var(--red)' : b >= 40 ? 'var(--yel)' : 'var(--teal)';
-  meterEl.className = 'l' + lv; frameEl.className = (state === 'play' || state === 'clear') ? 'l' + lv : ''; hS.textContent = [lt('へいき', 'Calm'), lt('あやしい', 'Wary'), lt('やばい!', 'Danger!'), lt('にげろ!', 'RUN!'), lt('かくれ中', 'Hidden')][lv];
+  meterEl.className = 'l' + lv; frameEl.className = (state === 'play' || state === 'clear') ? 'l' + lv : ''; hS.textContent = [lt('へいき', 'Calm'), lt('あやしい', 'Wary'), lt('やばい!', 'Danger!'), lt('にげろ!', 'RUN!'), lt('かくれ中', 'Hidden'), lt('次はない!', 'NO CHANCE!')][lv];
 }
 const ohLabel = () => lt('スティック操作：', 'Touch stick: ') + (oneHand ? 'ON' : 'OFF');
 // 言語を切り替える：保存して、HTML に直接書いた文字（下のボタン・読み上げ用のラベル・ページの題名）も書き換える
