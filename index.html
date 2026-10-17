@@ -242,7 +242,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.10.1', REPO = 'https://github.com/kotaooka/mischievous-cat';
+const APP_VER = '4.12.0', REPO = 'https://github.com/kotaooka/mischievous-cat';
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>`;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -302,8 +302,10 @@ const LAYOUTS = [
 ];
 const MIS_BASE = { towel: [125, 175], laundry: [165, 235] };
 let layoutIx = 0;
+// 面ごとの配置：1面目は0番、あとは前の面と違う配置を、日替わりの乱数で選ぶ（同じ日・同じ面ならだれでも同じ。朝からつづけても同じ）
+function layoutFor(L) { let k = 0; for (let i = 2; i <= L; i++) k = (k + 1 + ((seedRng(jstDay() + '#lay' + i)() * (LAYOUTS.length - 1)) | 0)) % LAYOUTS.length; return k; }
 function applyLayout(L) {
-  if (L > 1) { let k = layoutIx; while (k === layoutIx) k = (Math.random() * LAYOUTS.length) | 0; layoutIx = k; } else layoutIx = 0;
+  layoutIx = layoutFor(L);
   const lo = LAYOUTS[layoutIx];
   Object.assign(PL.shelf, { x0: lo.shelf[0], x1: lo.shelf[1], y: lo.shelf[2] });
   Object.assign(PL.hang, { x0: lo.hang[0], x1: lo.hang[1], y: lo.hang[2] });
@@ -332,10 +334,10 @@ function placeLamp() {
 // pip は選択画面の目盛り（はやさ・ジャンプ・パンチ・かくれ・くいしんぼ、1〜5）。数値の倍率と合わせてある
 // sus：見られたときの怪しまれやすさ、food：ごはんで増える時間の倍率
 const CATS = [
-  { id: 'kuro', name: tx('黒猫', 'Black Cat'), note: tx('かくれ上手', 'Stealthy'), body: '#2b2b35', belly: '#3b3b48', eye: '#f2c94c', sus: 0.6, punch: 0.9, jump: 1, speed: 1, food: 1, voice: 1.05, pip: [3, 3, 2, 5, 3] },
-  { id: 'cha', name: tx('茶トラ', 'Orange Tabby'), note: tx('パンチ自慢', 'Big punch'), body: '#e8913f', belly: '#f7cf98', stripe: '#b8661e', eye: '#7bbf5a', sus: 1.05, punch: 1.35, jump: 1, speed: 1.08, food: 1, voice: 1, pip: [4, 3, 4, 2, 3] },
+  { id: 'kuro', name: tx('黒猫', 'Black Cat'), note: tx('かくれ上手', 'Stealthy'), body: '#2b2b35', belly: '#3b3b48', eye: '#f2c94c', sus: 0.75, punch: 0.9, jump: 1, speed: 1, food: 1, voice: 1.05, pip: [3, 3, 2, 5, 3] },
+  { id: 'cha', name: tx('茶トラ', 'Orange Tabby'), note: tx('パンチ自慢', 'Big punch'), body: '#e8913f', belly: '#f7cf98', stripe: '#b8661e', eye: '#7bbf5a', sus: 1.05, punch: 1.5, jump: 1, speed: 1.1, food: 1, voice: 1, pip: [4, 3, 5, 2, 3] },
   { id: 'saba', name: tx('サバトラ', 'Gray Tabby'), note: tx('バランス', 'All-rounder'), body: '#8e939c', belly: '#dfe2e6', stripe: '#4a4f58', eye: '#d6b84a', sus: 0.85, punch: 1.1, jump: 1.05, speed: 1.04, food: 1, voice: 1.1, pip: [3, 4, 3, 3, 3] },
-  { id: 'maine', name: tx('メインクーン', 'Maine Coon'), note: tx('怪力・大食い', 'Strong & hungry'), body: '#a8794a', belly: '#e6d0ad', stripe: '#6d4a2a', eye: '#d6b84a', sus: 1.15, punch: 1.6, jump: 0.85, speed: 0.95, food: 1.5, big: 1.18, voice: 0.78, pip: [2, 2, 5, 1, 5] },
+  { id: 'maine', name: tx('メインクーン', 'Maine Coon'), note: tx('怪力・大食い', 'Strong & hungry'), body: '#a8794a', belly: '#e6d0ad', stripe: '#6d4a2a', eye: '#d6b84a', sus: 1.15, punch: 1.6, jump: 0.9, speed: 0.95, food: 1.5, big: 1.18, voice: 0.78, pip: [2, 2, 5, 1, 5] },
   { id: 'mike', name: tx('三毛猫', 'Calico'), note: tx('招き猫', 'Lucky cat'), body: '#f7f2e9', belly: '#ffffff', patch: [[-9, -22, 8, '#e8913f'], [8, -14, 7, '#2b2b35'], [14, -30, 6, '#e8913f'], [-16, -12, 5, '#2b2b35']], eye: '#7bbf5a', sus: 1, punch: 0.95, jump: 1, speed: 1, food: 1, lucky: true, voice: 1.15, pip: [3, 3, 3, 3, 3], tag: tx('高いものが出やすい', 'Pricey items show up more') }
 ];
 const PIPS = [tx('はやさ', 'Speed'), tx('ジャンプ', 'Jump'), tx('パンチ', 'Punch'), tx('かくれ', 'Stealth'), tx('くいしんぼ', 'Appetite')];
@@ -347,8 +349,10 @@ let heavyCount = +store.get('nekoHeavy', 0) || 0, newCats = [], stageMaxSus = 0,
 function taskHit(id, inc) {
   const k = tasks.find(t => t.id === id && !t.done); if (!k || state !== 'play') return;
   k.n += inc || 1; if (k.n < k.need) return;
-  k.done = true; run.stars++; timeLeft += 5; sfx.combo(3); buzz(30);
-  pops.push({ x: W / 2, y: 170, text: lt('★ お題クリア +5秒', '★ Task done +5s'), life: 1.8, col: '#c95f17', size: 22 });
+  k.done = true; run.stars++; sfx.combo(3); buzz(30);
+  // 時間が増えるのは、その面のお題を3つともクリアしたときだけ（4.12.0）
+  if (tasks.every(t => t.done)) { timeLeft += 5; pops.push({ x: W / 2, y: 170, text: lt('★★★ お題ぜんぶクリア! +5秒', '★★★ All tasks! +5s'), life: 2, col: '#c95f17', size: 22 }); }
+  else pops.push({ x: W / 2, y: 170, text: lt('★ お題クリア', '★ Task done'), life: 1.6, col: '#c95f17', size: 22 });
 }
 function openCat(id) {
   if (catsOpen.has(id)) return;
@@ -425,7 +429,7 @@ const ON = {
 };
 // 面ごとの「置いてあるものの値段の合計」の目安。出てくるものを何通りか試し、合計がこれに一番近い組を使う
 // （運で被害額が大きく変わらないようにする。差は腕前のボーナスでつける）
-const stageValue = L => [0, 2500, 7000, 60000, 100000, 140000, 175000, 200000][Math.min(L, 7)] + Math.max(0, L - 7) * 15000;
+const stageValue = L => [0, 2500, 15000, 40000, 70000, 110000, 150000, 190000][Math.min(L, 7)] + Math.max(0, L - 7) * 15000;   // 4.12.0：なめらかに（前は 2,500 → 7,000 → 60,000 と夕方で急に上がっていた）
 // 落とす以外のいたずら：決まった場所でパンチを長押しする（片手操作では、その場所をタップ）
 // plat：その足場の上、x：その範囲、need：かかる秒数
 const MISCHIEF = {
@@ -1022,7 +1026,13 @@ function buzz(p) {
 function breakSound(it) { const d = IT[it.t]; ({ glass: sfx.glass, cera: sfx.cera, elec: sfx.elec, paper: sfx.paper, pens: sfx.pens, alarm: sfx.alarm, tink: sfx.tink, egg: sfx.egg })[d.snd](d.noise); }
 
 // ---------- ステージ ----------
+// 日替わりの乱数（mulberry32）。種は日本時間の日付と面の数。同じ日・同じ面なら、だれでも同じ配置・同じもの・同じ天気になる
+function seedRng(str) { let h = 1779033703 ^ str.length; for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); } let a = h >>> 0; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function setupStage(L) {
+  const R0 = Math.random; Math.random = seedRng(jstDay() + '#' + L);
+  try { setupStageCore(L); } finally { Math.random = R0; }
+}
+function setupStageCore(L) {
   level = L; stageT = 0; chains = {};
   applyLayout(L);
   // その日の朝（各日の1面目）の状態を覚えておく（見つかったら、ここから続けられる）
@@ -1107,15 +1117,15 @@ function setupStage(L) {
     // 罠・ペットカメラ・きゅうり・床のきしみ・吊り照明・テレビ（日を追うごとに増える）
     const d = dayOf(L), sp0 = ph.special, normal = !sp0;
     traps = [];
-    const nt = sp0 === 'camera' ? 3 : normal && d >= 3 ? 3 : normal && d >= 2 ? 2 : 0;
+    const nt = sp0 === 'camera' ? 2 : normal && d >= 3 ? 3 : normal && d >= 2 ? 2 : 0;
     for (let k = 0, guard = 0; k < nt && guard < 60; guard++) {
       const s = pick(avail.filter(q => !(room === 'bath' && q === 'table'))), r = spotOf(s), x = rnd(r[0], r[1]);
       if (traps.some(t => t.plat === PL[s] && Math.abs(t.x - x) < 40)) continue;
       traps.push({ type: Math.random() < 0.6 ? 'foil' : 'tape', plat: PL[s], x, w: 30 }); k++;
     }
     cams = [];
-    if (sp0 === 'camera') cams = [{ mx: 90, period: 5.5, ph: 0, w: 70, cx: 0, rec: 0 }, { mx: 360, period: 7.5, ph: 2.2, w: 70, cx: 0, rec: 0 }];   // 4.7.0 で見る幅 90 → 70、罠 4 → 3
-    else if (normal && d >= 3) cams = [{ mx: 60, period: 6.5, ph: 1, w: 90, cx: 0, rec: 0 }];
+    if (sp0 === 'camera') cams = [{ mx: 90, period: 8, ph: 0, w: 70, cx: 0, rec: 0 }, { mx: 360, period: 10, ph: 2.2, w: 70, cx: 0, rec: 0 }];   // 4.11.0：首振り 5.5/7.5 → 8/10 秒、罠 3 → 2（4.7.0 で見る幅 90 → 70）
+    else if (normal && d >= 3) cams = [{ mx: 60, period: 7.5, ph: 1, w: 70, cx: 0, rec: 0 }];
     cuke = d >= 2 && normal && room !== 'bath' && Math.random() < 0.4 ? { x: 0, cd: 0 } : null;
     if (cuke) { for (let k = 0; k < 20; k++) { cuke.x = rnd(40, W - 60); if (Math.abs(cuke.x - BOX.x) > 50 && Math.abs(cuke.x - 255) > 40 && (!mouse || Math.abs(cuke.x - mouse.hole) > 30)) break; } }
     creaks = [];
@@ -1179,7 +1189,9 @@ function setupStage(L) {
   }
   const rts = ROOM_TASK[room].filter(id => TASKS[id].ok()); if (rts.length) tasks.push(pick(rts));
   const rest = Object.keys(TASKS).filter(id => !Object.values(ROOM_TASK).flat().includes(id) && TASKS[id].ok());
-  while (tasks.length < 3 && rest.length) tasks.push(rest.splice((Math.random() * rest.length) | 0, 1)[0]);
+  // 簡単なお題（鳴いてふり向かせる・飼い主の前で食べる・ダンボールでやりすごす・「ながら」中に落とす）は1面に1つまで
+  const EASY = ['lure', 'eatSeen', 'hide', 'busy'];
+  while (tasks.length < 3 && rest.length) { const id = rest.splice((Math.random() * rest.length) | 0, 1)[0]; if (EASY.includes(id) && tasks.some(t => EASY.includes(t)) && rest.some(r => !EASY.includes(r))) continue; tasks.push(id); }
   tasks = tasks.map(id => ({ id, t: TASKS[id].t, need: TASKS[id].need || 1, n: 0, done: false }));
   rushShown = false; timeMax = timeLeft = Math.round(25 + mains().length * 7) + carryT; carryT = 0; lastTick = 99; bowl = null; feeds = 0; stageMaxSus = 0;
 }
@@ -1213,10 +1225,13 @@ function newRun() {
 }
 
 // ---------- 飼い主 ----------
-const awayRange = L => [Math.max(3, 5.5 - 0.35 * L), Math.max(4.5, 8.5 - 0.5 * L)];   // 飼い主のいない時間（4.7.0 で下限を 2.2〜4 秒 → 3〜4.5 秒に）
-const warnTime = L => Math.max(0.7, 0.95 - 0.04 * L);   // 「？」から振り向くまで（4.7.0 で下限を 0.5 → 0.7 秒に）
-const lookTime = L => Math.min(3.2, 1.6 + 0.12 * L);
-const walkSpeed = L => Math.min(110, 60 + 4 * L);
+// 難しさに使う面の数（4.11.0）：1日目はそのまま、2〜3日目は 0.65 倍のペースで上がり、エンディングのあと（13面目から）は元のペースで上がり続ける
+const diffL = L => L <= 4 ? L : L <= 12 ? 4 + (L - 4) * 0.65 : 9.2 + (L - 12);
+const postK = () => dayOf(level) > END_DAY ? 1 + 0.1 * (dayOf(level) - END_DAY) : 1;   // エンディング後の厳しさ
+const awayRange = L0 => { const L = diffL(L0), ex = Math.max(0, dayOf(L0) - END_DAY), f = L0 > 12 ? [Math.max(2.2, 3 - 0.2 * ex), Math.max(3.5, 4.5 - 0.25 * ex)] : [3.5, 5]; return [Math.max(f[0], 5.5 - 0.35 * L), Math.max(f[1], 8.5 - 0.5 * L)]; };   // 飼い主のいない時間（下限：3日目まで 3.5〜5 秒、エンディング後 3〜4.5 秒）
+const warnTime = L0 => Math.max(L0 > 12 ? 0.7 : 0.75, 0.95 - 0.04 * diffL(L0));   // 「？」から振り向くまで（4.7.0 で下限を 0.5 → 0.7 秒に）
+const lookTime = L => Math.min(3.2, 1.6 + 0.12 * diffL(L));
+const walkSpeed = L => Math.min(110, 60 + 4 * diffL(L));
 // 部屋ごとの見張り役：owner 飼い主／kid 子ども（速いが近くしか見ない）／grandma おばあちゃん（遅いが歩きながら振り返る）／dad お父さん（棚の上をよく見上げる）
 const WATCHER = { owner: { spd: 1 }, kid: { spd: 1.45, walkR: 150, lookR: 330 }, grandma: { spd: 0.7, walkR: 260, glance: 0.5 }, dad: { spd: 1, shelf: true } };
 const watcherOf = () => room === 'kids' ? 'kid' : room === 'garden' ? 'grandma' : room === 'study' ? 'dad' : 'owner';
@@ -1248,9 +1263,11 @@ function newPlan(hint) {
   const val = items.filter(o => o.state === 'rest').sort((a, b) => IT[b.t].yen - IT[a.t].yen)[0];
   for (let i = 0; i < n; i++) {
     const r = Math.random();
-    if (val && IT[val.t].yen >= 10000 && Math.random() < 0.5) { stops.push({ kind: val.plat.y < 400 ? 'shelf' : 'check', x: clamp(val.x + rnd(-50, 50), 50, 330), guard: val }); continue; }
+    if (val && IT[val.t].yen >= 10000 && Math.random() < 0.5 && !(WT().shelf && (val.plat === PL.book || val.plat === PL.rail))) { stops.push({ kind: val.plat.y < 400 ? 'shelf' : 'check', x: clamp(val.x + rnd(-50, 50), 50, 330), guard: val }); continue; }
     const kind = WT().shelf ? (r < 0.75 ? 'shelf' : r < 0.9 ? 'phone' : 'check') : i === 0 ? 'check' : (level >= 2 && r < 0.45 ? 'phone' : (r < 0.7 ? 'shelf' : 'check'));
-    stops.push({ kind, x: kind === 'shelf' ? rnd(125, 260) : rnd(90, 330) });
+    // 見上げる先：壁の棚・吊り棚・エアコン（隠れ場所の本棚・カーテンレールは見上げない）
+    const up = pick([PL.shelf, PL.hang, PL.ac]);
+    stops.push({ kind, x: kind === 'shelf' ? clamp(rnd(up.x0 + 10, up.x1 - 10), 50, 330) : rnd(90, 330) });
   }
   if (!bowl && feeds < 2 && Math.random() < 0.35) stops.splice(1, 0, { kind: 'feed', x: rnd(60, 320) });
   if (dayOf(level) >= 2 && run.churuStage !== level && Math.random() < 0.3 && phaseOf(level).special !== 'blackout') stops.splice(1, 0, { kind: 'churu', x: rnd(80, 300) });   // チュールでネコを呼ぶ
@@ -1457,7 +1474,7 @@ function updCat(dt) {
     if (churuRes < 1) { dir = Math.sign(owner.x - c.x) || 0; tapTarget = null; c.churuPull = true; } else c.churuPull = false;
     if (Math.abs(c.x - owner.x) < 26) {
       c.eatT = 1.4; c.eatChuru = true; c.churuPull = false; owner.churuDone = true; owner.t = Math.min(owner.t, 1.4); run.churu++;
-      const add = 6; timeLeft += add; sus = Math.max(0, sus - 30); sfx.eat(); say(lt('おいしいねえ', 'Yummy, right?'), 1.4);
+      const add = 6; timeLeft += add; sus = Math.max(0, sus - 20); sfx.eat(); say(lt('おいしいねえ', 'Yummy, right?'), 1.4);
       pops.push({ x: c.x, y: c.y - 60, text: lt('チュール +' + add + '秒', 'Churu +' + add + 's'), life: 1.6, col: '#1d8174', size: 18 });
     }
   } else c.churuPull = false;
@@ -2233,7 +2250,7 @@ function clothPull() {
 function tvOn() {
   // テレビがつくと、飼い主（とお客さん）がしばらく見入る
   if (!tv || tv.on > 0 || tv.used >= 2 || state !== 'play') return;
-  tv.on = 8; tv.used++; run.tv++; sfx.tv(); learn('tv'); tv.show = (Math.random() * 3) | 0;   // つけるたびに番組を選ぶ
+  tv.on = 6; tv.used++; run.tv++; sfx.tv(); learn('tv'); tv.show = (Math.random() * 3) | 0;   // つけるたびに番組を選ぶ
   pops.push({ x: 308, y: 250, text: lt('ポチッ', 'Click'), life: 1, col: '#2b8fd9', size: 16 });
   const o = owner;
   if (o.mode === 'away') o.t = Math.min(o.t, 1.5);
@@ -2450,6 +2467,7 @@ function drawEnding() {
   if (e < 0.8) { g.fillStyle = `rgba(20,14,40,${1 - e / 0.8})`; g.fillRect(0, -OY, W, VH); }
 }
 function showEnding() {
+  if (run.preview) { run.preview = false; showTitle(); return; }   // 確認用の再生は、終わったらタイトルへ
   state = 'endmenu'; ov.hidden = false;
   ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.6rem">${lt('エンディング', 'THE END')}</div>
     <p class="sub">${lt(END_DAY + '日間、いたずらしきった！', 'You survived ' + END_DAY + ' days of mischief!')}</p>
@@ -2616,6 +2634,8 @@ function updSus(dt) {
   let seen = false, exSeen = false, exBy = '';   // exBy：お客さん・ペットカメラのどちらに見られたか
   if (o.mode !== 'away' && !cat.hidden && !cat.safe) seen = ownerSees(cat.x);
   let rate = o.rate; if (o.mode === 'up' && o.t > 0.5) rate = 8;
+  rate *= postK();   // エンディング後は1日ごとに +10%
+  if (WT().shelf && o.mode === 'up' && [PL.shelf, PL.hang, PL.ac].includes(cat.plat)) rate *= 1.3;   // お父さんは棚・吊り棚・エアコンの上をよく見ている
   // 怪しまれるのは「いたずら」だけ。床を歩く・跳ぶ・鳴く・食べるのはネコとして普通なので上がらない
   let gain = 0;
   if (seen) {
@@ -2636,7 +2656,7 @@ function updSus(dt) {
   if (!cat.hidden && !cat.safe && chaseT <= 0) {
     const ex = [];
     if (guestSees(cat.x)) { ex.push(guest.mode === 'chat' ? 30 : 15); exBy = exBy || 'guest'; }
-    for (const cm of cams) if (camSees(cm, cat.x)) { ex.push(40); cm.rec = 0.6; exBy = 'cam'; }
+    for (const cm of cams) if (camSees(cm, cat.x)) { ex.push(28); cm.rec = 0.6; exBy = 'cam'; }
     for (const r of ex) {
       if (cat.punchT > 0) { gain += r * cat.type.sus; cat.mark = 0.4; }
       else if (cat.scratch) { gain += r * 0.9 * cat.type.sus; cat.mark = 0.4; }
@@ -2644,10 +2664,20 @@ function updSus(dt) {
     }
     if (ex.length) { seen = true; exSeen = true; }
   }
-  if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { const ic = cams.some(cm => camSees(cm, it.x)); gain += ic ? 24 : 16; exBy = exBy || (ic ? 'cam' : 'guest'); it.mark = 0.4; it.spotted = true; break; } }
+  if (guest || cams.length) { for (const it of items) if (it.state !== 'rest' && !it.byRival && !it.byChick && (guestSees(it.x) || cams.some(cm => camSees(cm, it.x)))) { const ic = cams.some(cm => camSees(cm, it.x)); gain += 16; exBy = exBy || (ic ? 'cam' : 'guest'); it.mark = 0.4; it.spotted = true; break; } }
   if (o.mode === 'search') gain *= 1.15;
   // 隠れ場所（ダンボール・キャットタワーの上・高い所）でじっとしている間は、足跡や転がるもの・音があっても上げない。探している最中でも少しずつ下げる
   const hiding = inEscape() && !(cat.punchT > 0) && !cat.scratch;
+  // 同じ隠れ場所に長くいる：8秒をすぎると、探している飼い主がそこへ向かい、近くまで来たら追い出す（見つかりはしない）
+  if (hiding && state === 'play') {
+    const key = cat.hidden ? 'box' : cat.safe ? 'tower' : cat.plat === PL.book ? 'book' : 'rail';
+    if (cat.hideKey !== key) { cat.hideKey = key; cat.hideT = 0; } cat.hideT += dt;
+    if (cat.hideT > 8 && o.mode !== 'away' && o.mode !== 'chase' && o.mode !== 'leave' && o.mode !== 'churu') {
+      if (o.mode !== 'search') { setMode('search', 6); say(lt('…あそこ、あやしい', '…Something\'s off over there'), 1.6); }
+      const sx = cat.hidden ? BOX.x : cat.x; o.gx = clamp(sx, 20, 335); o.searchRetarget = 1; o.t = Math.max(o.t, 2);
+      if (Math.abs(o.x - clamp(sx, 20, 335)) < 40) evictHide(sx);
+    }
+  } else { cat.hideKey = null; cat.hideT = 0; }
   if (hiding) { gain = 0; sus -= (o.mode === 'search' ? 12 : 8) * dt; }   // 隠れている間は早めに下がる（4.10.1：探している最中 6→12/秒、ふだんは +8/秒 上乗せ）
   if (gain > 0) { sus += gain * dt; run.lastBy = gain - g0 > g0 && exBy ? exBy : watcherOf(); }   // いちばん多く上げた見張りを、見つかった原因として覚える
   else if (o.mode !== 'search') sus -= (seen ? 6 : (o.mode === 'away' ? 24 : 14)) * dt;
@@ -2698,6 +2728,15 @@ function drawHideMark() {
   // 閉じた目のしるし
   g.strokeStyle = '#fff'; g.lineWidth = 1.8; g.lineCap = 'round'; g.beginPath(); g.arc(x - w / 2 + 11, y - 2, 4, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
   g.fillStyle = '#fff'; g.fillText(t, x + 5, y + 0.5); g.restore();
+}
+function evictHide(sx) {
+  // のぞかれて追い出される：飼い主と反対側へぴょんと出る
+  const o = owner, side = Math.sign(sx - o.x) || 1;
+  say(cat.hidden ? lt('…いた。出ておいで', '…Found you. Out you go') : lt('…そこにいたの。降りなさい', '…There you are. Get down'), 1.8); o.face = Math.sign(sx - o.x) || o.face;
+  if (cat.hidden) { cat.x = clamp(BOX.x + side * 44, 20, W - 20); cat.vy = -260; cat.plat = null; }
+  else { cat.vx = side * 240; cat.vy = -220; cat.plat = null; }
+  cat.hidden = false; cat.safe = false; cat.hideT = 0; cat.hideKey = null; cat.scareT = 0.4; tapTarget = null; sfx.meow(cat.type.voice, pickVoice());
+  pops.push({ x: sx, y: (cat.y || FLOOR) - 60, text: lt('追い出された!', 'Evicted!'), life: 1.3, col: '#c95f17', size: 18 });
 }
 function updChase(dt) {
   const o = owner; chaseT -= dt;
@@ -4490,7 +4529,13 @@ function showTitle() {
   bindA2hs();
   $('zkBtn').addEventListener('click', showZukan);
   $('rkBtn').addEventListener('click', () => showRank());
-  $('stBtn').addEventListener('click', showLife);
+  // 確認用の隠し操作：通算記録を2秒以内に5回押すと、エンディングだけを再生する（記録・称号には残さない）
+  let stTaps = [];
+  $('stBtn').addEventListener('click', () => {
+    const now = performance.now(); stTaps = stTaps.filter(t => now - t < 2000); stTaps.push(now);
+    if (stTaps.length >= 5) { stTaps = []; audio(); ov.hidden = true; newRun(); run.preview = true; setupStage(DAY_LEN * END_DAY); startEnding(); return; }
+    setTimeout(() => { if (stTaps.length && state === 'title' && performance.now() - stTaps[stTaps.length - 1] >= 380 && ov.querySelector('#stBtn')) { stTaps = []; showLife(); } }, 400);
+  });
   $('seBtn').addEventListener('click', () => showSettings(showTitle));
 }
 // ---------- みんなのランキング（Firebase Cloud Firestore の REST API）----------
