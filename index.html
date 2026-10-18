@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.46.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.46.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -7086,7 +7086,7 @@ function showPause() {
     <div class="big-logo" style="font-size:1.6rem">${lt('ひとやすみ', 'Paused')}</div><p class="sub">PAUSE</p>
     <button class="btn go" id="pResume" type="button">${lt('つづける', 'Resume')}</button>
     <div class="row"><button class="btn w" id="pRetry" type="button">${lt('やりなおす', 'Restart')}</button><button class="btn w" id="pTop" type="button">${lt('トップへ', 'Title')}</button></div>
-    <div class="row"><button class="btn w" id="pRk" type="button">${lt('記録', 'Records')}</button><button class="btn w" id="pSet" type="button">${lt('設定', 'Settings')}</button></div>
+    <div class="row"><button class="btn y" id="pRk" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M5 3h14v18l-7-4-7 4z"/></svg>${lt('記録', 'Records')}</button><button class="btn b" id="pSet" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm9 4l-2.2-.6-.5-1.3 1.2-2-1.6-1.6-2 1.2-1.3-.5L14 5h-4l-.6 2.2-1.3.5-2-1.2L4.5 8.1l1.2 2-.5 1.3L3 12v0l2.2.6.5 1.3-1.2 2 1.6 1.6 2-1.2 1.3.5L10 19h4l.6-2.2 1.3-.5 2 1.2 1.6-1.6-1.2-2 .5-1.3z"/></svg>${lt('設定', 'Settings')}</button></div>
     ${loadSave() ? `<p class="best" style="margin:2px 0 0;font-weight:500;font-size:.76rem;color:var(--ink2)">${lt('この面の始まりまでセーブずみ。いつやめても、トップの「つづきから」で再開できます', 'Saved up to the start of this stage. Quit any time and pick "Continue" on the title')}</p>` : ''}
     ${keysBox()}
 </div>`;
