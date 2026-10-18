@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -3680,6 +3680,8 @@ function drawCredits() {
   // 写真：左右に少しずつ流れる
   const al = run.album || [];
   al.forEach((a, i) => { const y = -OY + VH + 120 + i * 150 - e * (VH + 120 + al.length * 150) / CRED_LEN * 0.92, x = i % 2 ? W - 50 : 50; if (y < -OY - 120 || y > -OY + VH + 60) return; g.save(); g.translate(x, y); g.rotate((i % 2 ? 1 : -1) * 0.1); g.fillStyle = '#fff'; rr(g, -36, -40, 72, 86, 3); g.fill(); g.drawImage(a.im, -31, -35, 62, 62); g.fillStyle = '#4a2f1d'; g.font = `800 8px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(dayName(a.L) + ' ' + yen(a.yen), 0, 37); g.restore(); });   // 写真は左右の端（文字と重ならないように）
+  // 4.48.3：ほんとうのおしまいは、歩くネコのうしろに虹（文字より奥）
+  { const kx = W + 60 - (e * 70) % (W + 120); if (run.endType === 'true') rainbowTrail(kx + 14, W + 20, FLOOR - 18, 0.85, -1); }
   // 文字：下から上へ
   const D = credDist(L); g.textAlign = 'center'; g.textBaseline = 'middle'; let y = -OY + VH + 30 - Math.min(D, e * D / Math.max(1, CRED_LEN - CRED_HOLD));
   for (const [k, t] of L) {
@@ -3739,12 +3741,60 @@ function trueCastSetup() {
   endCast.crow.birds.forEach((b, i) => { b.mode = 'fly'; b.x = -40 - i * 50; b.y = 150 + i * 30; b.t = 99; });
   endPhoto = null;
 }
+// ---- 4.48.3：ほんとうのおしまいの特別な飾り ----
+const RAINBOW = ['#ff4d4d', '#ff9a2e', '#ffd84a', '#4fc76a', '#3aa0f0', '#8a63d2'];
+// 虹の帯：x0 から x1 まで、高さ y を中心に 6 色。小刻みに波打つ
+function rainbowTrail(x0, x1, y, a, dir) {
+  if (a <= 0 || x1 <= x0) return; g.save(); g.globalAlpha = a; const sh = 3.4, seg = 10;
+  for (let x = x0; x < x1; x += seg) { const wv = (Math.floor((x - tAnim * 60 * dir) / seg) % 2 ? 1.5 : -1.5); RAINBOW.forEach((c, i) => { g.fillStyle = c; g.fillRect(x, y - sh * 3 + i * sh + wv, Math.min(seg, x1 - x) + 0.5, sh + 0.4); }); }
+  g.restore();
+}
+function drawPartyBg(e) {
+  const F = FLOOR, on = clamp((e - 9.2) / 1.2, 0, 1);
+  // 明かり：夜の暗さをやめ、あたたかい光
+  g.fillStyle = 'rgba(40,20,70,.12)'; g.fillRect(0, -OY, W, VH);
+  { const gl = g.createRadialGradient(214, F - 130, 20, 214, F - 130, 300); gl.addColorStop(0, `rgba(255,214,140,${0.42 * on})`); gl.addColorStop(1, 'rgba(255,214,140,0)'); g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gl; g.fillRect(0, -OY, W, VH); g.restore(); }
+  // 窓の外の花火
+  g.save(); g.beginPath(); g.rect(34, 302, 72, 84); g.clip();
+  for (let k = 0; k < 3; k++) { const ph = (e * 0.8 + k * 0.37) % 1, n = Math.floor(e * 0.8 + k * 0.37), x = 44 + ((n * 37 + k * 23) % 52), y = 316 + ((n * 19 + k * 11) % 40), r = 6 + ph * 22, c = RAINBOW[(n + k * 2) % 6];
+    g.globalAlpha = 1 - ph; g.strokeStyle = c; g.lineWidth = 1.6; for (let i = 0; i < 10; i++) { const an = i / 10 * TAU; g.beginPath(); g.moveTo(x + Math.cos(an) * r * 0.45, y + Math.sin(an) * r * 0.45); g.lineTo(x + Math.cos(an) * r, y + Math.sin(an) * r); g.stroke(); } }
+  g.restore();
+  // 大きな虹（みんなのうしろ）
+  if (on > 0) { g.save(); g.globalAlpha = 0.32 * on; g.lineWidth = 9; RAINBOW.forEach((c, i) => { g.strokeStyle = c; g.beginPath(); g.arc(214, F + 30, 262 - i * 9, Math.PI * 1.02, Math.PI * 1.98); g.stroke(); }); g.restore(); }
+  // 電球の飾り（上）と三角旗のガーランド
+  const swag = (y0, sag, fn) => { for (let x = -10; x <= W + 10; x += 6) { const t = ((x + 10) % 150) / 150; fn(x, y0 + Math.sin(t * Math.PI) * sag, t); } };
+  g.strokeStyle = '#4a2f1d'; g.lineWidth = 1.2; g.beginPath(); swag(-OY * 0.4 + 20, 22, (x, y) => g.lineTo(x, y)); g.stroke();
+  for (let x = 6; x < W; x += 25) { const t = ((x + 10) % 150) / 150, y = -OY * 0.4 + 20 + Math.sin(t * Math.PI) * 22, c = RAINBOW[Math.floor(x / 25) % 6], lit = Math.sin(tAnim * 4 + x) > -0.3;
+    if (lit) { g.fillStyle = c; g.globalAlpha = 0.35; g.beginPath(); g.arc(x, y + 6, 9, 0, TAU); g.fill(); g.globalAlpha = 1; } g.fillStyle = lit ? c : '#8a8f96'; g.beginPath(); g.ellipse(x, y + 6, 3.4, 5, 0, 0, TAU); g.fill(); }
+  g.strokeStyle = '#8a6a4f'; g.lineWidth = 1.2; g.beginPath(); swag(150, 18, (x, y) => g.lineTo(x, y)); g.stroke();
+  for (let x = 10, i = 0; x < W; x += 22, i++) { const t = ((x + 10) % 150) / 150, y = 150 + Math.sin(t * Math.PI) * 18; g.fillStyle = RAINBOW[i % 6]; g.beginPath(); g.moveTo(x - 8, y); g.lineTo(x + 8, y); g.lineTo(x, y + 16); g.closePath(); g.fill(); }
+  // 風船（左右。ゆっくり揺れる）
+  [[34, 200, '#ff5a8a'], [58, 182, '#ffd84a'], [46, 230, '#3aa0f0'], [392, 196, '#4fc76a'], [418, 178, '#ff9a2e'], [404, 228, '#8a63d2']].forEach(([x, y, c], i) => {
+    const bx = x + Math.sin(tAnim * 1.2 + i) * 4, by = y + Math.sin(tAnim * 1.6 + i * 2) * 3;
+    g.strokeStyle = 'rgba(74,47,29,.5)'; g.lineWidth = 1; g.beginPath(); g.moveTo(bx, by + 20); g.quadraticCurveTo(bx + 6, by + 60, x < W / 2 ? 46 : 404, 330); g.stroke();
+    g.fillStyle = c; g.beginPath(); g.ellipse(bx, by, 15, 19, 0, 0, TAU); g.fill(); g.beginPath(); g.moveTo(bx - 3, by + 21); g.lineTo(bx + 3, by + 21); g.lineTo(bx, by + 17); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(bx - 5, by - 7, 4, 6, -0.4, 0, TAU); g.fill(); });
+  // 横断幕（みんなが集まると下りてくる）
+  if (on > 0) { const y = 222 - (1 - on) * 50; g.save(); g.globalAlpha = on; g.fillStyle = '#e0362c';
+    g.beginPath(); g.moveTo(64, y); g.lineTo(364, y); g.lineTo(352, y + 17); g.lineTo(364, y + 34); g.lineTo(64, y + 34); g.lineTo(76, y + 17); g.closePath(); g.fill();
+    g.fillStyle = '#fff6c8'; g.font = `800 17px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('7日間 ありがとう！', 'THANKS FOR 7 DAYS!'), 214, y + 18);
+    g.fillStyle = '#ffc94a'; [70, 358].forEach(x => { g.beginPath(); g.arc(x, y + 17, 3, 0, TAU); g.fill(); }); g.restore(); }
+  // 紙吹雪（集まってから。時間で決まる位置なので、写真にも写る）
+  if (on > 0) for (let i = 0; i < 46; i++) { const sp = 40 + (i * 13) % 50, y = -OY + ((e * sp + i * 71) % (VH + 20)) - 10, x = (i * 97 + Math.sin(e * 1.3 + i) * 18) % W, r = e * 3 + i;
+    g.save(); g.globalAlpha = on; g.translate(x, y); g.rotate(r); g.fillStyle = RAINBOW[i % 6]; g.fillRect(-3, -1.5, 6, 3 + Math.abs(Math.sin(r)) * 3); g.restore(); }
+}
+// 仲よしのハート（みんなのまわりにふわふわ）
+function partyHearts(e) {
+  const on = clamp((e - 14.5) / 1, 0, 1); if (on <= 0) return;
+  for (let i = 0; i < 9; i++) { const ph = (e * 0.35 + i / 9) % 1, x = 90 + (i * 41) % 250 + Math.sin(e * 2 + i) * 6, y = FLOOR - 40 - ph * 150, s = 0.7 + (i % 3) * 0.25;
+    g.save(); g.globalAlpha = on * Math.sin(ph * Math.PI) * 0.9; g.translate(x, y); g.scale(s, s); g.fillStyle = i % 2 ? '#ff7a95' : '#ff5a8a';
+    g.beginPath(); g.moveTo(0, 4); g.bezierCurveTo(-9, -3, -5, -10, 0, -5); g.bezierCurveTo(5, -10, 9, -3, 0, 4); g.fill(); g.restore(); }
+}
 const slideIn = (e, at, from, to, dur) => from + (to - from) * clamp((e - at) / (dur || 1.2), 0, 1);
 function drawTrueEnding() {
   const e = endT, F = FLOOR, EN = ENDINGS.true, C = endCast;
   drawRoom();
-  // 夜の部屋：少し暗い
-  g.fillStyle = 'rgba(16,22,60,.28)'; g.fillRect(0, -OY, W, VH);
+  drawPartyBg(e);   // 4.48.3：ほんとうのおしまいだけの特別な飾り（虹・花火・電球・旗・横断幕・風船・紙吹雪）
   // オットマンとコップ（記念写真の直前にネコがパンチする）
   g.fillStyle = '#c96a3a'; rr(g, 236, 474, 46, 26, 6); g.fill(); g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(240, 478, 38, 3);
   const cu = endCup;
@@ -3768,23 +3818,27 @@ function drawTrueEnding() {
     g.strokeStyle = '#a9bdf0'; g.lineWidth = 8; g.beginPath(); g.moveTo(4, -64); g.lineTo(hx, hy); g.stroke(); g.fillStyle = '#f0c8a0'; g.beginPath(); g.arc(hx, hy, 5, 0, TAU); g.fill();
     if (up > 0) { g.save(); g.translate(hx, hy - 10); g.rotate(-0.3); g.fillStyle = '#2a2f36'; rr(g, -6, -12, 12, 22, 3); g.fill(); g.fillStyle = e > 20.3 && e < 20.6 ? '#fff' : '#9cc8ef'; rr(g, -4.5, -10, 9, 17, 2); g.fill(); g.restore(); }
     g.restore();
-    // ネコ（左から）
+    // ネコ（左から。うしろに虹の帯を引いて入ってくる）
     const cx = slideIn(e, 9.8, -40, 168), moving = e > 9.8 && e < 11.0;
+    if (e > 9.8 && e < 13) rainbowTrail(-20, cx - 16, F - 22, clamp((13 - e) / 1.2, 0, 1), 1);
     const punch = e > 20.0 && e < 20.4, cEyes = e > 21.5 ? 'wink' : e > 14.5 ? 'sparkle' : 'happy';
     drawCat(g, cx + (punch ? 30 : 0), F, { type: cat.type, face: punch ? 1 : 1, scale: 1, t: tAnim, pose: punch ? 'punch' : moving ? 'walk' : 'walk', move: moving, eyes: cEyes, tail: 'up', acc: selAcc });
     // 犬（左から、ネコのうしろ）
-    if (e > 10.6) { const d0 = dog; dog = C.dog; C.dog.x = slideIn(e, 10.6, -60, 86); C.dog.dir = 1; drawDogAwake(); dog = d0; }
+    if (e > 10.6) { const d0 = dog; dog = C.dog; C.dog.x = slideIn(e, 10.6, -60, 118); C.dog.dir = 1; drawDogAwake(); dog = d0; }
     // ニワトリ（右から）
-    if (e > 11.4) { const k0 = chick; chick = C.chick; C.chick.x = slideIn(e, 11.4, W + 40, 336); C.chick.anim = tAnim; C.chick.mode = e < 12.6 ? 'walk' : (Math.sin(tAnim * 1.3) > 0.3 ? 'peck' : 'walk'); drawChick(); chick = k0; }
+    // ニワトリ（右から歩いてきて、15 秒で飼い主の頭の上へ飛び乗る）
+    if (e > 11.4) { const k0 = chick; chick = C.chick; const hop = clamp((e - 15) / 0.7, 0, 1); C.chick.x = slideIn(e, 11.4, W + 40, 300) + (214 - 300) * hop; C.chick.y = F - (110 * hop + Math.sin(hop * Math.PI) * 40); C.chick.face = -1; C.chick.anim = tAnim;
+      C.chick.mode = hop > 0 && hop < 1 ? 'fly' : e < 12.6 ? 'walk' : hop >= 1 ? 'walk' : (Math.sin(tAnim * 1.3) > 0.3 ? 'peck' : 'walk'); drawChick(); chick = k0; }
     // ボス猫（右から）
-    if (e > 12.2) { const r0 = rival; rival = C.rival; C.rival.x = slideIn(e, 12.2, W + 60, 290); C.rival.vx = e < 13.4 ? -100 : 0; C.rival.anim = tAnim; drawRival(); rival = r0; }
+    if (e > 12.2) { const r0 = rival; rival = C.rival; C.rival.x = slideIn(e, 12.2, W + 60, 268); C.rival.vx = e < 13.4 ? -100 : 0; C.rival.anim = tAnim; drawRival(); rival = r0; }
     // 相手たち：カラス（上を旋回）・ロボ掃除機（左）・おもちゃロボ（右）・ドローン（上）
     const f0 = foe;
-    if (e > 13.0) { foe = C.crow; C.crow.birds.forEach((b, i) => { b.anim = tAnim; b.x = slideIn(e, 13.0 + i * 0.4, -40 - i * 50, 120 + i * 190) + Math.sin(tAnim * 1.4 + i) * 10; b.y = 150 + i * 26 + Math.sin(tAnim * 2 + i) * 8; b.face = 1; }); drawFoe(); }
-    if (e > 13.6) { foe = C.vac; C.vac.x = slideIn(e, 13.6, -60, 40); C.vac.anim = tAnim; drawFoe(); }
-    if (e > 14.0) { foe = C.toy; C.toy.x = slideIn(e, 14.0, W + 60, 392); C.toy.anim = tAnim; drawFoe(); }
-    if (e > 14.4) { foe = C.drone; C.drone.x = slideIn(e, 14.4, -60, 300); C.drone.y = 200 + Math.sin(tAnim * 2) * 8; C.drone.anim = tAnim; drawFoe(); }
+    if (e > 13.0) { foe = C.crow; C.crow.birds.forEach((b, i) => { b.anim = tAnim; b.x = slideIn(e, 13.0 + i * 0.4, -40 - i * 50, 132 + i * 176) + Math.sin(tAnim * 1.4 + i) * 6; b.y = 352 + i * 10 + Math.sin(tAnim * 2 + i) * 5; b.face = i ? -1 : 1; }); drawFoe(); }
+    if (e > 13.6) { foe = C.vac; C.vac.x = slideIn(e, 13.6, -60, 88); C.vac.anim = tAnim; drawFoe(); }
+    if (e > 14.0) { foe = C.toy; C.toy.x = slideIn(e, 14.0, W + 60, 330); C.toy.anim = tAnim; drawFoe(); }
+    if (e > 14.4) { foe = C.drone; C.drone.x = slideIn(e, 14.4, -60, 214); C.drone.y = 300 + Math.sin(tAnim * 2) * 5; C.drone.anim = tAnim; drawFoe(); }
     foe = f0;
+    partyHearts(e);
   }
   drawParts();
   g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
@@ -5388,7 +5442,7 @@ function drawRoom() {
   g.fillStyle = '#fff'; g.beginPath(); g.arc(ckx, 90, 22, 0, TAU); g.fill(); g.strokeStyle = '#ff8a3d'; g.lineWidth = 5; g.stroke();
   g.strokeStyle = '#4a2f1d'; g.lineWidth = 2.5; g.lineCap = 'round'; g.beginPath(); g.moveTo(ckx, 90); g.lineTo(ckx + Math.cos(ha) * 10, 90 + Math.sin(ha) * 10); g.moveTo(ckx, 90); g.lineTo(ckx, 74); g.stroke();
   // 第2週の痕跡：5日目から「ネコ注意」の貼り紙、6日目から書斎に犯人ボード（ボス猫の写真に赤い×）、7日目から「監視中」の札
-  { const d = dayOf(level);
+  { const d = (state === 'ending' || state === 'endmenu') && run && run.endType === 'true' ? 0 : dayOf(level);   // 4.48.3：ほんとうのおしまいのパーティーでは、貼り紙・札・犯人ボードは外す
     if (d >= 5) { g.save(); g.translate(120, 178); g.rotate(0.04); g.fillStyle = '#fff6c8'; g.fillRect(-22, -14, 44, 28); g.fillStyle = '#e0362c'; g.fillRect(-22, -14, 44, 5); g.fillStyle = '#4a2f1d'; g.font = `800 9px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('ネコ注意', 'CAT ALERT'), 0, 2); g.fillText(lt('ネコ注意', 'CAT ALERT'), 0, 2); g.fillStyle = '#9aa0a6'; g.beginPath(); g.arc(0, -11, 1.6, 0, TAU); g.fill(); g.restore(); }
     if (d >= 7) { g.save(); g.translate(300, 172); g.fillStyle = '#e0362c'; rr(g, -26, -9, 52, 18, 4); g.fill(); g.fillStyle = '#fff'; g.font = `800 9px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lt('監視中', 'WATCHING'), 0, 1); g.fillStyle = state === 'play' && (tAnim * 2) % 1 < 0.5 ? '#ffc94a' : '#fff'; g.beginPath(); g.arc(-20, 0, 2, 0, TAU); g.fill(); g.restore(); }
     if (d >= 6 && room === 'study') {
@@ -6331,6 +6385,7 @@ function updParts(dt) {
     const gr = p.k === 'paper' ? 320 : p.k === 'heart' ? 0 : 900;
     p.vy += gr * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
     if (p.k === 'paper') { p.vx *= 0.99; }
+    if (p.k === 'heart') { if (p.y <= p.gy) p.life = 0; continue; }   // 4.48.3：ハートは上へ昇って消える（前は出た瞬間に止まる高さ＝床から 300px 上へ飛んで、そこに残っていた）
     if (p.y >= p.gy) {
       // 4.47.1：止まる高さに段がなければ（段の端より外へ飛んだ）、その下の段か床まで落ち続ける
       if (p.k !== 'drop' && p.k !== 'heart' && !partRest(p.x, p.gy)) { p.gy = partFloor(p.x, p.gy); continue; }
@@ -6737,8 +6792,8 @@ function update(dt) {
     }
   } else if (state === 'ending') {
     endT += dt;
-    // 4.48.2：記念写真は部屋の幅いっぱい（前は 250px で、犬・ロボ・カラス・ドローンなどが写っていなかった）
-    if (run.endType === 'true') { if (endT > 20.22 && !endSnapped) { endSnapped = true; try { endPhoto = takeSnap(W / 2, FLOOR - 30, W); snap = endPhoto; } catch (e) {} } }   // 記念写真（フラッシュの瞬間）
+    // 4.48.3：記念写真は、飼い主のまわりに寄ったみんなと横断幕が入る 320px 四方（4.48.2 は部屋の幅いっぱいで、みんな小さかった）
+    if (run.endType === 'true') { if (endT > 20.22 && !endSnapped) { endSnapped = true; try { endPhoto = takeSnap(214, FLOOR - 92, 320); snap = endPhoto; } catch (e) {} } }   // 記念写真（フラッシュの瞬間）
     else if (endT > 9.3 && !endSnapped) { endSnapped = true; try { snap = takeSnap(214, FLOOR); } catch (e) {} }   // シェア用の写真：オチの場面
     if (endT > (run.endType === 'true' ? TRUE_LEN : 15.8)) { state = 'credits'; credT = 0; CRED_LEN = credLen(); endBgmStart(true); EB.full = true; if (EB.on && ac) { EB.step = 0; EB.next = ac.currentTime + 0.05; } }   // スタッフロールの始まりを曲の 1 小節目に合わせる
   } else if (state === 'credits') {
