@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.5', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.6', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -681,10 +681,23 @@ function tidyHang() {
   }
 }
 // 吊り照明の位置：どの角度に揺れても台に立ったネコの頭（足場 − 30）から 26px 以上離れ、カーテンレール・吊り棚・棚・本棚のどれかからジャンプで届く所を選ぶ
+// 4.48.6：吊り照明のコード（天井から照明まで）が、壁の飾り（時計・ポスター・カレンダー・貼り紙・札・犯人ボード・トイレの小窓）の前を通らない所に置く
+function lampAvoid() {
+  const d = dayOf(level), r = [];
+  if (room === 'toilet') r.push([174, 256]);   // 小窓と窓台
+  else {
+    r.push([93, 147]);   // 時計（と 5 日目からの「ネコ注意」）
+    if (room !== 'living') r.push([258, 322]);   // ポスター・カレンダー・おたまとフライパン（リビングはテレビで、照明より下）
+    if (d >= 7) r.push([270, 330]);   // 「監視中」の札
+    if (d >= 6 && room === 'study') r.push([176, 254]);   // 犯人ボード
+  }
+  return r;
+}
 function placeLamp() {
-  const plats = Object.values(PL).filter(p => p !== PL.floor && p !== PL.tank);
+  const plats = Object.values(PL).filter(p => p !== PL.floor && p !== PL.tank && p.x1 > -100), avoid = lampAvoid();
   for (const L of [195, 190, 200, 185, 205])
-    for (const ax of [133, 125, 140, 115, 238, 244, 232, 60, 300]) {
+    for (const ax of [133, 125, 140, 115, 238, 244, 232, 60, 300, 165, 175, 185, 200, 210, 220, 75, 345]) {
+      if (avoid.some(([a, b]) => ax > a - 6 && ax < b + 6)) continue;
       let ok = true;
       for (let th = -0.62; th <= 0.62 && ok; th += 0.02) {
         const bx = ax + L * Math.sin(th), by = L * Math.cos(th);
