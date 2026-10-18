@@ -295,8 +295,9 @@
   .accs.icons button { width: 44px; height: 44px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
   .accs.icons button canvas { width: 40px; height: 40px; display: block; }
   .accs.icons button.lock { opacity: .45; background: #fbf3e6; }
-  .acc-info { min-height: 2.4em; font-size: .78rem; color: var(--ink2); font-weight: 500; margin: 0 0 8px; }
+  .acc-info { min-height: 3.6em; font-size: .78rem; color: var(--ink2); font-weight: 500; margin: 0 0 8px; }
   .acc-info b { color: var(--ink); font-weight: 800; }
+  .acc-how { display: block; font-size: .72rem; opacity: .85; margin-top: 2px; }
   .first-cat span { font-size: .78rem; color: var(--ink2); }
   .panel.first .btn.go { margin-top: 12px; padding: 18px 0; font-size: 1.5rem; }
   #pad #bM { --c: var(--teal); --s: var(--teal-d); }
@@ -361,7 +362,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.11', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.12', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -505,7 +506,7 @@ function bigCount(x) {
 function bigTrigger() {
   const B = BIG[room]; if (!B || bigEv.done) return;
   bigEv.done = true; bigEv.anim = 1.2; bigEv.wob = 0;
-  run.bigs = run.bigs || []; run.bigs.push(room); run.ev['big_' + room] = 1;
+  run.bigs = run.bigs || []; run.bigs.push(room); run.ev['big_' + room] = 1; openCat('maine');
   // 上に載っていたものを全部落とす（ひとつの連鎖として数える）
   const id = ++chainSeq;
   for (const it of items) if ((it.plat === PL.book || (B.fall && room === 'kids' && it.plat === PL.ex1)) && it.state !== 'fall') { it.state = 'fall'; it.plat = null; it.y0 = PL.book.y; it.y = PL.book.y - 2; it.vy = -rnd(60, 160); it.vx = -rnd(40, 130); it.vr = rnd(-8, 8); it.chain = id; it.strong = true; }
@@ -722,7 +723,8 @@ const CATS = [
 ];
 const PIPS = [tx('はやさ', 'Speed'), tx('ジャンプ', 'Jump'), tx('パンチ', 'Punch'), tx('かくれ', 'Stealth'), tx('くいしんぼ', 'Appetite')];
 // 最初はサバトラと茶トラだけ。ほかは条件を満たすと解禁（lock は鍵がかかっている間の短い条件表示）
-const CAT_LOCK = { siam: tx('エンディング', 'Reach the ending'), kuro: tx('こっそりクリア', 'Sneaky clear'), maine: tx('重いもの5個', '5 heavy items'), mike: tx('1回で¥10万', '¥100k in a run') };
+// 4.48.12：解禁を少しむずかしく（黒猫：怪しまれ度20%未満でクリア／メインクーン：家具崩し／三毛猫：1回で¥100万）
+const CAT_LOCK = { siam: tx('エンディング', 'Reach the ending'), kuro: tx('怪しまれ20%未満', 'Clear under 20%'), maine: tx('家具崩し', 'Topple furniture'), mike: tx('1回で¥100万', '¥1M in a run') };
 let catsOpen = new Set(['saba', 'cha']);
 try { JSON.parse(store.get('nekoCats', '[]')).forEach(id => catsOpen.add(id)); } catch (e) {}
 let heavyCount = +store.get('nekoHeavy', 0) || 0, newCats = [], stageMaxSus = 0, carryT = 0, lastCarry = 0;
@@ -1000,6 +1002,23 @@ const CARDS = [
 // 4.26.0：称号（被害額の t1〜t5 以外）はいたずらカードに統合した。TITLES の行動・通算の称号を 't_<id>' のカードとして足す（取り方は TDESC）
 const MERGED_T = ['foe4', 'nohit', 'idle', 'print', 'book', 'fast', 'zero', 'food', 'day', 'stars', 'streak', 'perfect', 'space', 'ghost', 'big5', 'guest', 'bowl', 'regular', 'million', 'cups', 'night', 'boxer', 'rooms', 'family', 'days3', 'wrecker7', 'endings'];
 for (const id of MERGED_T) { const t = TITLES.find(x => x.id === id); if (t) CARDS.push({ id: 't_' + id, name: t.name, desc: TDESC[id] || '', test: t.test || null, life: t.life || null }); }
+// 4.48.12：図鑑の並びはゲームの進み方に合わせる（1日目 → 2日目の部屋 → 家具崩し → 第2週 → 腕前 → 通算）。id と保存データは変えない
+const CARD_ORDER = [
+  // 1日目（リビング・キッチン・書斎・お客さんの夜）で出会うもの
+  'first', 'hide', 'lure', 'rub', 'water', 'tissue', 'phone', 'kaku', 't_idle', 't_zero', 'scratch', 'chain3', 't_space', 'mouse', 'scare', 'snack', 't_food',
+  'ride', 'data', 't_book', 't_print', 't_bowl', 'cloth', 'tv', 'lamp', 'escape', 't_streak', 't_guest', 't_day',
+  // 2日目から（庭・子ども部屋・お風呂場・停電の夜）
+  'chick', 'fish', 'boss', 'bath', 'sink', 'cuke', 'churu', 'alarm', 'bounce', 'top', 'dog',
+  // 家具崩し（部屋が出てくる順）
+  'big_living', 'big_kitchen', 'big_study', 'big_garden', 'big_kids', 'big_bath', 'big_bed', 't_wrecker7',
+  // 第2週（4〜7日目）
+  'foe_vacbot', 'festival', 'foe_crow', 'dognight', 'foe_toybot', 'bossnight', 'foe_drone', 'lastnight', 't_foe4', 't_nohit',
+  // 腕前（やさしい → むずかしい）
+  't_ghost', 't_perfect', 't_big5', 't_stars', 't_fast',
+  // 通算・やりこみ
+  't_regular', 't_days3', 't_million', 't_cups', 't_night', 't_boxer', 't_rooms', 't_family', 't_endings'
+];
+{ const rk = id => { const i = CARD_ORDER.indexOf(id); return i < 0 ? 999 : i; }; CARDS.sort((a, b) => rk(a.id) - rk(b.id)); }   // 並びにないカードは最後（sort は安定）
 let cardsGot = new Set(), cardPics = {}, newCards = [], cardCd = 0;
 try { cardsGot = new Set(JSON.parse(store.get('nekoCards', '[]'))); } catch (e) {}
 // 一度だけ：これまでに取った称号をカードへ引き継ぐ（同じ内容のカードがあるものはそれに、統合したものは t_ のカードに）
@@ -1294,6 +1313,15 @@ const ACC_FX = {
 };
 const accFx = () => ACC_FX[selAcc] || ACC_FX.none;
 const catStat = k => (cat && cat.type ? cat.type : CATS[selCat])[k] * (accFx()[k] || 1);
+// きせかえの入手方法（got=true は手に入れたあとの言い方。隠しコマンドも手に入れたあとは明かす）
+const accHow = (a, got) => {
+  const c = a.card ? CARDS.find(x => x.id === a.card) : null;
+  if (c) return got ? lt(`カード「${c.name}」（${c.desc}）`, `card "${c.name}" (${c.desc})`) : lt(`カード「${c.name}」（${c.desc}）で手に入る`, `earn the card "${c.name}" (${c.desc})`);
+  if (a.ending) return got ? lt('エンディングを見た', 'saw an ending') : lt('エンディングを見ると手に入る', 'see an ending');
+  if (a.trueEnd) return got ? lt('7日目の夜を越えた', 'got past the seventh night') : lt('7日目の夜を越えると手に入る', 'get past the seventh night');
+  if (a.secret) return got ? lt('タイトルで にゃー を10回', 'meow 10 times on the title screen') : lt('？？？', '???');
+  return '';
+};
 const accOk = a => a.ending ? store.get('nekoEnded', '') === '1' : a.trueEnd ? store.get('nekoTrueEnd', '') === '1' : a.secret ? store.get('nekoShades', '') === '1' : a.card ? cardsGot.has(a.card) : true;   // 4.26.1：決まったカードで手に入る
 // 小さなアイコン（OS の絵文字は端末で見た目が変わるので、インライン SVG）
 const ICO = {
@@ -2729,8 +2757,8 @@ function breakItem(it, plat) {
   if (chainB > 0) bon.unshift([(chainN >= 2 ? lt(chainN + '連鎖 +', chainN + 'x chain +') : lt('連鎖 +', 'Chain +')) + yen(chainB), '#ff8a3d']);
   if (bon.length) pops.push({ x: it.x, y: plat.y - 58, text: bon.map(b => b[0]).join('\n'), cols: bon.map(b => b[1]), life: 1.8, col: bon[0][1], size: 16 });
   // ネコの解禁：重いもの（通算）・1回の被害額
-  if (it.t === 'mug' || it.t === 'vase' || it.t === 'console') { heavyCount++; store.set('nekoHeavy', String(heavyCount)); if (heavyCount >= 5) openCat('maine'); }
-  if (run.yen >= 100000) openCat('mike');
+  if (it.t === 'mug' || it.t === 'vase' || it.t === 'console') { heavyCount++; store.set('nekoHeavy', String(heavyCount)); }
+  if (run.yen >= 1000000) openCat('mike');
   breakFx(it, plat);
   hearNoise(it.x, d.noise);
   if (tut.on) tut.broke = true;
@@ -2777,7 +2805,7 @@ function breakFx(it, plat) {
 
 function damage(y, key, x, py, loud) {
   // ものではない被害（書斎のデータ・爪とぎなど）。loud は物音の大きさ（省略時 0.9）
-  run.touched = true; run.yen += y; if (run.yen >= 100000) openCat('mike'); run.broke[key] = (run.broke[key] || 0) + 1; run.lastBroke = key;
+  run.touched = true; run.yen += y; if (run.yen >= 1000000) openCat('mike'); run.broke[key] = (run.broke[key] || 0) + 1; run.lastBroke = key;
   if ((IT[key] || MISCHIEF[key]) && (!run.big || y > run.big.y)) run.big = { k: key, y };
   pops.push({ x, y: py - 40, text: '+' + yen(y), life: 1.8, col: '#e0362c', size: y >= 10000 ? 28 : 20 });
   hitFx(y >= 10000 ? 1 : 0, x, py - 20); sfx.kaching(); buzz(y >= 10000 ? [80, 50, 120] : 40); hearNoise(x, loud == null ? 0.9 : loud);
@@ -4483,8 +4511,8 @@ function checkClear() {
   if (phaseOf(level).special) run.ev['night_' + phaseOf(level).special] = true;
   stageBonus = { quick, sneaky, perfect, close };
   try { const sn = takeSnap(); if (sn) { const c2 = document.createElement('canvas'); c2.width = c2.height = 160; c2.getContext('2d').drawImage(sn, 0, 0, 160, 160); run.album = (run.album || []).concat([{ im: c2, L: level, yen: Math.round(sy) }]).slice(-12); if (level % NPH === 0) run.nights = (run.nights || []).concat([{ im: c2, L: level }]).slice(-7); } } catch (e) {}
-  if (run.yen >= 100000) openCat('mike');
-  if (stageMaxSus < 50) openCat('kuro');
+  if (run.yen >= 1000000) openCat('mike');
+  if (stageMaxSus < 20 && sy > 0) openCat('kuro');
   if (level >= 2 && stageT < 15) run.fast = true;
   if (tut.on) { tutDone = true; tut.on = false; store.set('nekoTut', '1'); }
   // 1日の最後の面：まずふつうのクリア画面を 1.6 秒見せてから、おしまいの画面（3日目の夜ならエンディング）へ
@@ -7007,7 +7035,9 @@ function showCatShop() {
   const drawAccs = () => ov.querySelectorAll('.accs button').forEach(b => accIcon(b.querySelector('canvas'), b.dataset.a, !b.classList.contains('lock')));
   const info = () => {
     const a = ACCS.find(q => q.id === selAcc) || ACCS[0], fx = ACC_FX[selAcc] || ACC_FX.none;
-    $('accInfo').innerHTML = `<b>${a.name}</b>　${fx.note}`;
+    // 4.48.12：手に入れたあとも、どうやって手に入れたかを出す
+    const how = a.id === 'none' ? '' : accHow(a, true);
+    $('accInfo').innerHTML = `<b>${a.name}</b>　${fx.note}` + (how ? `<span class="acc-how">${lt('入手：', 'Earned: ')}${how}</span>` : '');
   };
   drawCats(); drawAccs(); showStats(); info();
   ov.querySelectorAll('.cats button').forEach(b => b.addEventListener('click', () => {
@@ -7017,8 +7047,8 @@ function showCatShop() {
   ov.querySelectorAll('.accs button').forEach(b => b.addEventListener('click', () => {
     audio();
     if (b.classList.contains('lock')) {
-      const a = ACCS.find(q => q.id === b.dataset.a), c = a && a.card ? CARDS.find(x => x.id === a.card) : null;
-      toast(c ? lt(`「${a.name}」：カード「${c.name}」（${c.desc}）で手に入る`, `"${a.name}": earn the card "${c.name}" (${c.desc})`) : a.ending ? lt(`「${a.name}」：エンディングを見ると手に入る`, `"${a.name}": see an ending`) : a.trueEnd ? lt(`「${a.name}」：7日目の夜を越えると手に入る`, `"${a.name}": get past the seventh night`) : lt('？？？', '???'), 3000);
+      const a = ACCS.find(q => q.id === b.dataset.a);
+      toast(lt(`「${a.name}」：`, `"${a.name}": `) + accHow(a, false), 3000);
       return;
     }
     selAcc = b.dataset.a; store.set('nekoAcc', selAcc); sfx.bowl();

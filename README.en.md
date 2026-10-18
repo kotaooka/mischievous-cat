@@ -35,7 +35,7 @@ Cups, vases, smartphones. You're just an adorable cat. …Probably.
 
 1. **Walk up to something and punch it!** Knock things off tables and shelves to rack up "damage"
 2. **If the owner sees you, you're done.** A "?" means trouble is coming, "!!" means they're watching. Hop off the furniture and act like a normal cat
-3. **Knock everything off to clear the stage.** Morning, noon, evening and night make one day. Clear the third night for the ending, and the seventh night to finish the game
+3. **Knock everything off to clear the stage.** Morning, noon, evening and night make one day. Aim for **the third night** first. …What comes after is for you to find out
 
 You can stop any time: the game auto-saves at the start of every stage, and the title screen offers "Continue" from that stage next time (or from that day's morning if you got caught). "Continue" also shows how many stages are left in that day. If you get caught on day 1, you can retry that stage.
 
@@ -76,23 +76,26 @@ Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. 
 
 ## 🏠 A day in the house
 
-A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. The game has 7 days (28 stages).
+A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. Seven days in all (28 stages).
 
-Clear the third night to see the ending. There are 4 endings depending on how you played (barely suspected, lots of big ones, no restarts or chases, or the usual), followed by a credits roll with the photos taken at each stage clear. Then carry on into the second week.
+We won't spoil what lies past the third night. Just a few hints:
 
-Days 4–7 each have a daily rule and one foe that attacks you (beat it with cat punches for +5 seconds), four new rooms (driveway, rooftop, pool, restroom — punch the restroom door while the owner is inside and see what happens) and four new special nights. Clear the seventh night for the true ending — a seven-day photo digest, a group shot with every character, and a punchline — and your seven-day damage goes to the ranking.
+- **There is more than one ending.** Sneaky or destructive, the owner is keeping track of what kind of cat you were
+- **Read the owner's diary.** One line a night. The house changes a little, too
+- **There are rooms you haven't seen yet.** Some of them outside
+- **The owner and the cat may not be alone in this house.** Things that scurry across the floor, things that swoop from the sky…
+- What awaits past **the seventh night** is for you to see
+
+Want every number and rule? See the [detailed rules](docs/rules.md) (Japanese, **spoilers**).
 
 | Day | Morning | Noon | Evening | Special night |
 |---|---|---|---|---|
 | 1 | Living room | Kitchen | Study | **Dinner guest night** (two watchers, lots of glasses) |
-| 2 | Garden | Kid's room | Bathroom | **Blackout night** (pitch dark; only the flashlight beam can spot you) |
-| 3 | Living room | Kitchen | Study | **Pet cam night** (two sweeping cameras and traps) |
-| 4 (Earphone day) | Living room (**rogue robo-vac**) | Driveway | Study | **Festival night** (garden; the owner watches the fireworks) |
-| 5 (Dog day) | Rooftop | Garden (**two crows**) | Bathroom | **Dog awake night** (living room; punch the bone to distract the dog) |
-| 6 (Boss cat day) | Kitchen | Bedroom | Pool (**toy robot**) | **Boss cat night** (living room; team up with the boss) |
-| 7 (Two-camera day) | Restroom (**drone**) | Garden | Living room | **The last night** (bedroom; the owner never leaves) |
+| 2 | Garden | Kid's room | Bathroom | **??? night** (it's awfully dark tonight…) |
+| 3 | ??? | ??? | ??? | **??? night** (the owner seems to have a plan) |
+| 4–7 | ??? | ??? | ??? | ??? |
 
-Each room has its own watcher: the owner, a kid (fast but short-sighted), grandma (slow, but glances back while walking) or dad (keeps looking up at the shelves). The weather changes every day too; on rainy days the owner stays in and comes back sooner.
+Each room has its own watcher: the owner, a kid (fast but short-sighted), grandma (slow, but glances back while walking) or dad (keeps looking up at the shelves). The weather changes every day too (and not just sun, clouds, rain and snow); on rainy days the owner stays in and comes back sooner.
 
 <table>
 <tr>
@@ -107,12 +110,12 @@ Each room has its own watcher: the owner, a kid (fast but short-sighted), grandm
 </tr>
 <tr>
 <td align="center"><img src="docs/screenshots/en/16-guest.png" width="200" alt="Dinner guest night"><br>Dinner guest night</td>
-<td align="center"><img src="docs/screenshots/en/17-blackout.png" width="200" alt="Blackout night"><br>Blackout night</td>
-<td align="center"><img src="docs/screenshots/en/18-petcam.png" width="200" alt="Pet cam night"><br>Pet cam night</td>
+<td align="center"><img src="docs/screenshots/en/17-blackout.png" width="200" alt="A dark bedroom"><br>One night, the whole house goes dark…?</td>
+<td></td>
 </tr>
 <tr>
 <td align="center"><img src="docs/screenshots/en/19-lamp.png" width="200" alt="Swinging on the lamp"><br>Swinging on the lamp</td>
-<td align="center"><img src="docs/screenshots/en/20-ending.png" width="200" alt="The ending"><br>The ending</td>
+<td></td>
 <td></td>
 </tr>
 </table>
@@ -129,9 +132,9 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 |---|---|---|
 | Gray Tabby | All-rounder | From the start |
 | Orange Tabby | Big punch | From the start |
-| Black Cat | Hard to spot | Clear a stage while keeping suspicion under 50% |
-| Maine Coon | Strong & hungry (low jump) | Knock off 5 heavy items in total (mug, vase, game console) |
-| Calico | Lucky cat (pricey items show up more) | Over ¥100,000 damage in a single run |
+| Black Cat | Hard to spot | Knock something off and clear a stage with suspicion under 20% |
+| Maine Coon | Strong & hungry (low jump) | Topple furniture in any room (bookshelf avalanche, etc.) |
+| Calico | Lucky cat (pricey items show up more) | ¥1,000,000 damage in a single run |
 | Siamese | Light-footed (best jumper, quiet steps) | Reach the ending |
 
 ## 🏆 Rankings and mischief cards
@@ -143,7 +146,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 - **Big ones**: each room has one way to bring a whole piece of furniture down (bookshelf avalanche, fridge avalanche…). Everything on top falls and the owner freezes for a moment. The Cards tab tells you how
 - **Mischief cards**: 72 cards (some per run, some lifetime), each collected with a photo of the moment you first pulled it off. The Cards tab also shows how to get the ones you are missing
 - **This device**: your own top 10
-- **Accessories**: unlocked by specific cards ("Meow Decoy" for the bell collar, "Boss Beaten" for the bandana, and so on — the locked pill shows the card). Each gives a small bonus (punch +15%, jump +10%…); switching one on the title screen updates the stat pips
+- **Accessories**: unlocked by specific cards ("Meow Decoy" for the bell collar, "Boss Beaten" for the bandana, and so on — the locked pill shows the card). Each gives a small bonus (punch +15%, jump +10%…); switching one on the title screen updates the stat pips. How you earned it stays listed under its bonus
 - **Titles**: the title on the result screen is decided by one run's damage (five ranks)
 - **Crime scene photo**: a close-up of the cat at the moment you're caught becomes a Polaroid (no HUD in the shot), with a one-line pitch and where to play. Tap the photo on the result screen to see it big. Share it with `#MischievousCat`
 - **Day restarts**: from Day 2 on, the result screen offers "Continue from Day N morning". Damage, stars and charms go back to that morning, and the ranking shows how many restarts you used
