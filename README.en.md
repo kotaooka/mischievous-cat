@@ -75,7 +75,7 @@ Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. 
 
 ## 🏠 A day in the house
 
-A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. Days 4–7 bring new foes (beat them with cat punches) and four new special nights; clear the seventh night for the true ending. Clear the third night to see the ending. There are 4 endings depending on how you played (never caught, big damage, well-behaved, or the usual), followed by a credits roll with the photos taken at each stage clear. Then keep going into day 4 and beyond.
+A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. Days 4–7 bring new foes (beat them with cat punches), four new rooms (driveway, rooftop, pool, restroom — punch the restroom door while the owner is inside and see what happens) and four new special nights; the true ending after day 7 is a seven-day photo digest, a group shot with every character, and a punchline; clear the seventh night for the true ending. Clear the third night to see the ending. There are 4 endings depending on how you played (never caught, big damage, well-behaved, or the usual), followed by a credits roll with the photos taken at each stage clear. Then keep going into day 4 and beyond.
 
 | Day | Morning | Noon | Evening | Special night |
 |---|---|---|---|---|
