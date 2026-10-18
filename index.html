@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.39.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.39.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1805,6 +1805,7 @@ function setupStageCore(L) {
     if (foe) add('foe_' + foe.kind, foe.kind === 'crow' ? foe.birds[0].x : foe.x, foe.kind === 'crow' ? foe.birds[0].y + 10 : foe.kind === 'drone' ? foe.y + 10 : FLOOR - 16);
     if (bones.length) add('bone', bones[0].x, FLOOR - 8);
     if (room === 'toilet') add('door', 392, FLOOR - 70);
+    if (L >= 2 && items.some(o => o.plat === PL.shelf)) add('shelf', SHELF_MID, PL.shelf.y - 4);   // 4.39.2：傾く棚の合図
     if (spots.length) { const sp0 = spots[0], m0 = MISCHIEF[sp0.id]; if (m0 && PL[m0.plat]) add('mis', (m0.x[0] + m0.x[1]) / 2, PL[m0.plat].y - 10); }   // 4.37.0：壁紙・カーテンなどの「いたずらの場所」も初回は教える
   }
   const rts = ROOM_TASK[room].filter(id => TASKS[id].ok()); if (rts.length) tasks.push(pick(rts));
@@ -2347,7 +2348,7 @@ function platAt(wx, wy) {
   for (const p of PLS) if (p !== VACP && wx >= p.x0 - 8 && wx <= p.x1 + 8 && p.y >= wy - 14 && p.y < best.y) best = p;
   return best;
 }
-const SPOT_HINT = { cuke: tx('びっくりして とぶ', 'Scares you up'), lamp: tx('とびつける', 'Grab it'), creak: tx('ギシッと 鳴る', 'Creaks'), trap: tx('ふむと 音がする', 'Noisy if stepped on'), cam: tx('うつると バレる', 'Camera sees you'), tv: tx('ふむと つく', 'Step to turn on'), cloth: tx('ひっぱれる', 'Pull it'), mouse: tx('パンチで たいじ', 'Punch it'), chick: tx('おどかせる', 'Startle it'), tank: tx('水に 落とせる', 'Drop things in'), guest: tx('見てる', 'Watching'), bone: tx('犬が おきる', 'Wakes the dog'), door: tx('だれか 入ってる…', 'Someone\'s inside…'), mis: tx('パンチ長押しで いたずら', 'Hold punch here'),
+const SPOT_HINT = { cuke: tx('びっくりして とぶ', 'Scares you up'), lamp: tx('とびつける', 'Grab it'), creak: tx('ギシッと 鳴る', 'Creaks'), trap: tx('ふむと 音がする', 'Noisy if stepped on'), cam: tx('うつると バレる', 'Camera sees you'), tv: tx('ふむと つく', 'Step to turn on'), cloth: tx('ひっぱれる', 'Pull it'), mouse: tx('パンチで たいじ', 'Punch it'), chick: tx('おどかせる', 'Startle it'), tank: tx('水に 落とせる', 'Drop things in'), guest: tx('見てる', 'Watching'), bone: tx('犬が おきる', 'Wakes the dog'), shelf: tx('はしに乗ると 2個以上の側が かたむく', 'Stand on an end: 2+ things tip it'), door: tx('だれか 入ってる…', 'Someone\'s inside…'), mis: tx('パンチ長押しで いたずら', 'Hold punch here'),
   foe_vacbot: tx('体当たりしてくる → パンチ 3 回', 'Rams you → punch 3 times'), foe_crow: tx('ものを ぬすむ → パンチ 2 回', 'Steals things → punch 2 times'), foe_toybot: tx('ダーツをうつ → うしろから パンチ', 'Shoots darts → punch from behind'), foe_drone: tx('下にいると ピピピ → パンチ 2 回', 'Beeps if below → punch 2 times') };
 function drawSpot() {
   // 初めて出た仕掛け：黄色い輪が広がり、上から矢印が指す（1か所 1.5 秒）
@@ -3313,19 +3314,22 @@ function updLamp(dt) {
 function updShelf(dt) {
   // 傾く棚：片側の端にネコが乗り、その側にものが集まっている（重さ 2.4 以上）と、ガタンと傾いて全部すべり落ちる
   const s = shelfTilt, p = PL.shelf; if (s.cd > 0) s.cd -= dt; if (s.wob > 0) s.wob -= dt;
-  if (s.t <= 0 && s.cd <= 0 && cat.plat === p) {
+  // 4.39.2：ルールを見えるものに。端（26px）に乗ると、その側にあるものの「数」で決まる：2 個以上 → ガタンと傾いて全部落ちる、1 個 → 少し傾いてぐらつくだけ、0 個 → 何も起きない。乗っている間は数に応じて少し傾く（合図）
+  let lean = 0;
+  if (s.t <= 0 && cat.plat === p) {
     const end = cat.x < p.x0 + 26 ? -1 : cat.x > p.x1 - 26 ? 1 : 0;
     if (end) {
-      const mass = items.filter(o => o.plat === p && o.state === 'rest' && (o.x - SHELF_MID) * end > 0).reduce((a, o) => a + IT[o.t].m, 0);
-      if (mass >= 2.4) { s.dir = end; s.t = 1.4; s.cd = 6; s.chain = ++chainSeq; sfx.gatan(); shake = 0.25; learn('shelf'); pops.push({ x: SHELF_MID + end * 60, y: p.y - 60, text: lt('ガタン!', 'CLUNK!'), life: 1.2, col: '#8a5a34', size: 22 }); }
-      else if (mass >= 1 && s.wob <= 0) s.wob = 0.6;   // 少しぐらつく（合図）
+      const cnt = items.filter(o => o.plat === p && o.state === 'rest' && (o.x - SHELF_MID) * end > 0).length;
+      lean = end * 0.035 * Math.min(cnt, 2);
+      if (s.cd <= 0 && cnt >= 2) { s.dir = end; s.t = 1.4; s.cd = 6; s.chain = ++chainSeq; sfx.gatan(); shake = 0.25; learn('shelf'); pops.push({ x: SHELF_MID + end * 60, y: p.y - 60, text: lt('ガタン!', 'CLUNK!'), life: 1.2, col: '#8a5a34', size: 22 }); }
+      else if (s.cd <= 0 && cnt === 1 && s.wob <= 0) { s.wob = 0.6; sfx.creak(); }   // 少しぐらつく（合図：あと 1 個で傾く）
     }
   }
   if (s.t > 0) {
     s.t -= dt; s.a += (s.dir * 0.2 - s.a) * Math.min(1, dt * 10);
     for (const o of items) if (o.plat === p && o.state !== 'fall') { o.state = 'slide'; o.vx += s.dir * 560 * dt; o.chain = o.chain || s.chain; }
     if (cat.plat === p) cat.x += s.dir * 50 * dt;
-  } else s.a += (0 - s.a) * Math.min(1, dt * 6);
+  } else s.a += (lean - s.a) * Math.min(1, dt * 6);
 }
 const shelfDy = x => shelfTilt.a ? (x - SHELF_MID) * Math.tan(shelfTilt.a) + (shelfTilt.wob > 0 ? Math.sin(tAnim * 50) * 0.8 : 0) : (shelfTilt.wob > 0 ? Math.sin(tAnim * 50) * 0.8 : 0);
 function drawCreaks() {
