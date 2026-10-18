@@ -18,12 +18,12 @@
 
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/02-play.png" width="250" alt="飼い主が電話中にスマホを落とす"><br>飼い主が電話に夢中なうちに……</td>
+<td align="center"><img src="docs/screenshots/02-play.png" width="250" alt="電話中の飼い主と、テーブルのスマホをねらうネコ"><br>飼い主が電話に夢中なうちに……</td>
 <td align="center"><img src="docs/screenshots/03-caught.png" width="250" alt="見つかった瞬間"><br>見つかった！</td>
 <td align="center"><img src="docs/screenshots/09-result.png" width="250" alt="結果画面と犯行現場写真"><br>被害額と「犯行現場写真」</td>
 </tr>
 <tr>
-<td align="center"><img src="docs/screenshots/04-night.png" width="250" alt="夜の寝室"><br>夜の寝室。飼い主は歯みがき中</td>
+<td align="center"><img src="docs/screenshots/04-night.png" width="250" alt="寝室"><br>寝室。飼い主は歯みがき中</td>
 <td align="center"><img src="docs/screenshots/08-clear.png" width="250" alt="ステージクリア"><br>ばれずに片付けると腕前ボーナス</td>
 <td align="center"><img src="docs/screenshots/10-ranking.png" width="250" alt="みんなのランキング"><br>みんなのランキングで勝負</td>
 </tr>
@@ -139,7 +139,7 @@ PC はゲームパッドでも遊べます（十字キー／左スティック�
 
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/11-garden.png" width="200" alt="庭のニワトリ"><br>コケーッ！ ニワトリが棚へ</td>
+<td align="center"><img src="docs/screenshots/11-garden.png" width="200" alt="庭のニワトリ"><br>コケーッ！ ニワトリが飛び上がる</td>
 <td align="center"><img src="docs/screenshots/12-boss.png" width="200" alt="ボス猫とケンカ"><br>ボス猫とネコパンチ勝負</td>
 <td align="center"><img src="docs/screenshots/13-bath.png" width="200" alt="お風呂に落ちた"><br>お風呂に落ちたら、ずぶぬれ</td>
 </tr>

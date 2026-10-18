@@ -18,12 +18,12 @@ Cups, vases, smartphones. You're just an adorable cat. …Probably.
 
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/en/02-play.png" width="250" alt="Knocking a phone off while the owner is on a call"><br>While the owner is on the phone…</td>
+<td align="center"><img src="docs/screenshots/en/02-play.png" width="250" alt="The cat eyeing a phone on the table while the owner is on a call"><br>While the owner is on the phone…</td>
 <td align="center"><img src="docs/screenshots/en/03-caught.png" width="250" alt="Caught in the act"><br>Caught!</td>
 <td align="center"><img src="docs/screenshots/en/09-result.png" width="250" alt="Result screen with a crime scene photo"><br>Your damage and a "crime scene photo"</td>
 </tr>
 <tr>
-<td align="center"><img src="docs/screenshots/en/04-night.png" width="250" alt="The bedroom at night"><br>Night. The owner is brushing their teeth</td>
+<td align="center"><img src="docs/screenshots/en/04-night.png" width="250" alt="The bedroom"><br>The bedroom. The owner is brushing their teeth</td>
 <td align="center"><img src="docs/screenshots/en/08-clear.png" width="250" alt="Stage clear"><br>Stay unseen to earn skill bonuses</td>
 <td align="center"><img src="docs/screenshots/en/10-ranking.png" width="250" alt="World ranking"><br>Battle it out on the world ranking</td>
 </tr>
