@@ -362,7 +362,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.49.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.49.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -4917,7 +4917,7 @@ function drawAcc(c, id) {
   c.lineCap = 'round'; c.lineJoin = 'round';
   if (id === 'medal') {
     // 金メダル：首から下げる
-    c.strokeStyle = '#2b8fd9'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(12, -26); c.lineTo(17, -12); c.lineTo(22, -26); c.stroke();
+    c.strokeStyle = '#2b8fd9'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(13, -18.5); c.lineTo(17, -12); c.lineTo(24, -17.5); c.stroke();   // 4.49.1：ひもは頭（中心 20,-28・半径 11）の外から
     c.fillStyle = '#ffc94a'; c.strokeStyle = '#c98a00'; c.lineWidth = 1; c.beginPath(); c.arc(17, -9, 4.2, 0, TAU); c.fill(); c.stroke();
     c.fillStyle = '#fff3b0'; c.beginPath(); c.arc(16, -10, 1.4, 0, TAU); c.fill();
   } else if (id === 'star') {
@@ -4947,7 +4947,7 @@ function drawAcc(c, id) {
     c.strokeStyle = '#1b1b22'; c.lineWidth = 1.3; c.beginPath(); c.arc(25, -29, 4, 0, TAU); c.moveTo(20.5, -29); c.arc(16.5, -29, 4, 0, TAU); c.moveTo(21, -29.5); c.lineTo(20.5, -29.5); c.stroke();
   } else if (id === 'camera') {
     // トイカメラ：赤いストラップで首から下げる。レンズとフラッシュ
-    c.strokeStyle = '#e0362c'; c.lineWidth = 1.8; c.beginPath(); c.moveTo(11, -25); c.lineTo(14, -14); c.moveTo(23, -25); c.lineTo(22, -14); c.stroke();
+    c.strokeStyle = '#e0362c'; c.lineWidth = 1.8; c.beginPath(); c.moveTo(13.5, -18.3); c.lineTo(14, -14); c.moveTo(24, -17.5); c.lineTo(22, -14); c.stroke();
     c.fillStyle = '#3a8fd0'; rr(c, 11, -15, 13, 9, 2); c.fill(); c.fillStyle = '#e8eef4'; c.fillRect(11, -15, 13, 2.2);
     c.fillStyle = '#22252c'; c.beginPath(); c.arc(17.5, -10.2, 3.1, 0, TAU); c.fill(); c.fillStyle = '#7fc1f0'; c.beginPath(); c.arc(17, -10.8, 1.2, 0, TAU); c.fill();
     c.fillStyle = '#fff3b0'; c.fillRect(20.6, -14.2, 2.2, 1.6);
