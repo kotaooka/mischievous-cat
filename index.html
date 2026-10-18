@@ -358,7 +358,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.38.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.38.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1208,6 +1208,10 @@ let hitStop = 0, zoomK = 0, zoomX = W / 2, zoomY = 300, rushShown = false;   // 
 let learned = new Set();
 try { learned = new Set(JSON.parse(store.get('nekoLearned', '[]'))); } catch (e) {}
 function learn(k) { if (learned.has(k)) return; learned.add(k); store.set('nekoLearned', JSON.stringify([...learned])); }
+// 4.38.1：クリアしたことのある面（番号）。仕掛けの札は、クリアしていない面では毎回出す（クリアずみの面では初めて見る仕掛けだけ）
+let clearedL = new Set();
+try { clearedL = new Set(JSON.parse(store.get('nekoClr', '[]'))); } catch (e) {}
+function markCleared(L) { if (run && run.test) return; if (clearedL.has(L)) return; clearedL.add(L); store.set('nekoClr', JSON.stringify([...clearedL])); }
 // ランキング（この端末の上位10件）：{ y 被害額, s ステージ, st ★, c ネコ, d 日付 }
 let ranking = [], rankNow = 0;
 try { ranking = JSON.parse(store.get('nekoRank', '[]')).filter(r => r && typeof r.y === 'number').slice(0, 10); } catch (e) { ranking = []; }
@@ -1775,7 +1779,7 @@ function setupStageCore(L) {
   tasks = []; chaseN = 0; susQ = 0; warn85 = false; chaseT = 0; hideT = 0; rideStage = 0; tapTarget = null;
   {
     // この面で初めて出た仕掛けを集める（一度光らせたら learned に入れて、次からは出さない）
-    const add = (k, x, y) => { if (!learned.has('see_' + k)) spot.push({ k, x, y }); };
+    const add = (k, x, y) => { const seen = learned.has('see_' + k); if (!seen || !clearedL.has(L)) spot.push({ k, x, y, rep: seen }); };   // 4.38.1：クリアしていない面では毎回（見たことがある仕掛けは短め）
     if (cuke) add('cuke', cuke.x, FLOOR - 8);
     if (lamp) add('lamp', lamp.ax + lamp.L * Math.sin(lamp.th), lamp.ay + lamp.L + 14);
     if (creaks.length) add('creak', creaks[0].x + creaks[0].w / 2, FLOOR + 4);
@@ -2337,7 +2341,7 @@ const SPOT_HINT = { cuke: tx('びっくりして とぶ', 'Scares you up'), lamp
 function drawSpot() {
   // 初めて出た仕掛け：黄色い輪が広がり、上から矢印が指す（1か所 1.5 秒）
   if (!spot.length || state !== 'play' || introT > 0 || escT > 0) return;
-  const s = spot[0], k = (spotT * 1.6) % 1, b = Math.abs(Math.sin(spotT * 6)) * 6, a = Math.min(1, spotT / 0.2, (SPOT_LEN - spotT) / 0.25);
+  const s = spot[0], k = (spotT * 1.6) % 1, b = Math.abs(Math.sin(spotT * 6)) * 6, a = Math.min(1, spotT / 0.2, ((s.rep ? SPOT_LEN * 0.7 : SPOT_LEN) - spotT) / 0.25);
   g.save(); g.globalAlpha = a;
   g.strokeStyle = '#ffc94a'; g.lineWidth = 4; g.beginPath(); g.arc(s.x, s.y, 14 + k * 22, 0, TAU); g.globalAlpha = a * (1 - k); g.stroke(); g.globalAlpha = a;
   g.lineWidth = 3; g.beginPath(); g.arc(s.x, s.y, 16, 0, TAU); g.stroke();
@@ -4208,7 +4212,7 @@ function clearFx() {
 }
 function checkClear() {
   if (state !== 'play' || mains().length) return;
-  failClear(level);
+  failClear(level); markCleared(level);
   // 面クリアの腕前ボーナス（この面で出した被害額に対する割合）
   // 手際：残り時間の割合 × 40%。完全犯罪：最大の怪しまれ度が 30% 未満なら 30%（50% 未満なら こっそり 15%）
   const sy = run.yen - stageYen0, perfect = stageMaxSus < 30;
@@ -6261,7 +6265,7 @@ function update(dt) {
     if (tripleCd > 0) tripleCd -= dt; if (meowDownAt && !meowLongDone && performance.now() - meowDownAt > 450) meowLong();
     if (bigEv.anim > 0) bigEv.anim -= dt; if (bigEv.wob > 0) bigEv.wob -= dt;
     if (introT <= 0 && escT > 0) escT -= dt;
-    else if (introT <= 0 && spot.length) { spotT += dt; if (spotT > SPOT_LEN) { learn('see_' + spot[0].k); spot.shift(); spotT = 0; } } updLamp(dt); updCat(dt); updTalk(dt);
+    else if (introT <= 0 && spot.length) { spotT += dt; if (spotT > (spot[0].rep ? SPOT_LEN * 0.7 : SPOT_LEN)) { learn('see_' + spot[0].k); spot.shift(); spotT = 0; } } updLamp(dt); updCat(dt); updTalk(dt);
     if (chaseT > 0) { updChase(dt); updItems(dt); updBall(dt); updVac(dt); }
     else { updOwner(dt); updItems(dt); updBall(dt); updDog(dt); updVac(dt); updChick(dt); updMouse(dt); updTank(dt); updRival(dt); updFoe(dt); updNight2(dt); updCams(dt); updShelf(dt); updTv(dt); updSus(dt); checkClear(); updTut(); }
     if (state === 'play' && chaseT <= 0) {
