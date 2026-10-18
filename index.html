@@ -362,7 +362,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.13', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.14', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -714,10 +714,10 @@ function placeLamp() {
 // pip は選択画面の目盛り（はやさ・ジャンプ・パンチ・かくれ・くいしんぼ、1〜5）。数値の倍率と合わせてある
 // sus：見られたときの怪しまれやすさ、food：ごはんで増える時間の倍率
 const CATS = [
-  { id: 'kuro', name: tx('黒猫', 'Black Cat'), note: tx('隠れ上手', 'Stealthy'), body: '#2b2b35', belly: '#3b3b48', eye: '#f2c94c', sus: 0.75, punch: 0.9, jump: 1, speed: 1, food: 1, voice: 1.05, pip: [3, 3, 2, 5, 3], tag: tx('見つかりにくい', 'Hard to spot') },
+  { id: 'kuro', name: tx('黒猫', 'Black Cat'), note: tx('隠れ上手', 'Stealthy'), body: '#2b2b35', belly: '#3b3b48', eye: '#f2c94c', sus: 0.7, nightSus: 0.8, punch: 0.9, jump: 1, speed: 1, food: 1, voice: 1.05, pip: [3, 3, 2, 5, 3], tag: tx('見つかりにくい（夜はさらに）', 'Hard to spot, even more at night') },
   { id: 'cha', name: tx('茶トラ', 'Orange Tabby'), note: tx('パンチ自慢', 'Big punch'), body: '#e8913f', belly: '#f7cf98', stripe: '#b8661e', eye: '#7bbf5a', sus: 1.05, punch: 1.5, jump: 1, speed: 1.1, food: 1, voice: 1, pip: [4, 3, 5, 2, 3], tag: tx('パンチが強くて足が速い', 'Strong punch, quick feet') },
   { id: 'saba', name: tx('サバトラ', 'Gray Tabby'), note: tx('バランス', 'All-rounder'), body: '#8e939c', belly: '#dfe2e6', stripe: '#4a4f58', eye: '#d6b84a', sus: 0.85, punch: 1.1, jump: 1.05, speed: 1.04, food: 1, voice: 1.1, pip: [3, 4, 3, 3, 3], tag: tx('苦手がない', 'No weak spots') },
-  { id: 'maine', name: tx('メインクーン', 'Maine Coon'), note: tx('怪力・大食い', 'Strong & hungry'), body: '#a8794a', belly: '#e6d0ad', stripe: '#6d4a2a', eye: '#d6b84a', sus: 1.15, punch: 1.6, jump: 0.9, speed: 0.95, food: 1.5, big: 1.18, voice: 0.78, pip: [2, 2, 5, 1, 5], tag: tx('パンチ最強・ごはんで長持ち', 'Mightiest punch, food lasts longer') },
+  { id: 'maine', name: tx('メインクーン', 'Maine Coon'), note: tx('怪力・大食い', 'Strong & hungry'), body: '#a8794a', belly: '#e6d0ad', stripe: '#6d4a2a', eye: '#d6b84a', sus: 1.15, punch: 1.6, jump: 0.9, speed: 0.95, food: 1.8, big: 1.18, voice: 0.78, pip: [2, 2, 5, 1, 5], tag: tx('パンチ最強・ごはんで長持ち', 'Mightiest punch, food lasts longer') },
   { id: 'mike', name: tx('三毛猫', 'Calico'), note: tx('招き猫', 'Lucky cat'), body: '#f7f2e9', belly: '#ffffff', patch: [[-9, -22, 8, '#e8913f'], [8, -14, 7, '#2b2b35'], [14, -30, 6, '#e8913f'], [-16, -12, 5, '#2b2b35']], eye: '#7bbf5a', sus: 1, punch: 0.95, jump: 1, speed: 1, food: 1, lucky: true, voice: 1.15, pip: [3, 3, 3, 3, 3], tag: tx('高いものが出やすい', 'Pricey items show up more') },
   { id: 'siam', name: tx('シャム猫', 'Siamese'), note: tx('身軽', 'Light-footed'), body: '#f3e6cf', belly: '#fbf4e6', point: '#5a3a26', eye: '#4aa3e0', sus: 1, punch: 0.85, jump: 1.12, speed: 1.02, food: 1, quiet: true, voice: 1.2, pip: [3, 5, 2, 3, 3], tag: tx('ジャンプ最強・足音が静か', 'Best jumper, quiet steps') }
 ];
@@ -1296,7 +1296,7 @@ const busyOf = () => BUSY_ROOM[room] || BUSY[phaseIx(level)];
 const ACCS = [
   // 4.26.1：きせかえは枚数ではなく、決まったカード（実績）で手に入る（card）。効き目は良い面だけ（ACC_FX）
   { id: 'none', name: tx('なし', 'None'), need: 0 }, { id: 'bell', name: tx('鈴の首輪', 'Bell collar'), need: 1, card: 'lure' }, { id: 'ribbon', name: tx('リボン', 'Ribbon'), need: 1, card: 'rub' },
-  { id: 'scarf', name: tx('バンダナ', 'Bandana'), need: 1, card: 'boss' }, { id: 'hat', name: tx('パーティ帽', 'Party hat'), need: 1, card: 'festival' }, { id: 'glasses', name: tx('メガネ', 'Glasses'), need: 1, card: 'data' }, { id: 'crown', name: tx('王冠', 'Crown'), need: 1, card: 't_million' },
+  { id: 'scarf', name: tx('バンダナ', 'Bandana'), need: 1, card: 'boss' }, { id: 'hat', name: tx('パーティ帽', 'Party hat'), need: 1, card: 'festival' }, { id: 'glasses', name: tx('メガネ', 'Glasses'), need: 1, card: 'data' }, { id: 'crown', name: tx('王冠', 'Crown'), need: 1, card: 't_wrecker7' },
   { id: 'medal', name: tx('金メダル', 'Gold medal'), need: 999, ending: true },   // エンディングを見るともらえる
   { id: 'star', name: tx('星のバッジ', 'Star badge'), need: 999, trueEnd: true },   // 7日目の夜を越えるともらえる
   { id: 'shades', name: tx('サングラス', 'Shades'), need: 999, secret: true }   // 隠しコマンド（タイトルで にゃー を10回）
@@ -1307,7 +1307,7 @@ const ACC_FX = {
   bell:    { food: 1.3, pip: { food: 1 }, note: tx('ごはん・にぼしの回復 +30%', 'Food restores 30% more time') },
   ribbon:  { sus: 0.9, pip: { sus: 1 }, note: tx('怪しまれ度の上がりが 1 割少ない', 'Suspicion rises 10% slower') },
   scarf:   { punch: 1.15, pip: { punch: 1 }, note: tx('パンチが 15% 強い', 'Punch 15% stronger') },
-  hat:     { jump: 1.1, pip: { jump: 1 }, note: tx('ジャンプが 10% 高い', 'Jump 10% higher') },
+  hat:     { jump: 1.1, chain: 1.5, pip: { jump: 1 }, note: tx('ジャンプが 10% 高い・連鎖ボーナス 30 → 45%', 'Jump 10% higher, chain bonus 45% instead of 30%') },
   glasses: { hide: 12, note: tx('隠れ場所で追い出されるまで 8 → 12 秒', 'Can stay hidden 12s instead of 8') },
   crown:   { yen: 1.1, note: tx('落としたものの被害額 +10%', 'Damage from knocked items +10%') },
   medal:   { skill: 1.25, note: tx('面クリアの腕前ボーナス +25%', 'Stage skill bonus +25%') },
@@ -1315,7 +1315,7 @@ const ACC_FX = {
   star:    { carry: 5, note: tx('持ち越し時間の上限 8 → 13 秒', 'Carry-over cap 13s instead of 8') }
 };
 const accFx = () => ACC_FX[selAcc] || ACC_FX.none;
-const catStat = k => (cat && cat.type ? cat.type : CATS[selCat])[k] * (accFx()[k] || 1);
+const catStat = k => { const t = cat && cat.type ? cat.type : CATS[selCat]; return t[k] * (accFx()[k] || 1) * (k === 'sus' && t.nightSus && phaseOf(level).tod === 3 ? t.nightSus : 1); };   // 4.48.14：黒猫は夜の面でさらに見つかりにくい
 // きせかえの入手方法（got=true は手に入れたあとの言い方。隠しコマンドも手に入れたあとは明かす）
 const accHow = (a, got) => {
   const c = a.card ? CARDS.find(x => x.id === a.card) : null;
@@ -1351,6 +1351,7 @@ let room = 'living', kb = null, snack = null, dayT = 0, introT = 0, newAccs = []
 let tasks = [], chaseT = 0, chaseN = 0, susQ = 0, warn85 = false, hideT = 0, rideStage = 0, oneHand = store.get('nekoOneHand', '0') === '1';
 if (!catsOpen.has(CATS[selCat].id)) selCat = 2;
 let selAcc = store.get('nekoAcc', 'none');
+if (!ACCS.some(a => a.id === selAcc && accOk(a))) selAcc = 'none';   // 条件が変わって手もとにないきせかえは外す（4.48.14）
 if (!ACCS.some(a => a.id === selAcc)) selAcc = 'none';
 let run, cat, items = [], puddles = [], prints = [], parts = [], pops = [], coins = [], vac = null, dog = null, newRec = false, newTitles = [];
 let snap = null, chains = {}, tut = { on: false, broke: false, arrow: null, stop: false }, pulseId = null;
@@ -2728,7 +2729,7 @@ function breakItem(it, plat) {
     if (n >= 2) happyHop();
     if (n >= 3) spaceCat();
     if (n >= 2) hitStop = Math.max(hitStop, 0.04 + 0.02 * Math.min(n, 5));   // 連鎖の数はボーナスの札に書く（大きな「n!」は 4.7.1 でやめた）
-    if (n >= 2) { const b = Math.round(d.yen * BONUS.chain); run.yen += b; run.skill += b; run.skC = (run.skC || 0) + b; run.maxChain = Math.max(run.maxChain, n); chainN = n; chainB += b; run.chainN = n; run.chainT = tAnim; sfx.combo(n); }
+    if (n >= 2) { const b = Math.round(d.yen * BONUS.chain * (accFx().chain || 1)); run.yen += b; run.skill += b; run.skC = (run.skC || 0) + b; run.maxChain = Math.max(run.maxChain, n); chainN = n; chainB += b; run.chainN = n; run.chainT = tAnim; sfx.combo(n); }
   }
   // 確信犯：目が合ってから落とされた飼い主の、精神的ダメージ（4.43.0：連鎖と確信犯も腕前のボーナスに数える。rules.md の表のとおり）
   if (d.yen >= 100000) spaceCat();
