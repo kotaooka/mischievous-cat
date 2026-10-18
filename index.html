@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.9', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.10', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1308,7 +1308,7 @@ const ICO = {
 let state = 'title', level = 1, sus = 0, muted = store.get('nekoMute', '0') === '1';
 let selCat = clamp((+store.get('nekoCat', 2)) | 0, 0, CATS.length - 1), bestYen = +store.get('nekoBestYen', 0) || 0;
 let tutDone = store.get('nekoTut', '0') === '1';
-let stageT = 0, clearT = 0, caughtT = 0, shake = 0, tAnim = 0, susCd = 0, slowT = 0, chainSeq = 0;
+let stageT = 0, clearT = 0, caughtT = 0, shake = 0, tAnim = 0, susCd = 0, chainSeq = 0;
 let clearT0 = 2.4, dayT0 = 6, assist = 0;   // 4.36.0：札の長さ（2 回目以降のプレイは短い）、お助け（同じ面で 3 回見つかったら留守 +5 秒）
 const fastPlay = () => (LIFE.plays || 0) >= 2;
 // 制限時間（4.48.0）：1 日目（操作を覚える面）は 25 秒＋1 個 7 秒のまま。2 日目からは 18 秒＋1 個 5 秒（8 個で 58 秒）。
@@ -4415,7 +4415,7 @@ function caught(timeup) {
   run.blame = !timeup && !!dog && dog.barkT <= 0 && Math.random() < 0.5;   // ネタ：寝ている犬のせいにする
   run.cause = timeup ? 'time' : (run.lastBy || watcherOf()); run.where = level; if (!run.revive) run.caughtOver = true;   // お守りを持っていれば、演出のあとで続きから
   snap = takeSnap();
-  state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.face = timeup ? 'deadpan' : pickW(CAUGHT_FACES, f => f.w).id; if (run.blame) run.face = 'innocent'; run.huh = run.face === 'huh'; run.huhStep = 0; spaceT = 0; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME[phaseOf(level).tod] || REACT_TIME[3]) : room === 'kids' && Math.random() < 0.6 ? pick(LINES.kid) : room === 'garden' && Math.random() < 0.7 ? pick(LINES.granny) : room === 'study' && Math.random() < 0.7 ? pick(LINES.dad) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35; slowT = 0;
+  state = 'caught'; caughtT = CAUGHT_DUR; run.timeup = !!timeup; run.face = timeup ? 'deadpan' : pickW(CAUGHT_FACES, f => f.w).id; if (run.blame) run.face = 'innocent'; run.huh = run.face === 'huh'; run.huhStep = 0; spaceT = 0; run.idle = !timeup && !cat.acting; run.react = timeup ? pick(REACT_TIME[phaseOf(level).tod] || REACT_TIME[3]) : room === 'kids' && Math.random() < 0.6 ? pick(LINES.kid) : room === 'garden' && Math.random() < 0.7 ? pick(LINES.granny) : room === 'study' && Math.random() < 0.7 ? pick(LINES.dad) : (LINES.item[run.lastBroke] && Math.random() < 0.6 ? LINES.item[run.lastBroke] : (phaseOf(level).night && Math.random() < 0.4 ? lt('夜中に何してるの!!', 'At this hour?!') : pick(REACT))); shake = timeup ? 0 : 0.35;
   { const sp = specialReact(!!timeup); if (sp) run.react = sp; }
   if (!timeup && DAY_REACT[dayOf(level)] && watcherOf() === 'owner' && !phaseOf(level).special && Math.random() < 0.6) run.react = pick(DAY_REACT[dayOf(level)]);   // 4.43.0：その日の昼の出来事の台詞なので、飼い主が見張りの昼の面だけ（犬が起きている夜に「寝てる場合か」と言っていた）
   if (nap && !timeup && Math.random() < 0.7) run.react = pick(LINES.napCaught);
@@ -4451,7 +4451,7 @@ function drawCause(t) {
 // お守りで復活：お守りを使い、飼い主はいったん部屋を出る。怪しまれ度は下がり、追いかけっこもまた使える
 function revive() {
   run.charm = 0; run.revive = false; run.timeup = false; run.revives = (run.revives || 0) + 1;
-  state = 'play'; sus = 25; susQ = 0; susCd = 6; chaseT = 0; chaseN = 0; spaceT = 0; slowT = 0; shake = 0;
+  state = 'play'; sus = 25; susQ = 0; susCd = 6; chaseT = 0; chaseN = 0; spaceT = 0; shake = 0;
   owner.x = -60; owner.lureT = 0; owner.say = ''; owner.scareT = 0; owner.up = false; setMode('away', rnd(4, 6)); owner.warned = false;
   cat.stun = 0; cat.mark = 0; cat.seen = false; timeLeft = Math.max(timeLeft, 10);
   for (let k = 0; k < 24; k++) addPart({ k: 'drop', x: cat.x + rnd(-30, 30), y: cat.y - rnd(0, 60), vx: rnd(-80, 80), vy: rnd(-200, -60), life: 0.9, gy: cat.y, c: pick(['#ffc94a', '#ff5a5a', '#ffffff']), s: rnd(2, 4), rot: 0, vr: 0 });
@@ -6793,7 +6793,6 @@ function update(dt) {
   tAnim += dt; if (shake > 0) shake -= dt;
   if (lightT > 0) lightT -= dt; else if (weather === 'storm' && (state === 'play' || state === 'clear') && Math.random() < dt * 0.09) { lightT = 0.22; lightX = rnd(0.15, 0.85); sfx.thunder(); }   // 4.37.0：かみなり
   if (lever) lever.tilt += ((cat && cat.plat === LEVP ? 0.6 : 0) - lever.tilt) * Math.min(1, dt * 6);   // 板の傾き：乗っている間は外の端が下がる
-  if (slowT > 0 && state === 'play') { slowT -= dt; dt *= 0.3; }   // 高額品が割れたときのスロー
   if (state === 'play') {
     stageT += dt; run.time = (run.time || 0) + dt; if (introT > 0) introT -= dt; if (saveT > 0) saveT -= dt;
     cardCd -= dt; if (cardCd <= 0) { cardCd = 0.5; cardCheck(); }
@@ -6803,8 +6802,8 @@ function update(dt) {
     else if (introT <= 0 && spot.length) { spotT += dt; if (spotT > (spot[0].rep ? SPOT_LEN * 0.7 : SPOT_LEN)) { learn('see_' + spot[0].k); spot.shift(); spotT = 0; } } updLamp(dt); updCat(dt); updTalk(dt);
     if (chaseT > 0) { updChase(dt); updItems(dt); updBall(dt); updVac(dt); }
     else { /* 4.48.8：仕掛けの札の間も飼い主の留守の時間は減る（4.39.4〜4.48.7 は止めていた） */ updOwner(dt); updItems(dt); updBall(dt); updDog(dt); updVac(dt); updChick(dt); updMouse(dt); updTank(dt); updRival(dt); updFoe(dt); updNight2(dt); updCams(dt); updShelf(dt); updTv(dt); updSus(dt); checkClear(); updTut(); }
-    if (state === 'play' && chaseT <= 0) {
-      timeLeft -= dt;   // 4.48.9：仕掛けの札の間も制限時間は減る（4.39.4〜4.48.8 は止めていた）
+    if (state === 'play') {
+      timeLeft -= dt;   // 4.48.9：仕掛けの札の間も、4.48.10：追いかけっこの間も制限時間は減る（前はどちらも止めていた）
       const sec = Math.ceil(timeLeft); if (sec <= 10 && sec < lastTick && sec > 0) { lastTick = sec; sfx.tick(); }
       if (timeLeft <= 10 && !rushShown && mains().length) { rushShown = true; sfx.alert(); pops.push({ x: W / 2, y: 230, text: lt('ラストスパート!', 'FINAL SPRINT!'), life: 1.6, col: '#e0362c', size: 28 }); }
       if (timeLeft <= 0) { timeLeft = 0; caught(true); }
