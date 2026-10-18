@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.40.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.40.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -680,6 +680,38 @@ const IT = {
   sunscreen:{ n: tx('日焼け止め', 'Sunscreen'), yen: 1800, m: 0.8, noise: 0.4, w: 10, h: 20, snd: 'pens', liq: 'rgba(255,250,230,.7)' },
   goggles:  { n: tx('ゴーグル', 'Goggles'), yen: 3500, m: 0.6, noise: 0.7, w: 20, h: 8, snd: 'glass' },
   cooler:   { n: tx('クーラーボックス', 'Cooler box'), yen: 7000, m: 2.8, noise: 1.0, w: 26, h: 18, snd: 'cera' },
+  // 4.40.3：部屋ごとのもの（バリエーション）
+  stand:    { n: tx('スタンドライト', 'Table lamp'), yen: 6000, m: 1.6, noise: 0.9, w: 16, h: 30, snd: 'glass' },
+  clock:    { n: tx('置き時計', 'Desk clock'), yen: 4000, m: 1.2, noise: 0.9, w: 16, h: 16, snd: 'tink' },
+  trophy:   { n: tx('トロフィー', 'Trophy'), yen: 15000, m: 1.8, noise: 1.1, w: 14, h: 26, snd: 'tink' },
+  candle:   { n: tx('アロマキャンドル', 'Scented candle'), yen: 1800, m: 1.0, noise: 0.5, w: 12, h: 12, snd: 'cera' },
+  teapot:   { n: tx('ティーポット', 'Teapot'), yen: 5000, m: 1.8, noise: 0.9, w: 22, h: 16, snd: 'cera', liq: 'rgba(200,140,60,.55)' },
+  jam:      { n: tx('ジャムの瓶', 'Jam jar'), yen: 700, m: 1.0, noise: 0.6, w: 12, h: 14, snd: 'glass', liq: 'rgba(200,40,80,.6)' },
+  blender:  { n: tx('ミキサー', 'Blender'), yen: 12000, m: 2.2, noise: 1.0, w: 16, h: 30, snd: 'elec' },
+  soy:      { n: tx('しょうゆ', 'Soy sauce'), yen: 500, m: 0.9, noise: 0.5, w: 10, h: 18, snd: 'glass', liq: 'rgba(60,30,10,.65)' },
+  globe:    { n: tx('地球儀', 'Globe'), yen: 9000, m: 1.8, noise: 0.9, w: 20, h: 26, snd: 'cera' },
+  camera:   { n: tx('カメラ', 'Camera'), yen: 90000, m: 1.2, noise: 1.0, w: 20, h: 14, snd: 'elec' },
+  ink:      { n: tx('インクの瓶', 'Ink bottle'), yen: 1200, m: 0.7, noise: 0.5, w: 10, h: 12, snd: 'glass', liq: 'rgba(20,40,120,.7)' },
+  snowglobe:{ n: tx('スノードーム', 'Snow globe'), yen: 4500, m: 1.3, noise: 0.9, w: 16, h: 18, snd: 'glass', liq: 'rgba(200,230,255,.6)' },
+  jewel:    { n: tx('ジュエリーボックス', 'Jewelry box'), yen: 25000, m: 1.2, noise: 1.0, w: 18, h: 12, snd: 'tink' },
+  rocket:   { n: tx('ロケットのおもちゃ', 'Toy rocket'), yen: 3500, m: 0.9, noise: 0.6, w: 12, h: 26, snd: 'pens' },
+  crayons:  { n: tx('クレヨン', 'Crayons'), yen: 600, m: 0.6, noise: 0.4, w: 18, h: 10, snd: 'pens' },
+  drum:     { n: tx('たいこ', 'Toy drum'), yen: 4000, m: 1.4, noise: 1.3, w: 20, h: 14, snd: 'cera' },
+  handmirror:{ n: tx('手鏡', 'Hand mirror'), yen: 2500, m: 0.6, noise: 0.8, w: 12, h: 22, snd: 'glass' },
+  dryer:    { n: tx('ドライヤー', 'Hair dryer'), yen: 8000, m: 1.3, noise: 0.9, w: 22, h: 14, snd: 'elec' },
+  bathsalt: { n: tx('バスソルト', 'Bath salts'), yen: 2000, m: 1.1, noise: 0.6, w: 12, h: 16, snd: 'glass', liq: 'rgba(170,225,255,.5)' },
+  chime:    { n: tx('風鈴', 'Wind chime'), yen: 3000, m: 0.5, noise: 1.0, w: 12, h: 24, snd: 'glass' },
+  lantern:  { n: tx('ランタン', 'Lantern'), yen: 7000, m: 1.4, noise: 0.9, w: 14, h: 24, snd: 'glass' },
+  watercan: { n: tx('じょうろ', 'Watering can'), yen: 1500, m: 1.3, noise: 0.8, w: 22, h: 16, snd: 'tink', liq: 'rgba(120,195,240,.55)' },
+  bucket:   { n: tx('バケツ', 'Bucket'), yen: 800, m: 1.4, noise: 0.9, w: 18, h: 16, snd: 'tink', liq: 'rgba(120,195,240,.55)' },
+  jack:     { n: tx('ジャッキ', 'Car jack'), yen: 9000, m: 2.8, noise: 1.3, w: 20, h: 16, snd: 'tink' },
+  oilcan:   { n: tx('オイル缶', 'Oil can'), yen: 2000, m: 1.5, noise: 0.8, w: 14, h: 18, snd: 'tink', liq: 'rgba(60,50,20,.6)' },
+  dashcam:  { n: tx('ドラレコ', 'Dash cam'), yen: 18000, m: 0.6, noise: 0.8, w: 14, h: 10, snd: 'elec' },
+  radio:    { n: tx('ラジオ', 'Radio'), yen: 6000, m: 1.6, noise: 1.0, w: 22, h: 14, snd: 'elec' },
+  lemonade: { n: tx('レモネード', 'Lemonade'), yen: 500, m: 0.9, noise: 0.5, w: 12, h: 18, snd: 'glass', liq: 'rgba(255,240,150,.6)' },
+  shades:   { n: tx('サングラス', 'Sunglasses'), yen: 12000, m: 0.4, noise: 0.7, w: 22, h: 8, snd: 'glass' },
+  diffuser: { n: tx('ディフューザー', 'Reed diffuser'), yen: 3500, m: 0.9, noise: 0.6, w: 12, h: 26, snd: 'glass', liq: 'rgba(255,220,200,.5)' },
+  scale:    { n: tx('体重計', 'Bathroom scale'), yen: 6000, m: 2.0, noise: 1.0, w: 24, h: 8, snd: 'elec' },
   // 積み重なったもの：落ちると中身が順にくずれて、それぞれ割れる・散らかる（stack の t が n 個）。yen は中身の合計
   dishes:    { n: tx('お皿の山', 'Stack of plates'), yen: 8000, m: 3, noise: 1.2, w: 22, h: 22, snd: 'cera', stack: { t: 'plate', n: 4 } },
   cuptower:  { n: tx('コップのタワー', 'Cup tower'), yen: 2500, m: 2, noise: 1.0, w: 22, h: 30, snd: 'glass', stack: { t: 'cup', n: 5 } },
@@ -705,6 +737,7 @@ const ON = {
   pot: ['side', 'table', 'shelf', 'rail', 'hang'], gnome: ['side', 'table', 'shelf', 'book'], glamp: ['side', 'table', 'shelf', 'hang', 'rail'],
   robot: ['table', 'shelf', 'book', 'hang'], piggy: ['table', 'shelf', 'book'], model: ['shelf', 'book', 'hang', 'ac'],
   shampoo: ['side', 'table', 'shelf', 'hang'], speaker: ['side', 'table', 'shelf', 'hang', 'ac'],
+  stand: ['side', 'table', 'shelf'], clock: ['side', 'shelf', 'hang', 'ac'], trophy: ['shelf', 'book', 'hang', 'ac'], candle: ['side', 'table', 'shelf', 'hang'], teapot: ['table', 'shelf', 'hang'], jam: ['table', 'shelf', 'hang'], blender: ['table', 'shelf'], soy: ['table', 'shelf', 'hang'], globe: ['table', 'shelf', 'book', 'ac'], camera: ['side', 'table', 'shelf', 'book', 'hang'], ink: ['table', 'side', 'shelf'], snowglobe: ['side', 'shelf', 'hang', 'rail'], jewel: ['side', 'shelf', 'hang', 'book'], rocket: ['table', 'shelf', 'book', 'hang'], crayons: ['table', 'side', 'shelf'], drum: ['table', 'shelf', 'book'], handmirror: ['side', 'table', 'shelf'], dryer: ['side', 'table', 'shelf', 'hang'], bathsalt: ['side', 'table', 'shelf', 'hang'], chime: ['hang', 'rail', 'ac'], lantern: ['side', 'table', 'shelf', 'hang', 'rail'], watercan: ['side', 'table', 'shelf'], bucket: ['side', 'table', 'shelf'], jack: ['table', 'shelf', 'book'], oilcan: ['side', 'table', 'shelf'], dashcam: ['table', 'shelf', 'hang', 'ac'], radio: ['side', 'table', 'shelf', 'hang'], lemonade: ['side', 'table', 'shelf', 'hang'], shades: ['side', 'table', 'shelf', 'hang'], diffuser: ['side', 'table', 'shelf', 'hang'], scale: ['side', 'table', 'shelf'],
   airfresh: ['side', 'table', 'shelf', 'hang'], brush: ['side', 'table'], dish: ['book', 'ac', 'hang'], vane: ['book', 'ac', 'rail'], birdhouse: ['shelf', 'hang', 'rail'], helmet: ['side', 'table', 'shelf', 'book'], wax: ['side', 'table', 'shelf'], mirror: ['table', 'shelf', 'book', 'hang'], toolbox: ['table', 'shelf', 'book'], float: ['side', 'table', 'shelf', 'hang'], sunscreen: ['side', 'table', 'shelf', 'rail'], goggles: ['side', 'table', 'shelf', 'hang'], cooler: ['table', 'shelf', 'book'],
   dishes: ['table', 'shelf'], cuptower: ['table', 'shelf', 'side'], cantower: ['table', 'shelf', 'side'], booktower: ['shelf', 'book', 'table']
 };
@@ -1642,19 +1675,20 @@ function setupStageCore(L) {
   const avail = room === 'kids' ? ['table'] : ['side', 'table']; if (L >= 2) avail.push('shelf'); if (L >= 3) avail.push('book', 'hang'); if (L >= 4) avail.push('rail'); if (L >= 5) avail.push('ac');
   // 部屋ごとの足場：お風呂場のテーブルは浴槽（ふたの所だけ乗れる）。子ども部屋のサイドテーブルの上は水槽
   PL.table.x1 = wetRoom() ? 204 : 300; waterZ = wetRoom() ? BATHW : null; BOX.x = wetRoom() ? 110 : 215; toiletDoor = 0; toiletPeek = 0;
+  PL.book.x0 = room === 'parking' ? 396 : 345;   // 4.40.3：駐車場はバンの荷台の屋根だけが足場
   // 部屋ごとに置かれるものが違う（k 番目の組は ステージ k+1 から出る）
   const POOLS = {
-    living:  [['cup', 'cup', 'mug', 'tissue', 'remote'], ['pens', 'wine', 'cup', 'frame', 'plant'], ['phone', 'vase', 'figure'], ['tablet', 'vase', 'watch'], ['console', 'phone', 'laptop']],
-    kitchen: [['cup', 'plate', 'plate', 'mug', 'cup', 'eggs'], ['wine', 'dishes', 'bottle'], ['phone', 'plant'], ['tablet', 'bottle', 'watch'], ['console', 'phone', 'laptop']],
-    study:   [['pens', 'pens', 'mug', 'cup', 'remote'], ['tissue', 'wine', 'frame'], ['tablet', 'phone', 'vase', 'figure'], ['console', 'laptop'], ['phone', 'watch']],
-    garden:  [['pot', 'pot', 'cup', 'mug', 'glamp'], ['gnome', 'plant', 'wine'], ['phone', 'vase', 'glamp'], ['tablet', 'watch'], ['console', 'phone', 'laptop']],
-    kids:    [['pens', 'cup', 'robot', 'piggy'], ['frame', 'mug', 'robot'], ['model', 'tablet', 'console'], ['figure', 'phone', 'model'], ['laptop', 'watch']],
-    bath:    [['shampoo', 'cup', 'shampoo', 'mug'], ['perfume', 'bottle', 'wine'], ['phone', 'speaker'], ['watch', 'tablet', 'speaker'], ['phone', 'perfume', 'laptop']],
-    bed:     [['alarm', 'cup', 'tissue', 'remote'], ['pens', 'wine', 'perfume', 'frame'], ['phone', 'vase', 'perfume'], ['tablet', 'watch', 'figure'], ['console', 'phone', 'laptop']],
-    toilet:  [['airfresh', 'brush', 'cup', 'tissue'], ['perfume', 'airfresh', 'frame'], ['phone', 'speaker'], ['tablet', 'watch'], ['phone', 'perfume', 'laptop']],
-    roof:    [['pot', 'birdhouse', 'cup', 'mug'], ['vane', 'glamp', 'pot'], ['dish', 'phone'], ['tablet', 'dish', 'watch'], ['console', 'phone', 'laptop']],
-    parking: [['wax', 'cup', 'mug', 'toolbox'], ['helmet', 'wine', 'bottle'], ['mirror', 'phone'], ['tablet', 'mirror', 'watch'], ['console', 'helmet', 'laptop']],
-    pool:    [['float', 'sunscreen', 'cup', 'goggles'], ['cooler', 'wine', 'bottle'], ['phone', 'speaker', 'goggles'], ['tablet', 'watch', 'cooler'], ['console', 'phone', 'laptop']]
+    living:  [['cup', 'mug', 'tissue', 'remote', 'candle'], ['wine', 'frame', 'plant', 'clock', 'stand'], ['phone', 'vase', 'figure', 'trophy'], ['tablet', 'vase', 'watch', 'stand'], ['console', 'laptop', 'trophy']],
+    kitchen: [['cup', 'plate', 'plate', 'mug', 'eggs', 'jam', 'soy'], ['wine', 'dishes', 'bottle', 'teapot'], ['phone', 'blender', 'teapot'], ['tablet', 'bottle', 'blender'], ['laptop', 'phone', 'dishes']],
+    study:   [['pens', 'pens', 'mug', 'ink', 'remote'], ['tissue', 'wine', 'frame', 'globe'], ['tablet', 'phone', 'globe', 'figure'], ['camera', 'laptop', 'trophy'], ['camera', 'watch']],
+    garden:  [['pot', 'pot', 'mug', 'glamp', 'watercan'], ['gnome', 'plant', 'chime', 'lantern'], ['phone', 'vase', 'lantern'], ['tablet', 'watch', 'gnome'], ['camera', 'phone', 'lantern']],
+    kids:    [['pens', 'cup', 'robot', 'piggy', 'crayons'], ['frame', 'mug', 'robot', 'rocket', 'drum'], ['model', 'tablet', 'console', 'drum'], ['figure', 'phone', 'model', 'rocket'], ['laptop', 'console']],
+    bath:    [['shampoo', 'cup', 'shampoo', 'bathsalt'], ['perfume', 'bottle', 'handmirror', 'bathsalt'], ['phone', 'speaker', 'dryer'], ['watch', 'tablet', 'dryer'], ['phone', 'perfume', 'speaker']],
+    bed:     [['alarm', 'cup', 'tissue', 'remote', 'candle'], ['pens', 'wine', 'perfume', 'frame', 'snowglobe'], ['phone', 'vase', 'perfume', 'stand'], ['tablet', 'jewel', 'figure'], ['jewel', 'phone', 'laptop']],
+    toilet:  [['airfresh', 'brush', 'tissue', 'diffuser'], ['perfume', 'airfresh', 'frame', 'scale'], ['phone', 'speaker', 'diffuser'], ['tablet', 'scale'], ['phone', 'perfume', 'tablet']],
+    roof:    [['pot', 'birdhouse', 'chime', 'mug'], ['vane', 'glamp', 'pot', 'lantern'], ['dish', 'phone', 'chime'], ['tablet', 'dish', 'watch'], ['camera', 'phone', 'dish']],
+    parking: [['wax', 'bucket', 'oilcan', 'toolbox'], ['helmet', 'wine', 'bottle', 'jack'], ['mirror', 'phone', 'dashcam'], ['tablet', 'mirror', 'jack'], ['dashcam', 'helmet', 'laptop']],
+    pool:    [['float', 'sunscreen', 'lemonade', 'goggles'], ['cooler', 'wine', 'bottle', 'radio'], ['phone', 'speaker', 'goggles', 'shades'], ['tablet', 'shades', 'cooler'], ['radio', 'phone', 'shades']]
   }[room];
   const pool = POOLS[0].slice(); for (let k = 1; k < POOLS.length; k++) if (L >= k + 1) pool.push(...POOLS[k]);
   const lucky = CATS[selCat].lucky;
@@ -3376,10 +3410,15 @@ function drawLamp() {
   // まだ使ったことがなければ、吊り棚の上にいるときに、かさの下がきらきらする
   if (!learned.has('lamp') && state === 'play' && cat.plat === PL.hang) { const k = (tAnim * 1.4) % 1; g.globalAlpha = Math.sin(k * Math.PI); g.fillStyle = '#fff6a8'; g.beginPath(); g.arc(bx + 6, by + 30, 3 + 3 * Math.sin(k * Math.PI), 0, TAU); g.fill(); g.globalAlpha = 1; }
 }
+// 4.40.3：屋外のカメラの柱は奥（ものの後ろ）に描く。drawHigh から呼ぶ
+function drawCamPosts() {
+  if (!outdoor()) return;
+  for (const cm of cams) { const my = PL.ac.y - 4; g.fillStyle = '#a5683a'; g.fillRect(cm.mx - 4, my + 4, 8, FLOOR - my - 4); g.fillStyle = '#8a5530'; g.fillRect(cm.mx - 7, my + 2, 14, 5); g.fillStyle = '#6e4322'; g.fillRect(cm.mx - 10, FLOOR - 5, 20, 5); }
+}
 function drawCams() {
   for (const cm of cams) {
     const gd = outdoor(), my = gd ? PL.ac.y - 4 : 130, rec = cm.rec > 0;
-    if (gd) { g.fillStyle = '#a5683a'; g.fillRect(cm.mx - 4, my + 4, 8, FLOOR - my - 4); g.fillStyle = '#8a5530'; g.fillRect(cm.mx - 7, my + 2, 14, 5); g.fillStyle = '#6e4322'; g.fillRect(cm.mx - 10, FLOOR - 5, 20, 5); }   // 4.37.0：庭ではパーゴラと同じ高さの木の柱の上（壁がないので）
+
     g.fillStyle = rec ? 'rgba(255,60,50,.16)' : 'rgba(80,150,255,.11)';
     g.beginPath(); g.moveTo(cm.mx, my + 10); g.lineTo(cm.cx - cm.w / 2, FLOOR); g.lineTo(cm.cx + cm.w / 2, FLOOR); g.closePath(); g.fill();
     g.fillStyle = '#f4f8fa'; g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 1.5; rr(g, cm.mx - 12, my - 10, 24, 18, 6); g.fill(); g.stroke();
@@ -4882,6 +4921,37 @@ function drawItem(c, type, x, y, rot, water) {
     case 'sunscreen': c.fillStyle = '#ffe9a8'; rr(c, -5, -16, 10, 16, 2); c.fill(); c.stroke(); c.fillStyle = '#ff8a3d'; rr(c, -3, -20, 6, 4, 1); c.fill(); c.fillStyle = '#ff8a3d'; c.beginPath(); c.arc(0, -8, 3, 0, TAU); c.fill(); break;
     case 'goggles': c.fillStyle = '#2fb3a3'; rr(c, -10, -8, 9, 7, 3); c.fill(); c.stroke(); rr(c, 1, -8, 9, 7, 3); c.fill(); c.stroke(); c.fillStyle = '#9cc8ef'; rr(c, -8, -6, 5, 4, 1); c.fill(); rr(c, 3, -6, 5, 4, 1); c.fill(); c.strokeStyle = '#2a2f36'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-10, -5); c.lineTo(-13, -5); c.moveTo(10, -5); c.lineTo(13, -5); c.stroke(); break;
     case 'cooler': c.fillStyle = '#2b8fd9'; rr(c, -13, -12, 26, 12, 2); c.fill(); c.stroke(); c.fillStyle = '#fff'; rr(c, -14, -17, 28, 6, 2); c.fill(); c.stroke(); c.fillStyle = '#c9d3d9'; rr(c, -5, -20, 10, 3, 1); c.fill(); break;
+    case 'stand': c.fillStyle = '#8a6a4f'; rr(c, -7, -3, 14, 3, 1.5); c.fill(); c.fillRect(-1.5, -18, 3, 15); c.fillStyle = '#ffe9a8'; c.beginPath(); c.moveTo(-8, -18); c.lineTo(-5, -30); c.lineTo(5, -30); c.lineTo(8, -18); c.closePath(); c.fill(); c.stroke(); break;
+    case 'clock': c.fillStyle = '#ffc94a'; c.beginPath(); c.arc(0, -8, 8, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.beginPath(); c.arc(0, -8, 6, 0, TAU); c.fill(); c.strokeStyle = '#4a2f1d'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(0, -8); c.lineTo(0, -12); c.moveTo(0, -8); c.lineTo(3, -7); c.stroke(); c.fillStyle = '#ffc94a'; c.beginPath(); c.arc(-5, -15, 2.5, 0, TAU); c.arc(5, -15, 2.5, 0, TAU); c.fill(); break;
+    case 'trophy': c.fillStyle = '#e0a52e'; rr(c, -6, -4, 12, 4, 1.5); c.fill(); c.fillRect(-1.5, -10, 3, 6); c.beginPath(); c.moveTo(-7, -26); c.lineTo(7, -26); c.lineTo(5, -12); c.lineTo(-5, -12); c.closePath(); c.fill(); c.stroke(); c.strokeStyle = '#e0a52e'; c.lineWidth = 2; c.beginPath(); c.arc(-8, -21, 3, 0.5, Math.PI * 1.5); c.stroke(); c.beginPath(); c.arc(8, -21, 3, Math.PI * 1.5, Math.PI * 2.5); c.stroke(); break;
+    case 'candle': c.fillStyle = '#f4f8fa'; rr(c, -6, -10, 12, 10, 2); c.fill(); c.stroke(); c.fillStyle = '#ffc94a'; c.beginPath(); c.ellipse(0, -13, 2, 3.5, 0, 0, TAU); c.fill(); c.fillStyle = '#ff8a3d'; c.beginPath(); c.ellipse(0, -12, 1, 1.8, 0, 0, TAU); c.fill(); break;
+    case 'teapot': c.fillStyle = '#9fd3ef'; c.beginPath(); c.ellipse(0, -7, 9, 7, 0, 0, TAU); c.fill(); c.stroke(); c.strokeStyle = '#9fd3ef'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(8, -9); c.lineTo(13, -14); c.stroke(); c.beginPath(); c.arc(-10, -8, 3.5, Math.PI * 0.5, Math.PI * 1.5); c.stroke(); c.fillStyle = '#4a7a9a'; c.beginPath(); c.arc(0, -15, 2, 0, TAU); c.fill(); break;
+    case 'jam': c.fillStyle = '#c8285a'; rr(c, -6, -11, 12, 11, 2); c.fill(); c.stroke(); c.fillStyle = '#e0a52e'; rr(c, -6, -14, 12, 4, 1); c.fill(); c.fillStyle = '#fff'; c.fillRect(-4, -8, 8, 4); break;
+    case 'blender': c.fillStyle = '#4a4f58'; rr(c, -8, -8, 16, 8, 2); c.fill(); c.fillStyle = '#c9e6f0'; c.beginPath(); c.moveTo(-6, -8); c.lineTo(-5, -30); c.lineTo(5, -30); c.lineTo(6, -8); c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#ff8a3d'; c.beginPath(); c.moveTo(-4, -8); c.lineTo(-3.5, -20); c.lineTo(3.5, -20); c.lineTo(4, -8); c.closePath(); c.fill(); break;
+    case 'soy': c.fillStyle = '#3a2210'; rr(c, -5, -12, 10, 12, 2); c.fill(); c.stroke(); c.fillStyle = '#e0362c'; rr(c, -2.5, -18, 5, 6, 1); c.fill(); c.fillStyle = '#fff'; c.fillRect(-3, -9, 6, 4); break;
+    case 'globe': c.fillStyle = '#8a6a4f'; rr(c, -7, -3, 14, 3, 1.5); c.fill(); c.strokeStyle = '#8a6a4f'; c.lineWidth = 2; c.beginPath(); c.arc(0, -15, 10, Math.PI * 0.2, Math.PI * 0.9); c.stroke(); c.fillStyle = '#2b8fd9'; c.beginPath(); c.arc(0, -15, 8, 0, TAU); c.fill(); c.fillStyle = '#5aa64a'; c.beginPath(); c.ellipse(-2, -17, 4, 3, 0.4, 0, TAU); c.ellipse(3, -12, 3, 2, -0.3, 0, TAU); c.fill(); break;
+    case 'camera': c.fillStyle = '#2a2f36'; rr(c, -10, -12, 20, 12, 3); c.fill(); c.stroke(); c.fillStyle = '#8a8f95'; c.fillRect(-6, -14, 8, 3); c.fillStyle = '#4a4f58'; c.beginPath(); c.arc(2, -6, 4.5, 0, TAU); c.fill(); c.fillStyle = '#9cc8ef'; c.beginPath(); c.arc(2, -6, 2.5, 0, TAU); c.fill(); c.fillStyle = '#e0362c'; c.fillRect(6, -11, 2, 2); break;
+    case 'ink': c.fillStyle = '#1b2a6e'; rr(c, -5, -9, 10, 9, 2); c.fill(); c.stroke(); c.fillStyle = '#2a2f36'; rr(c, -3, -12, 6, 3, 1); c.fill(); break;
+    case 'snowglobe': c.fillStyle = '#8a5530'; rr(c, -7, -5, 14, 5, 2); c.fill(); c.fillStyle = 'rgba(200,230,255,.7)'; c.beginPath(); c.arc(0, -12, 7.5, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#5aa64a'; c.beginPath(); c.moveTo(-3, -8); c.lineTo(0, -15); c.lineTo(3, -8); c.fill(); c.fillStyle = '#fff'; [[-4, -14], [3, -16], [1, -10]].forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 0.8, 0, TAU); c.fill(); }); break;
+    case 'jewel': c.fillStyle = '#c93a6a'; rr(c, -9, -8, 18, 8, 2); c.fill(); c.stroke(); c.fillStyle = '#e0607f'; rr(c, -9, -12, 18, 4, 2); c.fill(); c.stroke(); c.fillStyle = '#ffc94a'; c.beginPath(); c.arc(0, -8, 1.8, 0, TAU); c.fill(); break;
+    case 'rocket': c.fillStyle = '#f4f8fa'; rr(c, -5, -22, 10, 18, 4); c.fill(); c.stroke(); c.fillStyle = '#e0362c'; c.beginPath(); c.moveTo(-5, -22); c.lineTo(0, -28); c.lineTo(5, -22); c.fill(); c.beginPath(); c.moveTo(-5, -8); c.lineTo(-9, -1); c.lineTo(-5, -3); c.fill(); c.beginPath(); c.moveTo(5, -8); c.lineTo(9, -1); c.lineTo(5, -3); c.fill(); c.fillStyle = '#2b8fd9'; c.beginPath(); c.arc(0, -15, 2.5, 0, TAU); c.fill(); break;
+    case 'crayons': c.fillStyle = '#ffc94a'; rr(c, -9, -8, 18, 8, 1.5); c.fill(); c.stroke(); ['#e0362c', '#2b8fd9', '#5aa64a', '#9b7fc0', '#ff8a3d'].forEach((col, i) => { c.fillStyle = col; c.fillRect(-7 + i * 3, -12, 2, 5); }); break;
+    case 'drum': c.fillStyle = '#e0362c'; rr(c, -10, -12, 20, 12, 2); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.beginPath(); c.ellipse(0, -12, 10, 3, 0, 0, TAU); c.fill(); c.stroke(); c.strokeStyle = '#4a2f1d'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-4, -13); c.lineTo(-10, -22); c.moveTo(4, -13); c.lineTo(10, -22); c.stroke(); break;
+    case 'handmirror': c.fillStyle = '#ff9fb2'; c.fillRect(-2, -10, 4, 10); c.beginPath(); c.arc(0, -16, 6.5, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#dfeef5'; c.beginPath(); c.arc(0, -16, 4.5, 0, TAU); c.fill(); break;
+    case 'dryer': c.fillStyle = '#9b7fc0'; rr(c, -8, -14, 16, 10, 5); c.fill(); c.stroke(); c.fillRect(-2, -5, 6, 5); c.fillStyle = '#c9ced6'; c.fillRect(8, -11, 4, 4); c.fillStyle = '#2a2f36'; c.beginPath(); c.arc(-4, -9, 2.5, 0, TAU); c.fill(); break;
+    case 'bathsalt': c.fillStyle = '#9fd3ef'; rr(c, -6, -13, 12, 13, 3); c.fill(); c.stroke(); c.fillStyle = '#4a7a9a'; rr(c, -6, -16, 12, 3, 1); c.fill(); c.fillStyle = '#fff'; c.fillRect(-4, -10, 8, 4); break;
+    case 'chime': c.fillStyle = '#8a6a4f'; c.fillRect(-1, -24, 2, 4); c.fillStyle = 'rgba(160,220,240,.8)'; c.beginPath(); c.moveTo(-6, -20); c.lineTo(6, -20); c.lineTo(5, -10); c.lineTo(-5, -10); c.closePath(); c.fill(); c.stroke(); c.strokeStyle = '#4a2f1d'; c.lineWidth = 1; c.beginPath(); c.moveTo(0, -10); c.lineTo(0, -2); c.stroke(); c.fillStyle = '#e0362c'; c.fillRect(-2.5, -3, 5, 3); break;
+    case 'lantern': c.fillStyle = '#4a4f58'; rr(c, -6, -4, 12, 4, 1.5); c.fill(); rr(c, -5, -24, 10, 3, 1); c.fill(); c.fillStyle = 'rgba(255,230,150,.85)'; rr(c, -6, -21, 12, 17, 2); c.fill(); c.stroke(); c.fillStyle = '#ff8a3d'; c.beginPath(); c.ellipse(0, -12, 2, 3.5, 0, 0, TAU); c.fill(); c.strokeStyle = '#4a4f58'; c.lineWidth = 1.5; c.beginPath(); c.arc(0, -24, 4, Math.PI, TAU); c.stroke(); break;
+    case 'watercan': c.fillStyle = '#5aa64a'; rr(c, -8, -12, 14, 12, 2); c.fill(); c.stroke(); c.strokeStyle = '#5aa64a'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(6, -8); c.lineTo(12, -14); c.stroke(); c.beginPath(); c.arc(-1, -13, 5, Math.PI, TAU); c.stroke(); c.fillStyle = '#5aa64a'; c.beginPath(); c.arc(12, -14, 2.5, 0, TAU); c.fill(); break;
+    case 'bucket': c.fillStyle = '#2b8fd9'; c.beginPath(); c.moveTo(-9, -14); c.lineTo(9, -14); c.lineTo(7, 0); c.lineTo(-7, 0); c.closePath(); c.fill(); c.stroke(); c.strokeStyle = '#8a8f95'; c.lineWidth = 1.5; c.beginPath(); c.arc(0, -14, 8, Math.PI, TAU); c.stroke(); c.fillStyle = '#9cc8ef'; c.beginPath(); c.ellipse(0, -14, 8, 2, 0, 0, TAU); c.fill(); break;
+    case 'jack': c.fillStyle = '#e0362c'; rr(c, -10, -6, 20, 6, 2); c.fill(); c.stroke(); c.fillStyle = '#2a2f36'; c.fillRect(-3, -14, 6, 8); c.fillStyle = '#8a8f95'; rr(c, -7, -16, 14, 3, 1); c.fill(); c.strokeStyle = '#2a2f36'; c.lineWidth = 2; c.beginPath(); c.moveTo(6, -8); c.lineTo(13, -14); c.stroke(); break;
+    case 'oilcan': c.fillStyle = '#ffc94a'; rr(c, -7, -14, 14, 14, 2); c.fill(); c.stroke(); c.fillStyle = '#2a2f36'; rr(c, -3, -18, 6, 4, 1); c.fill(); c.fillStyle = '#e0362c'; c.fillRect(-5, -10, 10, 5); c.fillStyle = '#fff'; c.font = `800 5px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('OIL', 0, -7.5); break;
+    case 'dashcam': c.fillStyle = '#2a2f36'; rr(c, -7, -8, 14, 8, 2); c.fill(); c.stroke(); c.fillStyle = '#9cc8ef'; rr(c, -5, -6, 8, 4, 1); c.fill(); c.fillStyle = '#4a4f58'; c.beginPath(); c.arc(0, -10, 2, 0, TAU); c.fill(); c.fillStyle = '#e0362c'; c.beginPath(); c.arc(5, -3, 0.8, 0, TAU); c.fill(); break;
+    case 'radio': c.fillStyle = '#c98a4f'; rr(c, -11, -12, 22, 12, 3); c.fill(); c.stroke(); c.fillStyle = '#4a2f1d'; c.beginPath(); c.arc(-5, -6, 3.5, 0, TAU); c.fill(); c.fillStyle = '#fff'; rr(c, 1, -9, 8, 4, 1); c.fill(); c.strokeStyle = '#4a2f1d'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(6, -12); c.lineTo(10, -22); c.stroke(); break;
+    case 'lemonade': c.fillStyle = '#fff6a0'; c.beginPath(); c.moveTo(-6, -16); c.lineTo(6, -16); c.lineTo(5, 0); c.lineTo(-5, 0); c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#ffc94a'; c.beginPath(); c.arc(6, -15, 3, 0, TAU); c.fill(); c.strokeStyle = '#e0362c'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-3, -14); c.lineTo(2, -24); c.stroke(); break;
+    case 'shades': c.fillStyle = '#2a2f36'; rr(c, -11, -7, 9, 6, 3); c.fill(); rr(c, 2, -7, 9, 6, 3); c.fill(); c.strokeStyle = '#2a2f36'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-2, -5); c.lineTo(2, -5); c.moveTo(-11, -5); c.lineTo(-14, -8); c.moveTo(11, -5); c.lineTo(14, -8); c.stroke(); c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(-9, -6, 3, 2); c.fillRect(4, -6, 3, 2); break;
+    case 'diffuser': c.fillStyle = '#f4e6d8'; rr(c, -5, -12, 10, 12, 2); c.fill(); c.stroke(); c.strokeStyle = '#8a6a4f'; c.lineWidth = 1; [-3, -1, 1, 3].forEach((dx, i) => { c.beginPath(); c.moveTo(0, -12); c.lineTo(dx * 2, -26 + (i % 2) * 2); c.stroke(); }); break;
+    case 'scale': c.fillStyle = '#f4f8fa'; rr(c, -12, -8, 24, 8, 3); c.fill(); c.stroke(); c.fillStyle = '#2a2f36'; rr(c, -4, -6, 8, 4, 1); c.fill(); c.fillStyle = '#5aa64a'; c.fillRect(-3, -5, 6, 2); break;
     case 'laptop':
       c.fillStyle = '#8a929c'; rr(c, -15, -3, 30, 3, 1.5); c.fill();
       c.fillStyle = '#c9ced6'; c.beginPath(); c.moveTo(-13, -3); c.lineTo(-10.5, -15.5); c.lineTo(13, -15.5); c.lineTo(15, -3); c.closePath(); c.fill(); c.stroke();
@@ -4930,6 +5000,7 @@ function r2Bg() {
     g.fillStyle = 'rgba(255,255,255,.6)'; for (let y = 104; y < 140; y += 6) g.fillRect(185, y, 60, 2);
     g.fillStyle = R.floor; g.fillRect(0, FLOOR, W, BOT - FLOOR); g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(0, FLOOR, W, 5);
     g.fillStyle = '#9fd3ef'; rr(g, 150, FLOOR + 8, 120, 20, 10); g.fill();   // マット
+    g.fillStyle = '#fff'; rr(g, 166, 374, 94, 48, 6); g.fill(); g.fillStyle = '#dfeef5'; rr(g, 171, 379, 84, 38, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.6)'; g.fillRect(178, 383, 3, 30);   // 鏡（4.40.3：棚と洗面台の間。背景なので足場を隠さない）
     drawTape(); return;
   }
   r2Sky();
@@ -4982,7 +5053,6 @@ function r2Table() {
     g.fillStyle = '#f4f8fa'; g.fillRect(127, 438, 171, 62); g.strokeStyle = 'rgba(80,120,140,.25)'; g.lineWidth = 2; g.strokeRect(133, 446, 72, 48); g.strokeRect(213, 446, 80, 48);
     g.fillStyle = '#dfeef5'; rr(g, 121, 428, 183, 11, 3); g.fill(); g.fillStyle = '#c9d3d9'; g.beginPath(); g.ellipse(212, 433, 24, 4, 0, 0, TAU); g.fill();
     g.strokeStyle = '#a7adb5'; g.lineWidth = 4; g.beginPath(); g.moveTo(212, 428); g.lineTo(212, 410); g.lineTo(200, 410); g.stroke();
-    g.fillStyle = '#fff'; rr(g, 168, 330, 90, 70, 6); g.fill(); g.fillStyle = '#dfeef5'; rr(g, 173, 335, 80, 60, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.6)'; g.fillRect(180, 340, 3, 50);   // 鏡
   } else if (room === 'roof') {
     // 天窓の箱：上に乗れる
     g.fillStyle = '#8a8f95'; g.fillRect(127, 438, 171, 62); g.fillStyle = '#9cc8ef'; rr(g, 133, 446, 159, 46, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(140, 452, 60, 6);
@@ -5035,16 +5105,20 @@ function r2Tall() {
     return;
   }
   if (room === 'parking') {
-    // 4.40.2：背の高い配達バン。荷台の屋根が足場（PL.book、y=285）。ひっかき傷は いたずらの進み具合で増える
-    const sp = spots.find(s => s.id === 'scratchcar'), k = sp ? clamp(sp.t / MISCHIEF.scratchcar.need, 0, 1) : 0, n = sp && sp.done ? 6 : Math.floor(k * 6), top = PL.book.y + 6;
-    g.fillStyle = '#2a2f36'; g.beginPath(); g.arc(378, FLOOR - 16, 17, 0, TAU); g.arc(436, FLOOR - 16, 17, 0, TAU); g.fill(); g.fillStyle = '#c9ced6'; g.beginPath(); g.arc(378, FLOOR - 16, 7, 0, TAU); g.arc(436, FLOOR - 16, 7, 0, TAU); g.fill();
-    g.fillStyle = '#e0362c'; rr(g, 345, top, W - 345 + 10, FLOOR - 26 - top, 10); g.fill();   // 荷台
-    g.fillStyle = '#b52a22'; g.fillRect(345, FLOOR - 70, W - 345 + 10, 6); g.fillRect(345, top + 60, W - 345 + 10, 4);   // 帯
-    g.fillStyle = '#9cc8ef'; rr(g, 404, top + 14, 40, 34, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(410, top + 18, 10, 26);   // 運転席の窓（右端）
-    g.fillStyle = '#ffe9a8'; rr(g, 347, FLOOR - 60, 14, 10, 3); g.fill(); g.fillStyle = '#c9ced6'; rr(g, 352, FLOOR - 44, 26, 8, 3); g.fill();   // ライト・バンパー
-    g.fillStyle = '#fff'; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('NEKO', 398, top + 110);   // 社名（ネタ）
-    g.fillStyle = '#b52a22'; rr(g, 341, PL.book.y - 2, W - 339, 10, 3); g.fill();   // 屋根（足場）
-    g.strokeStyle = '#fff'; g.lineWidth = 1.5; for (let i = 0; i < n; i++) { const x = 352 + i * 15, y = FLOOR - 95 + (i % 3) * 8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 10, y - 14); g.stroke(); }
+    // 4.40.3：左向きの配達バン。左に運転席（ボンネット・フロントガラス・ライト）、右に荷台。荷台の屋根が足場（PL.book、y=285）
+    const sp = spots.find(s => s.id === 'scratchcar'), k = sp ? clamp(sp.t / MISCHIEF.scratchcar.need, 0, 1) : 0, n = sp && sp.done ? 6 : Math.floor(k * 6), top = PL.book.y + 6, cabX = 345, boxX = 400;
+    g.fillStyle = '#2a2f36'; g.beginPath(); g.arc(372, FLOOR - 16, 17, 0, TAU); g.arc(440, FLOOR - 16, 17, 0, TAU); g.fill(); g.fillStyle = '#c9ced6'; g.beginPath(); g.arc(372, FLOOR - 16, 7, 0, TAU); g.arc(440, FLOOR - 16, 7, 0, TAU); g.fill();
+    g.fillStyle = '#e0362c'; rr(g, boxX, top, W - boxX + 10, FLOOR - 30 - top, 8); g.fill();   // 荷台
+    // 運転席：ボンネット（低い）＋フロントガラス（ななめ）＋屋根は荷台より低い
+    g.fillStyle = '#e0362c'; g.beginPath(); g.moveTo(cabX, FLOOR - 30); g.lineTo(cabX, FLOOR - 92); g.lineTo(cabX + 22, FLOOR - 92); g.lineTo(cabX + 36, FLOOR - 150); g.lineTo(boxX + 4, FLOOR - 150); g.lineTo(boxX + 4, FLOOR - 30); g.closePath(); g.fill();
+    g.fillStyle = '#9cc8ef'; g.beginPath(); g.moveTo(cabX + 26, FLOOR - 96); g.lineTo(cabX + 39, FLOOR - 144); g.lineTo(boxX, FLOOR - 144); g.lineTo(boxX, FLOOR - 96); g.closePath(); g.fill(); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(cabX + 36, FLOOR - 138, 8, 36);   // フロントガラス
+    g.fillStyle = '#4a2f1d'; g.fillRect(cabX + 2, FLOOR - 92, 20, 3);   // ボンネットのすじ
+    g.fillStyle = '#ffe9a8'; rr(g, cabX + 2, FLOOR - 76, 12, 12, 3); g.fill(); g.fillStyle = '#c9ced6'; rr(g, cabX - 4, FLOOR - 50, 30, 10, 4); g.fill(); g.fillStyle = '#2a2f36'; rr(g, cabX + 2, FLOOR - 62, 18, 8, 2); g.fill();   // ライト・バンパー・グリル
+    g.fillStyle = '#c9ced6'; g.fillRect(cabX + 30, FLOOR - 120, 6, 10);   // ドアミラー
+    g.fillStyle = '#b52a22'; g.fillRect(boxX, FLOOR - 70, W - boxX + 10, 6);   // 荷台の帯
+    g.fillStyle = '#fff'; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('NEKO', boxX + 28, top + 100); g.font = `800 7px ${FONT}`; g.fillText(lt('急便', 'EXPRESS'), boxX + 28, top + 114);
+    g.fillStyle = '#b52a22'; rr(g, boxX - 4, PL.book.y - 2, W - boxX + 4, 10, 3); g.fill();   // 荷台の屋根（足場）
+    g.strokeStyle = '#fff'; g.lineWidth = 1.5; for (let i = 0; i < n; i++) { const x = boxX + 6 + i * 8, y = FLOOR - 100 + (i % 3) * 8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 7, y - 12); g.stroke(); }
     return;
   }
   if (room === 'pool') {
@@ -5380,6 +5454,7 @@ function drawRival() {
 }
 // 壁の高い足場：カーテンレール・吊り棚・エアコン（キッチンは吊り戸棚。お風呂場はタオル掛けと換気扇）
 function drawHigh() {
+  drawCamPosts();
   if (r2()) { r2High(); return; }
   if (room === 'garden') { drawGardenHigh(); return; }
   if (room === 'bath') {
