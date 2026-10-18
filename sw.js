@@ -1,6 +1,6 @@
 // こっそりネコのサービスワーカー：一度開けばオフラインでも遊べるようにする
 // 中身を更新したら VERSION を上げる（古いキャッシュを消すため）
-const VERSION = 'neko-v132';
+const VERSION = 'neko-v133';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './fonts/mplus-rounded-500.woff2', './fonts/mplus-rounded-800.woff2'];
 
 self.addEventListener('install', e => {
@@ -15,7 +15,9 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   // ページ本体：ネットを優先し、つながらないときだけ保存分を出す（更新がすぐ届くように。ブラウザの HTTP キャッシュも確かめ直す）
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }).then(r => { const cp = r.clone(); caches.open(VERSION).then(c => c.put('./index.html', cp)); return r; }).catch(() => caches.match('./index.html')));
+    // 保存するのはゲーム本体（このフォルダの / か index.html）の正常な応答だけ（4.43.0：404 や別のページが本体の場所に入ると、オフラインで遊べなくなっていた）
+    const scope = new URL(self.registration.scope).pathname, isMain = url.pathname === scope || url.pathname === scope + 'index.html';
+    e.respondWith(fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }).then(r => { if (r.ok && isMain) { const cp = r.clone(); caches.open(VERSION).then(c => c.put('./index.html', cp)); } return r; }).catch(() => caches.match('./index.html')));
     return;
   }
   // 同じサイトの画像・字体など：保存分を先に出し、裏で新しいものを取り直す
