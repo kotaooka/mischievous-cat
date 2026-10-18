@@ -5,8 +5,6 @@
 **Knock everything off the shelves while your owner isn't looking.**
 Cups, vases, smartphones. You're just an adorable cat. …Probably.
 
-#You can stop any time: the game auto-saves at the start of every stage, and the title screen offers "Continue" from that stage next time (or from that day's morning if you got caught). "Continue" also shows how many stages are left in that day. If you get caught on day 1, you can retry that stage.
-
 ## ▶ [Play now](https://kotaooka.github.io/mischievous-cat/)
 
 ![Mischievous Cat](og.png)
@@ -14,7 +12,7 @@ Cups, vases, smartphones. You're just an adorable cat. …Probably.
 - Just open it in your browser. No install, no sign-up (phone or PC)
 - Add it to your home screen to launch it like an app. Once opened, it also works offline. When a new version is out, the title screen shows "tap to update"
 - The game switches to English automatically when your device isn't set to Japanese. You can also switch languages under Settings (from the title or pause screen)
-- Compete with everyone on the world ranking
+- Compete with everyone on the world ranking: how skillfully can you wreck the house in seven days?
 
 ## 📸 What it looks like
 
@@ -37,7 +35,9 @@ Cups, vases, smartphones. You're just an adorable cat. …Probably.
 
 1. **Walk up to something and punch it!** Knock things off tables and shelves to rack up "damage"
 2. **If the owner sees you, you're done.** A "?" means trouble is coming, "!!" means they're watching. Hop off the furniture and act like a normal cat
-3. **Knock everything off to clear the stage.** Morning, noon, evening and night make one day. How many days can you last?
+3. **Knock everything off to clear the stage.** Morning, noon, evening and night make one day. Clear the third night for the ending, and the seventh night to finish the game
+
+You can stop any time: the game auto-saves at the start of every stage, and the title screen offers "Continue" from that stage next time (or from that day's morning if you got caught). "Continue" also shows how many stages are left in that day. If you get caught on day 1, you can retry that stage.
 
 Walking, jumping, meowing and eating are all "normal cat things", so you won't get in trouble for them. You only get in trouble when you're **caught in the act**.
 
@@ -64,7 +64,8 @@ Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. 
 - **Wait until the owner is busy.** While they're on the phone, cooking, reading or brushing their teeth, they barely notice anything
 - **Stare at the camera, then knock it off.** Stand still next to an item and the cat stares at you. Punch now for a "Guilty!" bonus
 - **Keep knocking things off unseen for a "Sneaky" streak bonus.** The bonus grows with every item
-- **Don't give up when you're spotted.** Once per stage, dive into the cardboard box, onto the cat tower, or up on top of the bookshelf or higher within 3 seconds to escape
+- **Skill is what raises your score.** Item prices are almost fixed per stage. The difference comes from chain, sneaky, guilty and trick bonuses (knocking things down with the yarn ball or the chicken), plus the speed (time left) and perfect crime (suspicion under 30%) bonuses on each stage clear
+- **Don't give up when you're spotted.** Up to twice per stage, dive into the cardboard box, onto the cat tower, or up on top of the bookshelf or higher within 3 seconds to escape
 - **Sparkles, arrows or claw marks?** Something is there. There are no written instructions. Go and find out
 
 <table>
@@ -75,13 +76,21 @@ Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. 
 
 ## 🏠 A day in the house
 
-A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. Days 4–7 bring new foes (beat them with cat punches), four new rooms (driveway, rooftop, pool, restroom — punch the restroom door while the owner is inside and see what happens) and four new special nights; the true ending after day 7 is a seven-day photo digest, a group shot with every character, and a punchline; clear the seventh night for the true ending. Clear the third night to see the ending. There are 4 endings depending on how you played (never caught, big damage, well-behaved, or the usual), followed by a credits roll with the photos taken at each stage clear. Then keep going into day 4 and beyond.
+A day is four stages: morning, noon and evening in rooms that change each day, then a **special night**. The game has 7 days (28 stages).
+
+Clear the third night to see the ending. There are 4 endings depending on how you played (barely suspected, lots of big ones, no restarts or chases, or the usual), followed by a credits roll with the photos taken at each stage clear. Then carry on into the second week.
+
+Days 4–7 each have a daily rule and one foe that attacks you (beat it with cat punches for +5 seconds), four new rooms (driveway, rooftop, pool, restroom — punch the restroom door while the owner is inside and see what happens) and four new special nights. Clear the seventh night for the true ending — a seven-day photo digest, a group shot with every character, and a punchline — and your seven-day damage goes to the ranking.
 
 | Day | Morning | Noon | Evening | Special night |
 |---|---|---|---|---|
 | 1 | Living room | Kitchen | Study | **Dinner guest night** (two watchers, lots of glasses) |
 | 2 | Garden | Kid's room | Bathroom | **Blackout night** (pitch dark; only the flashlight beam can spot you) |
 | 3 | Living room | Kitchen | Study | **Pet cam night** (two sweeping cameras and traps) |
+| 4 (Earphone day) | Living room (**rogue robo-vac**) | Driveway | Study | **Festival night** (garden; the owner watches the fireworks) |
+| 5 (Dog day) | Rooftop | Garden (**two crows**) | Bathroom | **Dog awake night** (living room; punch the bone to distract the dog) |
+| 6 (Boss cat day) | Kitchen | Bedroom | Pool (**toy robot**) | **Boss cat night** (living room; team up with the boss) |
+| 7 (Two-camera day) | Restroom (**drone**) | Garden | Living room | **The last night** (bedroom; the owner never leaves) |
 
 Each room has its own watcher: the owner, a kid (fast but short-sighted), grandma (slow, but glances back while walking) or dad (keeps looking up at the shelves). The weather changes every day too; on rainy days the owner stays in and comes back sooner.
 
@@ -125,7 +134,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 
 ## 🏆 Rankings and mischief cards
 
-- **World ranking (All-time)**: register a nickname on the result screen to join the top 50 of all players (one entry per device). A record is sent only when you beat your personal best, and a new nickname appears the next time you do
+- **World ranking (All-time)**: ranked by one run's damage. Clearing day 7 finishes the game, and among finishers the skill bonuses decide the order. Register a nickname on the result screen to join the top 50 of all players (one entry per device). A record is sent only when you beat your personal best, and a new nickname appears the next time you do
 - **Today's ranking**: a ranking for today only (Japan time). Each run is sent to both All-time and Today whenever it beats your best there
 - **Send on LINE**: sends the text and the link (the image share sends only the picture on LINE). On PC, Share copies the image to the clipboard and opens the X post window, so paste it into the post
 - **Records**: one screen from the title with tabs for Ranking, Cards and Stats

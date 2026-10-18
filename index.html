@@ -73,23 +73,19 @@
   #bPause[hidden] { display: none; }
   /* 怪しまれ度 */
   #meter { display: flex; align-items: center; gap: 6px; margin-top: 6px; margin-bottom: 6px; }
-  #meter svg { width: 26px; height: 18px; flex: none; }
+
   #meter .bar { flex: 1; height: 19px; background: #f6e2c4; border: 2px solid var(--line); border-radius: 999px; overflow: hidden; }
   #meter .bar i { display: block; height: 100%; width: 0; background: var(--teal); border-radius: 999px; transition: background .2s; }
   /* 怪しまれ度は色だけでなく、言葉・しま模様・目の開き具合でも段階を示す */
   #meter.l5 .lvl { background: #4a2f1d; color: #fff; animation: lvb .4s steps(2) infinite; }
   #meter.l5 .bar { border-color: #4a2f1d; box-shadow: 0 0 0 2px rgba(74,47,29,.4); }
   #meter .lvl { flex: none; min-width: 4.6em; text-align: center; font-weight: 800; font-size: .8rem; border: 2px solid var(--line); border-radius: 999px; padding: 0 6px; background: var(--card); color: var(--ink); line-height: 1.5; white-space: nowrap; }
-  #meter svg circle { transform-origin: 13px 9px; transition: transform .2s; }
-  #meter.l0 svg circle { transform: scale(.55); }
-  #meter.l2 svg circle, #meter.l3 svg circle { transform: scale(1.3); }
   #meter.l1 .bar i { background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.4) 0 4px, transparent 4px 10px); }
   #meter.l2 .bar i, #meter.l3 .bar i { background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,.5) 0 3px, transparent 3px 6px); }
   #meter.l1 .lvl { background: var(--yel); }
   /* かくれ中：上がらないことを、緑の札とバーのふちで示す */
   #meter.l4 .lvl { background: var(--teal); color: #fff; border-color: var(--teal-d); }
   #meter.l4 .bar { border-color: var(--teal-d); box-shadow: 0 0 0 2px rgba(47,179,163,.35); }
-  #meter.l4 svg circle { transform: scale(.3); }
   #meter.l2 .lvl, #meter.l3 .lvl { background: var(--red-d); color: #fff; animation: lvb .6s steps(2) infinite; }
   #meter.l2 .bar, #meter.l3 .bar { border-color: var(--red-d); box-shadow: 0 0 0 2px rgba(255,90,90,.35); }
   body.calm #meter .lvl { animation: none; }
@@ -331,7 +327,6 @@
     <button id="bSnd" type="button" aria-label="音" aria-pressed="true"></button>
   </header>
   <div id="meter" aria-label="怪しまれ度">
-    <svg viewBox="0 0 26 18" aria-hidden="true"><path d="M1 9C5 2 21 2 25 9C21 16 5 16 1 9Z" fill="#fff" stroke="#4a2f1d" stroke-width="2"/><circle cx="13" cy="9" r="4" fill="#4a2f1d"/></svg>
     <span class="bar"><i id="hB"></i></span>
     <b class="lvl" id="hS" aria-live="polite">へいき</b>
   </div>
@@ -366,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.43.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.44.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -384,6 +379,11 @@ const store = {
   get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } },
   set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }
 };
+// 4.44.0：点の付け方を変えた（8 日目以降をなくし、腕前のボーナスを約 2 倍に）。前の版の自己ベストと端末のランキングは比べられないので、一度だけ消す
+if (store.get('nekoScoreV', '') !== '2') {
+  try { for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k && (k === 'nekoWorldBest' || k === 'nekoRank' || k.startsWith('nekoDailyBest-'))) localStorage.removeItem(k); } } catch (e) {}
+  store.set('nekoScoreV', '2');
+}
 // ---------- 言語（日本語 ja ／ 英語 en）----------
 // 初めて開いたときは端末の言語で決める（日本語以外は英語）。タイトル画面とポーズ画面で切り替えられ、選んだほうを覚える
 let lang = store.get('nekoLang', '') || (/^ja/i.test((typeof navigator !== 'undefined' && navigator.language) || 'ja') ? 'ja' : 'en');
@@ -726,6 +726,11 @@ const IT = {
 const JUNK_ON = { booktower: ['shelf', 'book', 'table'], cantower: ['table', 'shelf', 'side'], book: ['book', 'shelf', 'hang', 'side'], pencil: ['table', 'side', 'shelf'], toy: ['table', 'side', 'shelf', 'rail', 'floor'], can: ['table', 'side', 'shelf', 'hang'],
   block: ['table', 'shelf', 'book', 'side', 'floor'], duck: ['side', 'table', 'shelf', 'hang'] };
 const ROOM_JUNK = { kids: ['block', 'block', 'toy', 'pencil', 'cantower'], bath: ['duck', 'duck', 'can'], garden: ['can', 'toy', 'cantower'], toilet: ['duck', 'can', 'book'], roof: ['can', 'can', 'cantower'], parking: ['can', 'cantower', 'block'], pool: ['duck', 'duck', 'can', 'toy'], study: ['booktower', 'book', 'pencil', 'book'] };
+// 4.44.0：腕前のボーナスの割合（7 日間で完走した人どうしでも、うまさで差がつくように前の約 2 倍に）
+// chain 連鎖の 2 個目から（値段の 20% → 30%）、trick 転がす・ニワトリ・テーブルクロス・てこ（30% → 40%）、kaku 確信犯（50%）
+// streak こっそり×n（1 個ごとに 10% → 15%、上限 5 段 → 6 段で最大 90%）
+// quick 面クリアの手際（その面の被害額 × 40% → 80% × 残り時間の割合）、perfect 完全犯罪（30% → 60%）、sneaky こっそりクリア（15% → 30%）
+const BONUS = { chain: 0.3, trick: 0.4, kaku: 0.5, streak: 0.15, streakMax: 6, quick: 0.8, perfect: 0.6, sneaky: 0.3 };
 const mains = () => items.filter(o => !o.extra);   // クリアに必要なもの（小物を除く）
 // 高いものほど派手な音が出る：音の大きさは「元の値」と「値段で決まる値」の大きいほう
 // 値段の音 = 0.4 + 0.45 × log10(値段 / 1000円)（スマホ 1.34、タブレット 1.26、ゲーム機 1.14、1万円 0.85）
@@ -2652,7 +2657,7 @@ function breakItem(it, plat) {
     if (n >= 2) happyHop();
     if (n >= 3) spaceCat();
     if (n >= 2) hitStop = Math.max(hitStop, 0.04 + 0.02 * Math.min(n, 5));   // 連鎖の数はボーナスの札に書く（大きな「n!」は 4.7.1 でやめた）
-    if (n >= 2) { const b = Math.round(d.yen * 0.2); run.yen += b; run.skill += b; run.skT = (run.skT || 0) + b; run.maxChain = Math.max(run.maxChain, n); chainN = n; chainB += b; run.chainN = n; run.chainT = tAnim; sfx.combo(n); }
+    if (n >= 2) { const b = Math.round(d.yen * BONUS.chain); run.yen += b; run.skill += b; run.skT = (run.skT || 0) + b; run.maxChain = Math.max(run.maxChain, n); chainN = n; chainB += b; run.chainN = n; run.chainT = tAnim; sfx.combo(n); }
   }
   // 確信犯：目が合ってから落とされた飼い主の、精神的ダメージ（4.43.0：連鎖と確信犯も腕前のボーナスに数える。rules.md の表のとおり）
   if (d.yen >= 100000) spaceCat();
@@ -2666,16 +2671,16 @@ function breakItem(it, plat) {
   if (stageT < 20) taskHit('quick');
   if (it.t === 'alarm') taskHit('alarm');
   if (owner.mode === 'busy') taskHit('busy');
-  if (it.kaku) { const b = Math.round(d.yen * 0.5); run.yen += b; run.skill += b; run.skT = (run.skT || 0) + b; bon.push([lt('確信犯 +', 'Guilty +') + yen(b), '#1d8174']); }
+  if (it.kaku) { const b = Math.round(d.yen * BONUS.kaku); run.yen += b; run.skill += b; run.skT = (run.skT || 0) + b; bon.push([lt('確信犯 +', 'Guilty +') + yen(b), '#1d8174']); }
   // 腕前のボーナス（被害額に上乗せ）
   // ノーマーク：飼い主に動いているところを見られず、ネコも現行犯で見られていない落とし方が続くと、1個ごとに +10%（最大 +50%）
   if (!it.spotted && cat.mark <= 0) run.streak++; else run.streak = 0;
   run.maxStreak = Math.max(run.maxStreak, run.streak);
   for (const sid of ['streak', 'streak2']) { const sk = tasks.find(k => k.id === sid && !k.done); if (sk) { if (run.streak === 0) sk.n = 0; else { sk.n = Math.min(run.streak, sk.need) - 1; taskHit(sid); } } }
-  if (run.streak >= 2) { const b = Math.round(d.yen * 0.1 * Math.min(run.streak - 1, 5)); run.yen += b; run.skill += b; run.skS = (run.skS || 0) + b; bon.push([lt('こっそり×', 'Sneaky x') + run.streak + ' +' + yen(b), SK_COL.s]); }
+  if (run.streak >= 2) { const b = Math.round(d.yen * BONUS.streak * Math.min(run.streak - 1, BONUS.streakMax)); run.yen += b; run.skill += b; run.skS = (run.skS || 0) + b; bon.push([lt('こっそり×', 'Sneaky x') + run.streak + ' +' + yen(b), SK_COL.s]); }
   // てこで飛ばした（カタパルト）・転がるもので当てた（ストライク）：+30%
   if (it.launched || it.byBall || it.byChick || it.byCloth) {
-    const b = Math.round(d.yen * 0.3); run.yen += b; run.skill += b; run.skT = (run.skT || 0) + b;
+    const b = Math.round(d.yen * BONUS.trick); run.yen += b; run.skill += b; run.skT = (run.skT || 0) + b;
     bon.push([(it.launched ? lt('技（飛ばした）+', 'Trick (launched) +') : it.byCloth ? lt('技（クロス引き）+', 'Trick (tablecloth) +') : it.byChick ? lt('技（ニワトリ）+', 'Trick (chicken) +') : lt('技（ストライク）+', 'Trick (strike) +')) + yen(b), SK_COL.t]);   // 4.38.0：何の技かを出す
     if (it.launched) run.launch++; else if (it.byCloth) {} else if (it.byChick) { run.chick++; taskHit('chick'); } else { run.ballHits++; taskHit('ball'); }
     chainB += b;
@@ -3614,7 +3619,7 @@ function creditLines() {
   L.push(['gap']); L.push(['h', lt(nd + '日間の被害額', nd + '-DAY DAMAGE')]); L.push(['big2', yen(r.yen)]); L.push(['t', lt('称号', 'Title') + '「' + titleOf(r.yen) + '」']);
   L.push(['gap']); L.push(['t', tr ? lt('飼い主は、全部知っていた', 'The owner knew all along') : lt('そして、4日目へ……', 'And so, on to Day 4……')]); L.push(['gap']);
   L.push(['sub', tr ? lt('遊んでくれて、ありがとう', 'Thank you for playing') : lt('飼い主は、まだ気づいていない。……たぶん', 'The owner still has no idea. …Probably')]);
-  if (tr) { L.push(['gap']); L.push(['t', lt('（8日目からは、終わりのない日々）', '(From Day 8: the endless days)')]); }
+
   return L;
 }
 // 日記の紙：横書きで折り返す。見出しは「飼い主の日記」
@@ -3917,9 +3922,9 @@ function showEnding() {
     // テスト：記録に残さず、つづけるかタイトルへ
     state = 'endmenu'; ov.hidden = false; endFx = 0;
     ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.6rem">${lt('エンディング', 'THE END')}</div><p class="sub">${lt('（テスト）', '(Test)')}「${ENDINGS[run.endType || 'normal'].n}」 ${yen(run.yen)}</p>
-      <button class="btn go" id="enCont" type="button">${lt(dayName(level + 1) + 'へつづける', 'On to ' + dayName(level + 1))}</button>
+      ${level < TRUE_DAY * NPH ? `<button class="btn go" id="enCont" type="button">${lt(dayName(level + 1) + 'へつづける', 'On to ' + dayName(level + 1))}</button>` : ''}
       <div class="row"><button class="btn w" id="enBack" type="button">${lt('タイトルへ', 'Title')}</button></div></div>`;
-    $('enCont').addEventListener('click', () => { endBgmStop(); ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
+    if ($('enCont')) $('enCont').addEventListener('click', () => { endBgmStop(); ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
     $('enBack').addEventListener('click', () => { endBgmStop(); showTitle(); });
     return;
   }
@@ -3947,12 +3952,12 @@ function showEnding() {
       <div class="stat-list">${row(lt('割ったもの', 'Things broken'), n(brokeN) + lt('個', ''))}${row(lt('最大の連鎖', 'Best chain'), n(run.maxChain))}${row(lt('お題の★', 'Task stars'), n(run.stars))}${row(lt('朝から続けた', 'Day restarts'), n(run.conts) + lt('回', ''))}</div>
     </div>
     <div class="badges">${newSiam ? `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ シャム猫', 'NEW CAT Siamese')}</span>` : ''}${firstEnd ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「金メダル」', 'Reward: Gold medal accessory')}</span>` : ''}${firstTrue ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「星のバッジ」', 'Reward: Star badge accessory')}</span>` : ''}${gotTitles.map(t => `<span class="badge new">NEW ${t}</span>`).join('')}</div>
-    <button class="btn go" id="enCont" type="button">${lt((nd + 1) + '日目へつづける', 'On to Day ' + (nd + 1))}</button>
-    <div class="row"><button class="btn w" id="enRes" type="button">${lt('ここでおわって結果をみる', 'Finish and see results')}</button></div>
+    ${tr ? '' : `<button class="btn go" id="enCont" type="button">${lt((nd + 1) + '日目へつづける', 'On to Day ' + (nd + 1))}</button>`}
+    <div class="row"><button class="btn ${tr ? 'go' : 'w'}" id="enRes" type="button">${tr ? lt('結果をみる', 'See results') : lt('ここでおわって結果をみる', 'Finish and see results')}</button></div>
     <div class="row"><button class="btn t sm" id="bShare" type="button">${lt('シェア', 'Share')}</button><a class="btn sm" id="bLine" href="${'https://line.me/R/share?text=' + encodeURIComponent(shareText() + '\n' + SITE)}" target="_blank" rel="noopener" style="background:#06c755;box-shadow:0 4px 0 #04963f">${lt('LINEで送る', 'Send on LINE')}</a><button class="btn w sm" id="bSave" type="button">${lt('画像を保存', 'Save image')}</button></div>
     ${coffeeHtml(true)}
     <p class="best" style="margin:6px 0 0;font-weight:500;font-size:.76rem;color:var(--ink2)">${lt('こっそりネコ　制作：', 'Mischievous Cat — created by ')}${AUTHOR}</p></div>`;
-  $('enCont').addEventListener('click', () => { endBgmStop(); ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
+  if ($('enCont')) $('enCont').addEventListener('click', () => { endBgmStop(); ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
   $('enRes').addEventListener('click', () => { endBgmStop(); run.timeup = false; gameOver(); });
   run.stage = level; run.comment = String(ENDINGS[et].oops); $('bShare').addEventListener('click', doShare); $('bSave').addEventListener('click', saveCard); buildCard(); foldBadges();
 }
@@ -4343,10 +4348,10 @@ function checkClear() {
   if (state !== 'play' || mains().length) return;
   failClear(level); markCleared(level); if (run) run.clrL = (run.clrL || []).concat([level]).slice(-8);
   // 面クリアの腕前ボーナス（この面で出した被害額に対する割合）
-  // 手際：残り時間の割合 × 40%。完全犯罪：最大の怪しまれ度が 30% 未満なら 30%（50% 未満なら こっそり 15%）
+  // 手際：残り時間の割合 × BONUS.quick。完全犯罪：最大の怪しまれ度が 30% 未満なら BONUS.perfect（50% 未満なら こっそり BONUS.sneaky）
   const sy = run.yen - stageYen0, perfect = stageMaxSus < 30;
   const close = timeLeft <= 10 ? Math.round(sy * 0.15) : 0;   // ギリギリ：残り10秒以内のクリアは +15%
-  const sk = accFx().skill || 1, quick = Math.round((Math.round(sy * 0.4 * clamp(timeLeft / timeMax, 0, 1)) + close) * sk), sneaky = Math.round(sy * (perfect ? 0.3 : stageMaxSus < 50 ? 0.15 : 0) * sk);   // 金メダル：腕前ボーナス +25%
+  const sk = accFx().skill || 1, quick = Math.round((Math.round(sy * BONUS.quick * clamp(timeLeft / timeMax, 0, 1)) + close) * sk), sneaky = Math.round(sy * (perfect ? BONUS.perfect : stageMaxSus < 50 ? BONUS.sneaky : 0) * sk);   // 金メダル：腕前ボーナス +25%
   run.yen += quick + sneaky; run.skill += quick + sneaky; run.skQ = (run.skQ || 0) + quick; run.skS = (run.skS || 0) + sneaky; if (perfect) run.perfect++;
   if (stageMaxSus < 10 && sy > 0) run.ghost++; if (phaseOf(level).special === 'guest' && stageMaxSus < 50) run.guestClear = true;
   if (phaseOf(level).special) run.ev['night_' + phaseOf(level).special] = true;
@@ -4492,7 +4497,7 @@ function commentOf() {
 function gameOver() {
   state = 'over';
   if (!run.test && !run.preview) {
-    if (!run.caughtOver && run.ended && level % NPH === 0) { run.ck = null; saveGame(level + 1, false); }   // エンディングで終えた：次の日から
+    if (!run.caughtOver && run.ended && level % NPH === 0 && level < TRUE_DAY * NPH) { run.ck = null; saveGame(level + 1, false); }   // エンディングで終えた：次の日から（4.44.0：7 日目の夜を越えたらおしまい。8 日目はない）
     else if (run.ck && run.ck.level > 1 && run.caughtOver) { const ck = run.ck, r0 = run; run = unpackRun(ck.pk); run.ck = null; carryT = 0; saveGame(ck.level, true); run = r0; }   // 見つかった：その日の朝から（つづきに数える）
     else clearSave();
   }
@@ -5216,8 +5221,11 @@ function r2High() {
   }
   if (room === 'roof') {
     // テレビアンテナ（レール）・物干し（吊り棚）・給水タンク（エアコン）
-    g.fillStyle = '#6f7378'; g.fillRect(r.x0 + 48, r.y, 4, FLOOR - r.y); rr(g, r.x0, r.y - 2, r.x1 - r.x0, 7, 3); g.fill(); for (let x = r.x0 + 8; x < r.x1; x += 18) g.fillRect(x, r.y - 14, 3, 14);
-    g.fillStyle = '#a7adb5'; g.fillRect(h.x0 - 6, h.y, 4, FLOOR - h.y); g.fillRect(h.x1 + 2, h.y, 4, FLOOR - h.y); g.fillStyle = '#c9d3d9'; rr(g, h.x0 - 8, h.y, h.x1 - h.x0 + 16, 5, 2.5); g.fill();
+    // 4.44.0：空の色に溶けて見えにくかったので、足場（アンテナの横棒・物干しの台）は濃い色で太く、縁取りをつける
+    g.fillStyle = '#4f5358'; g.fillRect(r.x0 + 48, r.y, 4, FLOOR - r.y); for (let x = r.x0 + 8; x < r.x1; x += 18) g.fillRect(x, r.y - 14, 3, 14);
+    g.strokeStyle = '#2f3236'; g.lineWidth = 1.5; rr(g, r.x0, r.y - 1, r.x1 - r.x0, 9, 3); g.fill(); g.stroke();
+    g.fillStyle = '#6f7378'; g.fillRect(h.x0 - 6, h.y, 4, FLOOR - h.y); g.fillRect(h.x1 + 2, h.y, 4, FLOOR - h.y);
+    g.fillStyle = '#8a6a4f'; g.strokeStyle = '#4a2f1d'; rr(g, h.x0 - 8, h.y - 1, h.x1 - h.x0 + 16, 9, 3); g.fill(); g.stroke();
     g.fillStyle = '#8a8f95'; g.fillRect(a.x0 + 6, a.y + 30, 6, FLOOR - a.y - 30); g.fillRect(a.x1 - 12, a.y + 30, 6, FLOOR - a.y - 30); g.fillStyle = '#5d7a9a'; rr(g, a.x0 - 4, a.y, a.x1 - a.x0 + 8, 34, 8); g.fill(); g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(a.x0 + 4, a.y + 6, a.x1 - a.x0, 5);
     return;
   }
@@ -6360,7 +6368,9 @@ function draw() {
     const a = clamp(Math.min(saveT / 0.3, (2.2 - saveT) / 0.3), 0, 1); g.save(); g.globalAlpha = a; g.font = `800 13px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
     const t = lt('セーブしました', 'Saved'), w = g.measureText(t).width + 30, x = W / 2, y = 150 - OY + 66;
     g.fillStyle = '#2fb3a3'; g.strokeStyle = '#fff'; g.lineWidth = 2.5; rr(g, x - w / 2, y - 13, w, 26, 13); g.fill(); g.stroke();
-    g.fillStyle = '#fff'; g.fillRect(x - w / 2 + 10, y - 6, 11, 12); g.fillStyle = '#2fb3a3'; g.fillRect(x - w / 2 + 12.5, y - 6, 6, 4); g.fillStyle = '#fff'; g.fillText(t, x + 7, y + 0.5); g.restore();
+    // 4.44.0：小さなフロッピーの絵は見づらかったので、白い丸にチェック
+    { const cx = x - w / 2 + 15.5; g.fillStyle = '#fff'; g.beginPath(); g.arc(cx, y, 7.5, 0, TAU); g.fill(); g.strokeStyle = '#1d8174'; g.lineWidth = 2.6; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(cx - 3.6, y + 0.2); g.lineTo(cx - 1, y + 2.8); g.lineTo(cx + 3.8, y - 2.6); g.stroke(); }
+    g.fillStyle = '#fff'; g.fillText(t, x + 7, y + 0.5); g.restore();
   }
   if (state === 'play' && introT > 0) {
     const ph = phaseOf(level), k = Math.min(1, (2 - introT) / 0.2, introT / 0.3);
@@ -6734,7 +6744,7 @@ async function fetchWorld(force, coll) {
     return { name: str('name'), y: num('y'), s: num('s'), st: num('st'), c: str('c'), uid: str('uid'), sk: num('sk'), v: num('v'), k: num('k'), d: (r.document.createTime || '').slice(0, 10) };
   });
   // 上限を超える記録（明らかな不正）は表示しない
-  const seen = new Set(), list = rows.filter(r => r.y <= capY(Math.max(1, r.s)) && !seen.has(r.uid) && seen.add(r.uid)).slice(0, 50);
+  const seen = new Set(), list = rows.filter(r => r.y <= capY(Math.max(1, r.s)) && r.s <= TRUE_DAY * DAY_LEN && !seen.has(r.uid) && seen.add(r.uid)).slice(0, 50);
   worldCaches[coll] = { list, at: Date.now() };
   if (coll === 'scores') worldCache = list;
   return list;
@@ -6958,13 +6968,13 @@ function showTestMenu(back) {
   const rows = []; for (let L = 1; L <= TRUE_DAY * DAY_LEN; L++) rows.push(`<button type="button" data-l="${L}" style="width:100%;text-align:left;border-radius:10px">${stageLabel(L)}</button>`);
   ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.4rem">${lt('テスト', 'TEST')}</div><p class="sub">${lt('ステージをえらんで始める（記録には残らない）', 'Pick a stage (nothing is recorded)')}</p>
     <div class="accs" style="max-height:38vh;overflow:auto;flex-direction:column;flex-wrap:nowrap;justify-content:flex-start;gap:3px">${rows.join('')}</div>
-    <div class="row"><input id="tsL" class="nm" type="number" min="1" max="999" value="${level || 1}" style="width:5em" aria-label="stage"><button class="btn w" id="tsGo" type="button">${lt('この番号から', 'Start at #')}</button></div>
+    <div class="row"><input id="tsL" class="nm" type="number" min="1" max="${TRUE_DAY * DAY_LEN}" value="${level || 1}" style="width:5em" aria-label="stage"><button class="btn w" id="tsGo" type="button">${lt('この番号から', 'Start at #')}</button></div>
     <p class="sub" style="margin:8px 0 2px">${lt('エンディングの再生（えらぶ）', 'Play an ending')}</p>
     <div class="row" style="flex-wrap:wrap">${PREVIEW_ORDER.map((k, i) => `<button type="button" class="btn w sm" data-e="${i}" style="flex:1 1 30%">${ENDINGS[k].n}</button>`).join('')}</div>
     <button class="btn go" id="tsBack" type="button">${lt('もどる', 'Back')}</button></div>`;
   // 連打で入った直後の誤タップを防ぐ：0.8 秒はどのボタンも押せない
   const pn = ov.querySelector('.panel'); pn.style.pointerEvents = 'none'; pn.style.opacity = '.6'; setTimeout(() => { pn.style.pointerEvents = ''; pn.style.opacity = ''; }, 800);
-  const start = L => { L = Math.max(1, Math.min(999, L | 0)); ov.hidden = true; audio(); newRun(); run.test = true; carryT = 0; setupStage(L); state = 'play'; bgmStart(); toast(lt('テスト：', 'TEST: ') + stageLabel(L), 2500); };
+  const start = L => { L = Math.max(1, Math.min(TRUE_DAY * DAY_LEN, L | 0)); ov.hidden = true; audio(); newRun(); run.test = true; carryT = 0; setupStage(L); state = 'play'; bgmStart(); toast(lt('テスト：', 'TEST: ') + stageLabel(L), 2500); };
   ov.querySelectorAll('button[data-l]').forEach(b => b.addEventListener('click', () => start(+b.dataset.l)));
   $('tsGo').addEventListener('click', () => start(+$('tsL').value));
   $('tsL').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') start(+$('tsL').value); });
@@ -7068,7 +7078,7 @@ function saveGame(L, cont) {
   } catch (e) {}
 }
 function clearSave() { store.set('nekoSave', ''); }
-function loadSave() { try { const sv = JSON.parse(store.get('nekoSave', '') || 'null'); return sv && sv.v === 1 && sv.level > 1 && sv.pk ? sv : null; } catch (e) { return null; } }
+function loadSave() { try { const sv = JSON.parse(store.get('nekoSave', '') || 'null'); return sv && sv.v === 1 && sv.level > 1 && sv.level <= TRUE_DAY * DAY_LEN && sv.pk ? sv : null; } catch (e) { return null; } }   // 4.44.0：8 日目以降のセーブ（前の版）は使わない
 function resumeSave() {
   const sv = loadSave(); if (!sv) { startGame(); return; }
   if (sv.cat != null && CATS[sv.cat] && catsOpen.has(CATS[sv.cat].id)) { selCat = sv.cat; store.set('nekoCat', String(selCat)); }
@@ -7183,7 +7193,7 @@ function retryStage() {
   setupStage(sk.level); state = 'play'; bgmStart();
   if (LIFE) { LIFE.conts = (LIFE.conts || 0) + 1; store.set('nekoLife', JSON.stringify(LIFE)); }   // 4.43.0：通算の「続けた回数」にも数える（朝から続けるのと同じ）
 }
-const canPostEnd = () => !!(run && run.ended && !run.caughtOver && run.stage % NPH === 0 && run.stage >= END_DAY * NPH);   // エンディングで終わった → 次の日からつづけられる
+const canPostEnd = () => !!(run && run.ended && !run.caughtOver && run.stage % NPH === 0 && run.stage >= END_DAY * NPH && run.stage < TRUE_DAY * NPH);   // エンディングで終わった → 次の日からつづけられる
 function shareText() {
   return lt(`本日の被害額 ${yen(run.yen)}\nステージ${run.stage}（${dayName(run.stage)}・${phaseOf(run.stage).name}）／★${run.stars}／称号「${titleOf(run.yen)}」\n飼い主「${run.comment}」\n#MischievousCat #こっそりネコ`,
     `Today's damage: ${yen(run.yen)}\nStage ${run.stage} (${dayName(run.stage)} · ${phaseOf(run.stage).name}) / ★${run.stars} / Title: ${titleOf(run.yen)}\nOwner: "${run.comment}"\n#MischievousCat #こっそりネコ`);
