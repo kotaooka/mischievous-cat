@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.6', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.7', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1756,9 +1756,9 @@ function setupStage(L) {
 }
 // 4.41.0：1 日目の 3 面は教科書（起承転結）。面ごとに「新しいこと」を 1〜2 つに絞り、ものとお題と仕掛けを固定する
 const DAY1 = {
-  1: { pool: ['cup', 'mug', 'tissue'], n: 3, tasks: ['cupDrop', 'hide', 'eatSeen'], away: 8, spots: [], noMouse: true, noVac: true },                       // 起：動かし方。落とす・隠れる・安全な行動
-  2: { pool: ['cup', 'plate', 'mug', 'eggs', 'jam'], n: 4, tasks: ['shelfDrop', 'mouse', 'streak2'], away: 6, spots: ['shelf', 'mouse'], noVac: true },   // 承：壁の棚と「こっそり」、ネズミ
-  3: { pool: ['pens', 'mug', 'ink', 'frame', 'wine'], n: 5, tasks: ['high', 'ball', 'data'], away: 5, spots: ['vac', 'ball'], vac: true }                // 転：高い足場・ボール・お掃除ロボの初登場
+  1: { pool: ['cup', 'mug', 'tissue'], n: 3, tasks: ['cupDrop', 'hide', 'eatSeen'], away: 6, spots: [], noMouse: true, noVac: true },                       // 起：動かし方。落とす・隠れる・安全な行動
+  2: { pool: ['cup', 'plate', 'mug', 'eggs', 'jam'], n: 4, tasks: ['shelfDrop', 'mouse', 'streak2'], away: 4.5, spots: ['shelf', 'mouse'], noVac: true },   // 承：壁の棚と「こっそり」、ネズミ
+  3: { pool: ['pens', 'mug', 'ink', 'frame', 'wine'], n: 5, tasks: ['high', 'ball', 'data'], away: 3.5, spots: ['vac', 'ball'], vac: true }                // 転：高い足場・ボール・お掃除ロボの初登場
 };
 const day1 = L => (run && run.test) || L > 3 ? null : DAY1[L] || null;
 function setupStageCore(L) {
@@ -1902,7 +1902,8 @@ function setupStageCore(L) {
   cat = cat || {};
   Object.assign(cat, { ledge: null, hang: false, grabCd: 0, rubT: 0, sticky: false, onTrap: null, scareT: 0, creakCd: 0, danceT: 0, bathT: 0, bathOut: false, inBath: false, type: T, x: room === 'bath' ? 322 : 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: VOICES[0].txt, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0, scratch: null, scrHold: false, happyT: 0, aimUp: false, scrT: 0, purrT: 0, hopT: 0, jabN: 0, lastPunch: -9 });
   { const f = failOf(); assist = f.l === L && f.n >= 3 && !(run && run.test) ? 5 : 0; }
-  owner.mode = 'away'; owner.t = (day1(L) ? day1(L).away : rnd(2.5, 4.5)) + assist; owner.range = 0; owner.lureT = 0; owner.warned = false; owner.hint = null; owner.say = ''; owner.x = -60; owner.scareT = 0;
+  owner.mode = 'away'; owner.t = (day1(L) ? day1(L).away : rnd(1.5, 2.5)) + assist;   // 4.48.7：留守 2.5〜4.5 → 1.5〜2.5 秒
+  owner.range = 0; owner.lureT = 0; owner.warned = false; owner.hint = null; owner.say = ''; owner.x = -60; owner.scareT = 0;
   sus = Math.min(sus, 25);
   dog = L >= 4 && (room === 'living' || room === 'bed') ? { x: 60, alertT: 0, cd: 0, barkT: 0 } : null;
   if (ph.rule === 'dogday') dog = { x: room === 'bath' ? 44 : 60, alertT: 0, cd: 0, barkT: 0, keep: true };   // 4.43.0：5 日目の部屋（屋根・庭・お風呂場）はどれも条件から外れていて、犬が 1 面も出なかった
