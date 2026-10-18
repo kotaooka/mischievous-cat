@@ -5,7 +5,7 @@
 **Knock everything off the shelves while your owner isn't looking.**
 Cups, vases, smartphones. You're just an adorable cat. …Probably.
 
-#You can stop any time: the game auto-saves at the start of every stage, and the title screen offers "Continue" from that stage next time (or from that day's morning if you got caught). "Continue" also shows how many stages are left in that day.
+#You can stop any time: the game auto-saves at the start of every stage, and the title screen offers "Continue" from that stage next time (or from that day's morning if you got caught). "Continue" also shows how many stages are left in that day. If you get caught on day 1, you can retry that stage.
 
 ## ▶ [Play now](https://kotaooka.github.io/mischievous-cat/)
 
