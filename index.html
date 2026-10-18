@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.47.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1277,7 +1277,7 @@ const ACC_FX = {
   crown:   { yen: 1.1, note: tx('落としたものの被害額 +10%', 'Damage from knocked items +10%') },
   medal:   { skill: 1.25, note: tx('面クリアの腕前ボーナス +25%', 'Stage skill bonus +25%') },
   shades:  { stun: 0.5, note: tx('相手にやられたときのよろけが半分', 'Recover from enemy hits twice as fast') },
-  star:    { carry: 25, note: tx('持ち越し時間の上限 20 → 25 秒', 'Carry-over cap 25s instead of 20') }
+  star:    { carry: 5, note: tx('持ち越し時間の上限 8 → 13 秒', 'Carry-over cap 13s instead of 8') }
 };
 const accFx = () => ACC_FX[selAcc] || ACC_FX.none;
 const catStat = k => (cat && cat.type ? cat.type : CATS[selCat])[k] * (accFx()[k] || 1);
@@ -1298,6 +1298,10 @@ let tutDone = store.get('nekoTut', '0') === '1';
 let stageT = 0, clearT = 0, caughtT = 0, shake = 0, tAnim = 0, susCd = 0, slowT = 0, chainSeq = 0;
 let clearT0 = 2.4, dayT0 = 6, assist = 0;   // 4.36.0：札の長さ（2 回目以降のプレイは短い）、お助け（同じ面で 3 回見つかったら留守 +5 秒）
 const fastPlay = () => (LIFE.plays || 0) >= 2;
+// 制限時間（4.48.0）：1 日目（操作を覚える面）は 25 秒＋1 個 7 秒のまま。2 日目からは 18 秒＋1 個 5 秒（8 個で 58 秒）。
+// クリアすると残り時間の 3 割（最大 8 秒、星のバッジは 13 秒）を次の面へ持ち越す。前は 25＋7 秒と半分（最大 20 秒）で、慣れると毎面 100 秒前後から始まり、手際の差もつきにくかった
+const TIME = { base1: 25, per1: 7, base: 18, per: 5, carry: 0.3, carryMax: 8 };
+const timeBase = (L, n) => dayOf(L) === 1 ? TIME.base1 + n * TIME.per1 : TIME.base + n * TIME.per;
 let timeLeft = 40, timeMax = 40, lastTick = 99, bowl = null, feeds = 0, pausedFrom = null, resumeT = 0;   // resumeT：ポーズから戻るときの 3・2・1 の残り
 let room = 'living', kb = null, snack = null, dayT = 0, introT = 0, newAccs = [];
 let tasks = [], chaseT = 0, chaseN = 0, susQ = 0, warn85 = false, hideT = 0, rideStage = 0, oneHand = store.get('nekoOneHand', '0') === '1';
@@ -1946,7 +1950,7 @@ function setupStageCore(L) {
   while (tasks.length < 3 && rest.length) { const id = rest.splice((Math.random() * rest.length) | 0, 1)[0]; if (EASY.includes(id) && tasks.some(t => EASY.includes(t)) && rest.some(r => !EASY.includes(r))) continue; tasks.push(id); }
   if (foe && !tasks.includes('foe')) { tasks.pop(); tasks.unshift('foe'); }   // 相手がいる面は「たおす」を必ずお題に入れる
   tasks = tasks.map(id => ({ id, t: TASKS[id].t, need: TASKS[id].need || 1, n: 0, done: false }));
-  rushShown = false; timeMax = timeLeft = Math.round(25 + mains().length * 7) + carryT + (foe ? 10 : 0); carryT = 0;   // 相手がいる面は +10秒
+  rushShown = false; timeMax = timeLeft = Math.round(timeBase(L, mains().length)) + carryT + (foe ? 10 : 0); carryT = 0;   // 相手がいる面は +10秒
   lastTick = 99; bowl = null; feeds = 0; stageMaxSus = 0;   // 4.43.0：前はコメントの中に入っていて、面をまたいで値が残っていた
 }
 // 1面に出す仕掛けを絞る（消さずに、面ごとに入れ替える）
@@ -4395,8 +4399,8 @@ function checkClear() {
   if (tut.on) { tutDone = true; tut.on = false; store.set('nekoTut', '1'); }
   // 1日の最後の面：まずふつうのクリア画面を 1.6 秒見せてから、おしまいの画面（3日目の夜ならエンディング）へ
   if (level % NPH === 0) { dayEndNext = true; lastCarry = carryT = 0; state = 'clear'; clearT = clearT0 = fastPlay() ? 1.8 : 2.2; sfx.clear(); setPulse(null); clearFx(); setMode('away', 99); owner.warned = true; owner.lureT = 0; return; }
-  // 残り時間の半分を次のステージへ持ち越す（最大20秒）
-  lastCarry = carryT = Math.min(accFx().carry || 20, Math.round(Math.max(0, timeLeft) * 0.5));
+  // 残り時間の 3 割を次のステージへ持ち越す（最大 8 秒。星のバッジは +5 秒）
+  lastCarry = carryT = Math.min(TIME.carryMax + (accFx().carry || 0), Math.round(Math.max(0, timeLeft) * TIME.carry));
   state = 'clear'; clearT = clearT0 = fastPlay() ? 2.4 : 3.2; sfx.clear(); setPulse(null); clearFx();
   setMode('away', 99); owner.warned = true; owner.lureT = 0;
 }
