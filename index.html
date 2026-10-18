@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.44.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.45.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -777,10 +777,12 @@ const BALL = { living: { n: tx('毛糸玉', 'yarn ball'), c: '#e05a8a', c2: '#ff
 // ---------- 称号 ----------
 const TITLES = [
   { id: 't1', name: tx('見習いネコ', "Apprentice Cat"), tier: 0 },
-  { id: 't2', name: tx('食器破壊職人', "Dish Destroyer"), tier: 10000 },
-  { id: 't3', name: tx('キッチンの悪夢', "Kitchen Nightmare"), tier: 60000 },
-  { id: 't4', name: tx('リビング崩壊請負猫', "Living Room Wrecker"), tier: 200000 },
-  { id: 't5', name: tx('伝説の食器破壊者', "Legendary Smasher"), tier: 500000 },
+  // 4.45.0：7 日間で競う点の幅に合わせる（値段の合計の目安：1 日目 ¥127,500、3 日目まで ¥1,752,500、7 日目まで ¥8,032,500）
+  // 職人＝2 日目の途中、悪夢＝3 日目までを腕前つきで、請負猫＝7 日間を完走（目安の 1.25 倍）、伝説＝7 日間を目安の 2 倍
+  { id: 't2', name: tx('食器破壊職人', "Dish Destroyer"), tier: 500000 },
+  { id: 't3', name: tx('キッチンの悪夢', "Kitchen Nightmare"), tier: 2500000 },
+  { id: 't4', name: tx('リビング崩壊請負猫', "Living Room Wrecker"), tier: 10000000 },
+  { id: 't5', name: tx('伝説の食器破壊者', "Legendary Smasher"), tier: 16000000 },
   { id: 'phone', name: tx('スマホ破壊神', "Phone Breaker"), test: r => (r.broke.phone || 0) >= 2 },
   { id: 'foe1', name: tx('ネコパンチ道場', 'Cat Punch Dojo'), test: r => (r.foes || 0) >= 1 },
   { id: 'foe4', name: tx('退治屋', 'The Exterminator'), test: r => ['vacbot', 'crow', 'toybot', 'drone'].every(k => r.ev && r.ev['foe_' + k]) },
@@ -839,8 +841,8 @@ const TITLES = [
 // 称号の取り方（図鑑に出す）。「1回で」は、あそぶ を押してから見つかるまでの1回のこと
 const TDESC = {
   foe4: tx('1回で、4種類の相手（暴走ロボ掃除機・カラス・おもちゃのロボット・見張りドローン）を全部たおす', 'Beat all 4 foes (vacuum, crows, toy robot, drone) in one run'), nohit: tx('相手に一度もぶつからずに、7日目の夜を越える', 'Get through the 7th night without ever being hit by a foe'),
-  t1: tx('はじめて遊ぶ', 'Play once'), t2: tx('1回で被害額 ¥10,000 以上', 'Deal ¥10,000+ in one run'), t3: tx('1回で被害額 ¥60,000 以上', 'Deal ¥60,000+ in one run'),
-  t4: tx('1回で被害額 ¥200,000 以上', 'Deal ¥200,000+ in one run'), t5: tx('1回で被害額 ¥500,000 以上', 'Deal ¥500,000+ in one run'),
+  t1: tx('はじめて遊ぶ', 'Play once'), t2: tx('1回で被害額 ¥500,000 以上', 'Deal ¥500,000+ in one run'), t3: tx('1回で被害額 ¥2,500,000 以上', 'Deal ¥2,500,000+ in one run'),
+  t4: tx('1回で被害額 ¥10,000,000 以上', 'Deal ¥10,000,000+ in one run'), t5: tx('1回で被害額 ¥16,000,000 以上', 'Deal ¥16,000,000+ in one run'),
   phone: tx('1回でスマホを2台割る', 'Break 2 phones in one run'), water: tx('1回で水の入ったものを3回こぼす', 'Spill 3 drinks in one run'),
   kaku: tx('1回で、カメラ目線のまま3回落とす', 'Knock 3 things off while staring at the camera in one run'), ride: tx('1回でお掃除ロボに合計8秒乗る', 'Ride the robot vacuum for 8 seconds total in one run'),
   chain: tx('3つ以上をまとめて落とす（3連鎖）', 'Make a 3x chain'), idle: tx('何もしていないときに見つかる', 'Get caught while doing nothing'),
