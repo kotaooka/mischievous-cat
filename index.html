@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -3629,7 +3629,14 @@ function endingType(r) {
 let endingsSeen = new Set();
 try { endingsSeen = new Set(JSON.parse(store.get('nekoEndings', '[]'))); } catch (e) {}
 // スタッフロール：ENDING の種類、出演（ネコ・飼い主）、被害者一覧（割ったもの）、大技、3日間の写真。タップ・ボタンで飛ばせる
-let saveT = 0, credT = 0, epiT = 0, CRED_LEN = 64 * (60 / 84 / 2);   // 曲のひとまわり（8 小節・84 BPM ＝ 約 22.9 秒）に合わせる。4.23.1
+// 4.48.1：文字はゆっくり（毎秒 44px ほど）流し、最後の行（制作者の名前）を画面の真ん中で CRED_HOLD 秒止めてから終える。
+// 長さは曲の半分（4 小節・84 BPM ＝ 約 11.4 秒）の倍数に切り上げる（前は内容の量に関係なく曲ひとまわり 22.9 秒で、速すぎた）
+const CRED_LOOP = 64 * (60 / 84 / 2), CRED_SPEED = 44, CRED_HOLD = 3;
+let saveT = 0, credT = 0, epiT = 0, CRED_LEN = CRED_LOOP;
+const credLineH = k => k === 'gap' ? 18 : k === 'big' ? 46 : k === 'big2' ? 40 : k === 'd' ? 20 : 26;
+// 流す距離：最後の行が画面の真ん中に来るまで
+function credDist(L) { let s = 0; for (let i = 0; i < L.length - 1; i++) s += credLineH(L[i][0]); return VH / 2 + 30 + s; }
+function credLen() { const half = CRED_LOOP / 2; return Math.max(CRED_LOOP, Math.ceil((credDist(creditLines()) / CRED_SPEED + CRED_HOLD) / half) * half); }
 function creditLines() {
   const r = run, E = ENDINGS[r.endType], L = [], nd = r.endType === 'true' ? TRUE_DAY : END_DAY, tr = r.endType === 'true';
   L.push(['big', lt('こっそりネコ', 'Mischievous Cat')]); L.push(['sub', 'ENDING ' + String(E.n)]); L.push(['gap']);
@@ -3646,10 +3653,11 @@ function creditLines() {
   bro.forEach(([k, n]) => L.push(['t', IT[k].n + ' ×' + n])); if (!bro.length) L.push(['t', lt('（なし。本当に？）', '(none. really?)')]);
   if ((r.bigs || []).length) { L.push(['gap']); L.push(['h', lt('大技', 'BIG ONES')]); r.bigs.forEach(k => L.push(['t', BIG[k].n])); }
   { const fs = Object.keys(FOES).filter(k => r.ev && r.ev['foe_' + k]); if (fs.length) { L.push(['gap']); L.push(['h', lt('たおした相手', 'DEFEATED')]); fs.forEach(k => L.push(['t', FOES[k].n])); } }
-  L.push(['gap']); L.push(['h', lt('こっそりネコ', 'Mischievous Cat')]); L.push(['t', lt('制作：', 'Created by ') + AUTHOR]);
   L.push(['gap']); L.push(['h', lt(nd + '日間の被害額', nd + '-DAY DAMAGE')]); L.push(['big2', yen(r.yen)]); L.push(['t', lt('称号', 'Title') + '「' + titleOf(r.yen) + '」']);
   L.push(['gap']); L.push(['t', tr ? lt('飼い主は、全部知っていた', 'The owner knew all along') : lt('そして、4日目へ……', 'And so, on to Day 4……')]); L.push(['gap']);
   L.push(['sub', tr ? lt('遊んでくれて、ありがとう', 'Thank you for playing') : lt('飼い主は、まだ気づいていない。……たぶん', 'The owner still has no idea. …Probably')]);
+  // 4.48.1：制作者の名前はいちばん最後（画面の真ん中で止まる）
+  L.push(['gap']); L.push(['gap']); L.push(['h', lt('こっそりネコ', 'Mischievous Cat')]); L.push(['t', lt('制作：', 'Created by ') + AUTHOR]);
 
   return L;
 }
@@ -3673,9 +3681,9 @@ function drawCredits() {
   const al = run.album || [];
   al.forEach((a, i) => { const y = -OY + VH + 120 + i * 150 - e * (VH + 120 + al.length * 150) / CRED_LEN * 0.92, x = i % 2 ? W - 50 : 50; if (y < -OY - 120 || y > -OY + VH + 60) return; g.save(); g.translate(x, y); g.rotate((i % 2 ? 1 : -1) * 0.1); g.fillStyle = '#fff'; rr(g, -36, -40, 72, 86, 3); g.fill(); g.drawImage(a.im, -31, -35, 62, 62); g.fillStyle = '#4a2f1d'; g.font = `800 8px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(dayName(a.L) + ' ' + yen(a.yen), 0, 37); g.restore(); });   // 写真は左右の端（文字と重ならないように）
   // 文字：下から上へ
-  g.textAlign = 'center'; g.textBaseline = 'middle'; let y = -OY + VH + 30 - e * (VH + 30 + L.length * 26 + 80) / CRED_LEN;
+  const D = credDist(L); g.textAlign = 'center'; g.textBaseline = 'middle'; let y = -OY + VH + 30 - Math.min(D, e * D / Math.max(1, CRED_LEN - CRED_HOLD));
   for (const [k, t] of L) {
-    const h = k === 'gap' ? 18 : k === 'big' ? 46 : k === 'big2' ? 40 : k === 'd' ? 20 : 26;
+    const h = credLineH(k);
     if (k !== 'gap' && y > -OY - 40 && y < -OY + VH + 40) {
       g.fillStyle = k === 'h' ? '#ffc94a' : k === 'sub' ? '#ff8a3d' : k === 'd' ? '#d9d3ef' : '#fff6c8'; g.font = `800 ${k === 'big' ? 34 : k === 'big2' ? 30 : k === 'h' ? 13 : k === 'sub' ? 18 : k === 'd' ? 12 : 15}px ${FONT}`;
       g.fillText(String(t), W / 2, y);
@@ -6730,7 +6738,7 @@ function update(dt) {
     endT += dt;
     if (run.endType === 'true') { if (endT > 20.22 && !endSnapped) { endSnapped = true; try { endPhoto = takeSnap(214, FLOOR - 30); snap = endPhoto; } catch (e) {} } }   // 記念写真（フラッシュの瞬間）
     else if (endT > 9.3 && !endSnapped) { endSnapped = true; try { snap = takeSnap(214, FLOOR); } catch (e) {} }   // シェア用の写真：オチの場面
-    if (endT > (run.endType === 'true' ? TRUE_LEN : 15.8)) { state = 'credits'; credT = 0; endBgmStart(true); EB.full = true; if (EB.on && ac) { EB.step = 0; EB.next = ac.currentTime + 0.05; } }   // スタッフロールの始まりを曲の 1 小節目に合わせる
+    if (endT > (run.endType === 'true' ? TRUE_LEN : 15.8)) { state = 'credits'; credT = 0; CRED_LEN = credLen(); endBgmStart(true); EB.full = true; if (EB.on && ac) { EB.step = 0; EB.next = ac.currentTime + 0.05; } }   // スタッフロールの始まりを曲の 1 小節目に合わせる
   } else if (state === 'credits') {
     credT += dt; if (credT > CRED_LEN && !endShown) { if (run.endType === 'true' && !run.preview) { state = 'epilogue'; epiT = 0; } else { endShown = true; showEnding(); } }
   } else if (state === 'epilogue') {
