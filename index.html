@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.39.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.39.4', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1807,6 +1807,7 @@ function setupStageCore(L) {
     if (room === 'toilet') add('door', 392, FLOOR - 70);
     if (L >= 2 && items.some(o => o.plat === PL.shelf)) add('shelf', SHELF_MID, PL.shelf.y - 4);   // 4.39.2：傾く棚の合図
     if (spots.length) { const sp0 = spots[0], m0 = MISCHIEF[sp0.id]; if (m0 && PL[m0.plat]) add('mis', (m0.x[0] + m0.x[1]) / 2, PL[m0.plat].y - 10); }   // 4.37.0：壁紙・カーテンなどの「いたずらの場所」も初回は教える
+    { const pri = q => /^foe_|^door$|^cam$|^trap$/.test(q.k) ? 0 : 1; const fresh = spot.filter(q => !q.rep), reps = spot.filter(q => q.rep).sort((a, b) => pri(a) - pri(b)); spot = fresh.concat(reps.slice(0, 2)); }   // 4.39.4：見たことのある札は 2 つまで（相手・扉・カメラ・罠を優先）
   }
   const rts = ROOM_TASK[room].filter(id => TASKS[id].ok()); if (rts.length) tasks.push(pick(rts));
   const rest = Object.keys(TASKS).filter(id => !Object.values(ROOM_TASK).flat().includes(id) && TASKS[id].ok());
@@ -5988,7 +5989,7 @@ function drawCatNow() {
     if (rubTilt) g.restore();
   }
   if (c.churuPull && play) { const w = 40, k = clamp(churuRes, 0, 1); g.fillStyle = 'rgba(255,255,255,.9)'; rr(g, c.x - w / 2, c.y - 70, w, 7, 3.5); g.fill(); g.fillStyle = '#ff7a95'; rr(g, c.x - w / 2, c.y - 70, w * k, 7, 3.5); g.fill(); g.strokeStyle = '#4a2f1d'; g.lineWidth = 1.5; rr(g, c.x - w / 2, c.y - 70, w, 7, 3.5); g.stroke(); }   // がまんゲージ（連打でためる）
-  if (c.inBath) { g.fillStyle = 'rgba(79,168,224,.85)'; g.fillRect(BATHW.x0 - 2, 430, BATHW.x1 - BATHW.x0 + 4, 12); drawTubFront(); }   // お湯につかっている
+  if (c.inBath) { g.fillStyle = 'rgba(79,168,224,.85)'; g.fillRect(BATHW.x0 - 2, 430, BATHW.x1 - BATHW.x0 + 4, 12); if (room === 'pool') { g.fillStyle = '#2b8fd9'; rr(g, 123, 440, 179, 60, 8); g.fill(); } else drawTubFront(); }   // お湯（プールの水）につかっている
   if (nod && !muted) { const k = (tAnim * 0.7) % 1; g.globalAlpha = 1 - k; g.fillStyle = '#9b7fc0'; g.font = `800 13px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('♪', c.x + c.face * (22 + k * 8), c.y - 50 - k * 16); g.globalAlpha = 1; }
   if (pose === 'jab' && play) { g.font = `800 13px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.lineWidth = 4; g.strokeStyle = '#fff'; const jt = lt('ちょいちょい', 'Tap tap'); g.strokeText(jt, c.x + c.face * 30, c.y - 56); g.fillStyle = '#c95f17'; g.fillText(jt, c.x + c.face * 30, c.y - 56); }
   if (pose === 'loaf' && play) { const f = (tAnim % 2) / 2; g.globalAlpha = 1 - f; g.fillStyle = 'rgba(40,60,90,.7)'; g.font = `800 12px ${FONT}`; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText('z', c.x + c.face * 18, c.y - 34 - f * 10); g.globalAlpha = 1; }
@@ -6297,9 +6298,9 @@ function update(dt) {
     if (introT <= 0 && escT > 0) escT -= dt;
     else if (introT <= 0 && spot.length) { spotT += dt; if (spotT > (spot[0].rep ? SPOT_LEN * 0.7 : SPOT_LEN)) { learn('see_' + spot[0].k); spot.shift(); spotT = 0; } } updLamp(dt); updCat(dt); updTalk(dt);
     if (chaseT > 0) { updChase(dt); updItems(dt); updBall(dt); updVac(dt); }
-    else { updOwner(dt); updItems(dt); updBall(dt); updDog(dt); updVac(dt); updChick(dt); updMouse(dt); updTank(dt); updRival(dt); updFoe(dt); updNight2(dt); updCams(dt); updShelf(dt); updTv(dt); updSus(dt); checkClear(); updTut(); }
+    else { const hintT = introT <= 0 && spot.length > 0 && owner.mode === 'away'; /* 4.39.4：札の間は飼い主の留守の時間を減らさない */ updOwner(hintT ? 0 : dt); updItems(dt); updBall(dt); updDog(dt); updVac(dt); updChick(dt); updMouse(dt); updTank(dt); updRival(dt); updFoe(dt); updNight2(dt); updCams(dt); updShelf(dt); updTv(dt); updSus(dt); checkClear(); updTut(); }
     if (state === 'play' && chaseT <= 0) {
-      timeLeft -= dt;
+      if (!(introT <= 0 && spot.length > 0)) timeLeft -= dt;   // 4.39.4：札の間は時間も止める
       const sec = Math.ceil(timeLeft); if (sec <= 10 && sec < lastTick && sec > 0) { lastTick = sec; sfx.tick(); }
       if (timeLeft <= 10 && !rushShown && mains().length) { rushShown = true; sfx.alert(); pops.push({ x: W / 2, y: 230, text: lt('ラストスパート!', 'FINAL SPRINT!'), life: 1.6, col: '#e0362c', size: 28 }); }
       if (timeLeft <= 0) { timeLeft = 0; caught(true); }
