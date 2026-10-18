@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.47.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.47.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -6305,15 +6305,24 @@ function hudPt() {
   try { const r = cv.getBoundingClientRect(), h = hY.getBoundingClientRect(), sx = W / r.width; return { x: (h.left + h.width / 2 - r.left) * sx, y: (h.top + h.height / 2 - r.top) * sx - OY }; } catch (e) { return { x: W * 0.7, y: -OY - 20 }; }
 }
 function coinFly(x, y, v) { if (coins.length < 40) coins.push({ x0: x, y0: y, t: 0, v }); }
+// 破片・紙くずが止まれる所：その高さ（±8px）に段があり、x がその段の上。床の高さより下（床・紙吹雪・ひび）はそのまま
+const partRest = (x, gy) => gy >= FLOOR - 10 || PLS.some(q => Math.abs(q.y - gy) <= 8 && x >= q.x0 - 2 && x <= q.x1 + 2);
+// その下でいちばん上の段（なければ床）
+function partFloor(x, gy) { let y = FLOOR; for (const q of PLS) if (q.y > gy + 8 && q.y < y && x >= q.x0 - 2 && x <= q.x1 + 2) y = q.y; return y; }
 function updParts(dt) {
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i]; p.life -= dt;
     if (p.life <= 0) { parts.splice(i, 1); continue; }
-    if (p.landed) continue;
+    // 4.47.1：止まっている破片の下に段がなくなったら（大技で本棚・二段ベッドが崩れた）、また落とす
+    if (p.landed) { if (p.k !== 'heart' && !partRest(p.x, p.gy)) { p.landed = false; p.gy = partFloor(p.x, p.gy); } continue; }
     const gr = p.k === 'paper' ? 320 : p.k === 'heart' ? 0 : 900;
     p.vy += gr * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
     if (p.k === 'paper') { p.vx *= 0.99; }
-    if (p.y >= p.gy) { p.y = p.gy - 1; p.landed = p.k !== 'drop'; p.vx = 0; p.vy = 0; if (p.k === 'drop') p.life = 0; }
+    if (p.y >= p.gy) {
+      // 4.47.1：止まる高さに段がなければ（段の端より外へ飛んだ）、その下の段か床まで落ち続ける
+      if (p.k !== 'drop' && p.k !== 'heart' && !partRest(p.x, p.gy)) { p.gy = partFloor(p.x, p.gy); continue; }
+      p.y = p.gy - 1; p.landed = p.k !== 'drop'; p.vx = 0; p.vy = 0; if (p.k === 'drop') p.life = 0;
+    }
     p.x = clamp(p.x, 4, W - 4);
   }
   for (let i = pops.length - 1; i >= 0; i--) { const p = pops[i]; if (p.wait > 0) { p.wait -= dt; continue; } p.life -= dt; if (p.life <= 0) pops.splice(i, 1); }
