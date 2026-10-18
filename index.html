@@ -339,7 +339,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.36.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.36.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -3580,11 +3580,10 @@ function showEnding() {
   if (run.preview) {
     // 確認用の再生：締めの画面を出し、押したらタイトルへ（記録には残さない）
     state = 'endmenu'; ov.hidden = false;
-    const nx = PREVIEW_ORDER[(previewIx + 1) % PREVIEW_ORDER.length];
-    ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.6rem">${lt('エンディング', 'THE END')}</div><p class="sub">${lt('（確認用の再生）', '(Preview)')} ${previewIx + 1} / ${PREVIEW_ORDER.length}「${ENDINGS[run.endType].n}」</p>
-      <button class="btn go" id="enNext" type="button">${lt('次：', 'Next: ') + '「' + ENDINGS[nx].n + '」'}</button>
+        ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.6rem">${lt('エンディング', 'THE END')}</div><p class="sub">${lt('（確認用の再生）', '(Preview)')} ${previewIx + 1} / ${PREVIEW_ORDER.length}「${ENDINGS[run.endType].n}」</p>
+      <div class="row" style="flex-wrap:wrap">${PREVIEW_ORDER.map((k, i) => `<button type="button" class="btn ${i === previewIx ? 'y' : 'w'} sm" data-e="${i}" style="flex:1 1 30%">${ENDINGS[k].n}</button>`).join('')}</div>
       <div class="row"><button class="btn w" id="enBack" type="button">${lt('タイトルへ', 'Title')}</button></div></div>`;
-    $('enNext').addEventListener('click', () => { audio(); previewEnding(previewIx + 1); });
+    ov.querySelectorAll('button[data-e]').forEach(b => b.addEventListener('click', () => { audio(); endBgmStop(); previewEnding(+b.dataset.e); }));
     $('enBack').addEventListener('click', () => { endBgmStop(); run.preview = false; showTitle(); });
     return;
   }
@@ -5478,10 +5477,11 @@ function drawCatNow() {
   if (c.inBath === false && c.scareT > 0 && !c.plat) { eyes = 'shock'; ears = 'back'; tail = 'puff'; }
   if (c.rubT > 0.4) { eyes = 'happy'; tail = 'up'; }
   const sdy = c.plat === PL.shelf ? shelfDy(c.x) : 0, rubTilt = c.rubT > 0.4 ? Math.sin(tAnim * 6) * 0.08 : 0;
+  catEyes.p = null;   // 4.36.1：前のフレームの目の位置を残さない（ぶら下がり中に目だけ浮いていた）
   if (c.hang && lamp && play) {
     const th = lamp.th, bx = lamp.ax + lamp.L * Math.sin(th), by = lamp.ay + lamp.L * Math.cos(th), f = c.face;
     g.save(); g.translate(bx + Math.sin(th) * 22, by + Math.cos(th) * 22); g.rotate(-th - f * 1.35); g.translate(-16 * f, 10);
-    drawCat(g, 0, 0, { type: c.type, face: f, scale: 1, t: c.anim, pose: 'walk', air: true, acc: selAcc, eyes: c.seen ? 'shock' : 'happy', tail: 'up' });
+    drawCat(g, 0, 0, { type: c.type, face: f, scale: 1, t: c.anim, pose: 'walk', air: true, acc: selAcc, eyes: c.seen ? 'shock' : 'happy', tail: 'up', eyesOut: catEyes });
     g.restore();
     return;
   }
@@ -6282,13 +6282,16 @@ function showTestMenu(back) {
   ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.4rem">${lt('テスト', 'TEST')}</div><p class="sub">${lt('ステージをえらんで始める（記録には残らない）', 'Pick a stage (nothing is recorded)')}</p>
     <div class="accs" style="max-height:38vh;overflow:auto;flex-direction:column;flex-wrap:nowrap;justify-content:flex-start;gap:3px">${rows.join('')}</div>
     <div class="row"><input id="tsL" class="nm" type="number" min="1" max="999" value="${level || 1}" style="width:5em" aria-label="stage"><button class="btn w" id="tsGo" type="button">${lt('この番号から', 'Start at #')}</button></div>
-    <div class="row"><button class="btn w" id="tsEnd" type="button">${lt('エンディングの再生', 'Play endings')}</button></div>
+    <p class="sub" style="margin:8px 0 2px">${lt('エンディングの再生（えらぶ）', 'Play an ending')}</p>
+    <div class="row" style="flex-wrap:wrap">${PREVIEW_ORDER.map((k, i) => `<button type="button" class="btn w sm" data-e="${i}" style="flex:1 1 30%">${ENDINGS[k].n}</button>`).join('')}</div>
     <button class="btn go" id="tsBack" type="button">${lt('もどる', 'Back')}</button></div>`;
+  // 連打で入った直後の誤タップを防ぐ：0.8 秒はどのボタンも押せない
+  const pn = ov.querySelector('.panel'); pn.style.pointerEvents = 'none'; pn.style.opacity = '.6'; setTimeout(() => { pn.style.pointerEvents = ''; pn.style.opacity = ''; }, 800);
   const start = L => { L = Math.max(1, Math.min(999, L | 0)); ov.hidden = true; audio(); newRun(); run.test = true; carryT = 0; setupStage(L); state = 'play'; bgmStart(); toast(lt('テスト：', 'TEST: ') + stageLabel(L), 2500); };
   ov.querySelectorAll('button[data-l]').forEach(b => b.addEventListener('click', () => start(+b.dataset.l)));
   $('tsGo').addEventListener('click', () => start(+$('tsL').value));
   $('tsL').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') start(+$('tsL').value); });
-  $('tsEnd').addEventListener('click', () => { audio(); previewEnding(0); });
+  ov.querySelectorAll('button[data-e]').forEach(b => b.addEventListener('click', () => { audio(); previewEnding(+b.dataset.e); }));
   $('tsBack').addEventListener('click', () => showSettings(back));
 }
 // ---------- 通算記録 ----------
