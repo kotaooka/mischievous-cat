@@ -141,7 +141,7 @@
   #lb[hidden] { display: none; }
   #lb img { width: min(96vw, 1200px); max-height: 90vh; height: auto; object-fit: contain; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.4); background: #f6e2c4; }
   #lb .lb-in { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 96vw; }
-  #lb img.sq { width: min(80vw, 420px); }
+  #lb img.sq { width: min(80vw, 340px); }
   #lb b { color: #fff; font-size: 1.3rem; }
   #lb small { color: #ffe9a8; font-size: .9rem; font-weight: 500; text-align: center; max-width: 320px; }
   #lb b:empty, #lb small:empty { display: none; }
@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.42.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.42.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -933,7 +933,7 @@ function cardCheckLife() {
 try { cardPics = JSON.parse(store.get('nekoCardPics', '{}')) || {}; } catch (e) {}
 // カードの絵：その瞬間の画面（犯行現場写真と同じ切り取り）を 128px にして保存する
 function cardShot() {
-  try { const sn = takeSnap(); if (!sn) return null; const c = document.createElement('canvas'); c.width = c.height = 128; c.getContext('2d').drawImage(sn, 0, 0, 128, 128); return c.toDataURL('image/jpeg', 0.6); } catch (e) { return null; }
+  try { const sn = takeSnap(); if (!sn) return null; const c = document.createElement('canvas'); c.width = c.height = 256; c.getContext('2d').drawImage(sn, 0, 0, 256, 256); return c.toDataURL('image/jpeg', 0.72); } catch (e) { return null; }   // 4.42.2：128 → 256px（拡大表示でぼやけないように。1 枚 15KB ほど）
 }
 function cardCheck() {
   if (state !== 'play' || !run || run.preview || run.test) return;
