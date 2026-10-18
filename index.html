@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.4', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -3680,8 +3680,6 @@ function drawCredits() {
   // 写真：左右に少しずつ流れる
   const al = run.album || [];
   al.forEach((a, i) => { const y = -OY + VH + 120 + i * 150 - e * (VH + 120 + al.length * 150) / CRED_LEN * 0.92, x = i % 2 ? W - 50 : 50; if (y < -OY - 120 || y > -OY + VH + 60) return; g.save(); g.translate(x, y); g.rotate((i % 2 ? 1 : -1) * 0.1); g.fillStyle = '#fff'; rr(g, -36, -40, 72, 86, 3); g.fill(); g.drawImage(a.im, -31, -35, 62, 62); g.fillStyle = '#4a2f1d'; g.font = `800 8px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(dayName(a.L) + ' ' + yen(a.yen), 0, 37); g.restore(); });   // 写真は左右の端（文字と重ならないように）
-  // 4.48.3：ほんとうのおしまいは、歩くネコのうしろに虹（文字より奥）
-  { const kx = W + 60 - (e * 70) % (W + 120); if (run.endType === 'true') rainbowTrail(kx + 14, W + 20, FLOOR - 18, 0.85, -1); }
   // 文字：下から上へ
   const D = credDist(L); g.textAlign = 'center'; g.textBaseline = 'middle'; let y = -OY + VH + 30 - Math.min(D, e * D / Math.max(1, CRED_LEN - CRED_HOLD));
   for (const [k, t] of L) {
@@ -3692,8 +3690,9 @@ function drawCredits() {
     }
     y += h;
   }
-  // 下をネコが歩く
-  drawCat(g, (W + 60 - (e * 70) % (W + 120)), FLOOR + 4, { type: cat.type, face: -1, scale: 1, t: tAnim, move: true, pose: 'walk', acc: selAcc, tail: 'up' });
+  // 下をネコが歩く。4.48.4：ほんとうのおしまいは、虹を引いて飛ぶ（文字にかぶらないよう、始めは上の空いている所、終わりは制作者の名前の下）
+  if (run.endType === 'true') { nyanFly(e, 0.8, 4.6, -OY + VH * 0.2); nyanFly(e, CRED_LEN - 6.6, CRED_LEN - 1.6, -OY + VH * 0.8); }
+  else drawCat(g, (W + 60 - (e * 70) % (W + 120)), FLOOR + 4, { type: cat.type, face: -1, scale: 1, t: tAnim, move: true, pose: 'walk', acc: selAcc, tail: 'up' });
   if (e < 0.6) { g.fillStyle = `rgba(20,14,40,${1 - e / 0.6})`; g.fillRect(0, -OY, W, VH); }
   if (e > 1 && e < CRED_LEN - 1) { g.fillStyle = 'rgba(255,246,200,.5)'; g.font = `800 11px ${FONT}`; g.textAlign = 'right'; g.fillText(lt('タップで飛ばす', 'Tap to skip'), W - 10, -OY + 16); }
 }
@@ -3743,10 +3742,20 @@ function trueCastSetup() {
 }
 // ---- 4.48.3：ほんとうのおしまいの特別な飾り ----
 const RAINBOW = ['#ff4d4d', '#ff9a2e', '#ffd84a', '#4fc76a', '#3aa0f0', '#8a63d2'];
+// 虹を引いて空を飛ぶネコ（スタッフロール用）：t0〜t1 秒で左から右へ。上下にぴょこぴょこ揺れ、まわりに星がきらめく
+function nyanFly(e, t0, t1, y) {
+  if (e < t0 || e > t1) return;
+  const k = (e - t0) / (t1 - t0), x = -50 + (W + 100) * k, bob = Math.floor(tAnim * 7) % 2 ? -2 : 2;
+  for (let i = 0; i < 7; i++) { const sx = ((i * 83 - e * 260) % (W + 60) + W + 60) % (W + 60) - 30, sy = y - 46 + (i * 29) % 92, tw = (Math.floor(tAnim * 6) + i) % 3;
+    g.fillStyle = '#fff6c8'; g.globalAlpha = 0.85; const r = 2 + tw * 1.6; g.fillRect(sx - r, sy - 0.8, r * 2, 1.6); g.fillRect(sx - 0.8, sy - r, 1.6, r * 2); g.globalAlpha = 1; }
+  rainbowTrail(-20, x - 16, y - 16 + bob * 0.5, 1, 1);
+  drawCat(g, x, y + bob, { type: cat.type, face: 1, scale: 1.1, t: tAnim * 1.6, move: true, pose: 'walk', air: true, acc: selAcc, tail: 'up', eyes: 'happy' });
+}
 // 虹の帯：x0 から x1 まで、高さ y を中心に 6 色。小刻みに波打つ
 function rainbowTrail(x0, x1, y, a, dir) {
   if (a <= 0 || x1 <= x0) return; g.save(); g.globalAlpha = a; const sh = 3.4, seg = 10;
-  for (let x = x0; x < x1; x += seg) { const wv = (Math.floor((x - tAnim * 60 * dir) / seg) % 2 ? 1.5 : -1.5); RAINBOW.forEach((c, i) => { g.fillStyle = c; g.fillRect(x, y - sh * 3 + i * sh + wv, Math.min(seg, x1 - x) + 0.5, sh + 0.4); }); }
+  const fl = Math.floor(tAnim * 7);
+  for (let x = x0; x < x1; x += seg) { const wv = (Math.floor(x / seg) + fl) % 2 ? 2 : -2; RAINBOW.forEach((c, i) => { g.fillStyle = c; g.fillRect(x, y - sh * 3 + i * sh + wv, Math.min(seg, x1 - x) + 0.5, sh + 0.4); }); }
   g.restore();
 }
 function drawPartyBg(e) {
@@ -3898,12 +3907,18 @@ function drawEnding() {
   // 低いオットマンとコップ
   const ET = run.endType || 'normal', EN = ENDINGS[ET];
   const tip = ET === 'wrecker' ? clamp((e - 8.9) / 0.6, 0, 1) : 0;   // 解体の日々：オットマンが倒れる
+  // 寄り（ニヤリ顔のところでネコに 2.2 倍まで寄る）。4.48.4：オットマン・コップ・コップの破片も同じ寄りの中で描く（前はコップだけ元の大きさで、寄ったネコの体の裏に隠れていた）
+  const zoom = ET === 'good' || ET === 'true' ? 0 : e > 7.6 && e < 12.2 ? Math.min(1, (e - 7.6) / 0.5) : e >= 12.2 ? Math.max(0, 1 - (e - 12.2) / 0.5) : 0, cx = 214, cy = F - 24;   // いい子は寄らない（寝ているだけ）
+  const zIn = () => { g.save(); if (zoom) { const z = 1 + 1.2 * zoom; g.translate(cx, cy); g.scale(z, z); g.translate(-cx, -cy); } };
+  zIn();
   g.save(); if (tip) { g.translate(236, F); g.rotate(-1.2 * tip); g.translate(-236, -F); }
   g.fillStyle = '#c96a3a'; rr(g, 236, 474, 46, 26, 6); g.fill(); g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(240, 478, 38, 3);
   g.restore();
   const cu = endCup;
-  if (e > 8.9 && !cu.broke) { if (cu.vx === 0) { cu.vx = 60; cu.vy = -60; } cu.vy += GRAV * (1 / 60); cu.x += cu.vx / 60; cu.y += cu.vy / 60; cu.rot += 0.15; if (cu.y >= F) { cu.y = F; cu.broke = true; sfx.glass(1); shake = ET === 'wrecker' ? 0.6 : 0.3; for (let k = 0; k < 12; k++) addPart({ k: 'shard', x: cu.x, y: F - 6, vx: rnd(-120, 120), vy: rnd(-260, -60), life: 30, gy: F, c: '#f5f7fa', s: rnd(3, 6), rot: rnd(0, 6), vr: rnd(-9, 9) }); } }
+  if (e > 8.9 && !cu.broke) { if (cu.vx === 0) { cu.vx = 60; cu.vy = -60; } cu.vy += GRAV * (1 / 60); cu.x += cu.vx / 60; cu.y += cu.vy / 60; cu.rot += 0.15; if (cu.y >= F) { cu.y = F; cu.broke = true; sfx.glass(1); shake = ET === 'wrecker' ? 0.6 : 0.3; for (let k = 0; k < 12; k++) addPart({ cup: true, k: 'shard', x: cu.x, y: F - 6, vx: rnd(-120, 120), vy: rnd(-260, -60), life: 30, gy: F, c: '#f5f7fa', s: rnd(3, 6), rot: rnd(0, 6), vr: rnd(-9, 9) }); } }
   if (!cu.broke) drawItem(g, 'cup', cu.x, cu.y, cu.rot, false);
+  drawParts('cup');
+  g.restore();
   // 飼い主（ひざをついて座っている。6.6秒から立って左へ去る）
   const back = ET === 'wrecker' ? clamp((e - 10.2) / 0.7, 0, 1) : 0;   // 解体の日々：走って戻る
   const leave = ET === 'true' ? 0 : clamp((e - 6.6) / 1.2, 0, 1) * (1 - back), ox = 140 - leave * 220;   // ほんとうのおしまい：飼い主は去らない
@@ -3923,8 +3938,7 @@ function drawEnding() {
   // ごはん皿
   if (e > 1.5) { g.fillStyle = '#ff7a95'; g.beginPath(); g.moveTo(166, F - 9); g.lineTo(194, F - 9); g.lineTo(190, F); g.lineTo(170, F); g.closePath(); g.fill(); if (e < 4.4) { g.fillStyle = '#c98a4f'; for (let i = -2; i <= 2; i++) { g.beginPath(); g.arc(180 + i * 4, F - 10, 2.6, 0, TAU); g.fill(); } } }
   // ネコ：食べる → なでられてゴロゴロ → 振り向いてニヤリ → パンチ
-  const zoom = ET === 'good' || ET === 'true' ? 0 : e > 7.6 && e < 12.2 ? Math.min(1, (e - 7.6) / 0.5) : e >= 12.2 ? Math.max(0, 1 - (e - 12.2) / 0.5) : 0, cx = 214, cy = F - 24;   // いい子は寄らない（寝ているだけ）
-  g.save(); if (zoom) { const z = 1 + 1.2 * zoom; g.translate(cx, cy); g.scale(z, z); g.translate(-cx, -cy); }
+  zIn();
   let pose = 'walk', eyes = null, face = -1, tail = 'up';
   if (e < 4.4) { pose = e > 1.6 ? 'hunt' : 'walk'; eyes = e > 1.6 ? 'happy' : null; }
   else if (e < 7.6) { pose = 'loaf'; eyes = 'happy'; }
@@ -6313,8 +6327,9 @@ function drawPuddles() {
     g.beginPath(); g.ellipse(p.x, p.y - 1.5, 3, 1.8, 0, 0, TAU); g.fill(); g.globalAlpha = 1;
   }
 }
-function drawParts() {
+function drawParts(only) {
   for (const p of parts) {
+    if (only === 'cup' ? !p.cup : !!p.cup && only !== 'all' && state === 'ending') continue;   // 4.48.4：エンディングのコップの破片は、寄りの中で別に描く
     g.globalAlpha = p.k === 'drop' ? clamp(p.life / 0.8, 0, 1) : p.k === 'crack' ? clamp(p.life / 0.7, 0, 1) : p.k === 'heart' ? clamp(Math.min(p.life / 0.6, (1.6 - p.life) / 0.3), 0, 1) : clamp(p.life / 3, 0, 1); g.fillStyle = p.c;
     g.save(); g.translate(p.x, p.y); g.rotate(p.rot);
     if (p.k === 'shard') { g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(-p.s, p.s * .5); g.lineTo(p.s, 0); g.lineTo(0, -p.s); g.closePath(); g.fill(); g.stroke(); }
