@@ -358,7 +358,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.38.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.38.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -2570,11 +2570,11 @@ function breakItem(it, plat) {
   if (!it.spotted && cat.mark <= 0) run.streak++; else run.streak = 0;
   run.maxStreak = Math.max(run.maxStreak, run.streak);
   const sk = tasks.find(k => k.id === 'streak' && !k.done); if (sk) { if (run.streak === 0) sk.n = 0; else { sk.n = Math.min(run.streak, sk.need) - 1; taskHit('streak'); } }
-  if (run.streak >= 2) { const b = Math.round(d.yen * 0.1 * Math.min(run.streak - 1, 5)); run.yen += b; run.skill += b; run.skS = (run.skS || 0) + b; bon.push([lt('こっそり×', 'Sneaky x') + run.streak + ' +' + yen(b), '#5d7a9a']); }
+  if (run.streak >= 2) { const b = Math.round(d.yen * 0.1 * Math.min(run.streak - 1, 5)); run.yen += b; run.skill += b; run.skS = (run.skS || 0) + b; bon.push([lt('こっそり×', 'Sneaky x') + run.streak + ' +' + yen(b), SK_COL.s]); }
   // てこで飛ばした（カタパルト）・転がるもので当てた（ストライク）：+30%
   if (it.launched || it.byBall || it.byChick || it.byCloth) {
     const b = Math.round(d.yen * 0.3); run.yen += b; run.skill += b; run.skT = (run.skT || 0) + b;
-    bon.push([(it.launched ? lt('技（飛ばした）+', 'Trick (launched) +') : it.byCloth ? lt('技（クロス引き）+', 'Trick (tablecloth) +') : it.byChick ? lt('技（ニワトリ）+', 'Trick (chicken) +') : lt('技（ストライク）+', 'Trick (strike) +')) + yen(b), '#9b5fc0']);   // 4.38.0：何の技かを出す
+    bon.push([(it.launched ? lt('技（飛ばした）+', 'Trick (launched) +') : it.byCloth ? lt('技（クロス引き）+', 'Trick (tablecloth) +') : it.byChick ? lt('技（ニワトリ）+', 'Trick (chicken) +') : lt('技（ストライク）+', 'Trick (strike) +')) + yen(b), SK_COL.t]);   // 4.38.0：何の技かを出す
     if (it.launched) run.launch++; else if (it.byCloth) {} else if (it.byChick) { run.chick++; taskHit('chick'); } else { run.ballHits++; taskHit('ball'); }
     chainB += b;
   }
@@ -2776,7 +2776,7 @@ function updMouse(dt) {
 }
 function mouseHit() {
   const m = mouse; m.mode = 'down'; m.t = 0.9; timeLeft += 4; run.mice++; taskHit('mouse'); happyHop(); sfx.squeak(); sfx.thud2(); buzz(25);
-  const b = 2000; run.yen += b; run.skill += b; run.skT = (run.skT || 0) + b; pops.push({ x: m.x, y: FLOOR - 60, text: lt('技（ネズミ退治）+', 'Trick (mouse) +') + yen(b), life: 1.4, col: '#9b5fc0', size: 15 });
+  const b = 2000; run.yen += b; run.skill += b; run.skT = (run.skT || 0) + b; pops.push({ x: m.x, y: FLOOR - 60, text: lt('技（ネズミ退治）+', 'Trick (mouse) +') + yen(b), life: 1.4, col: SK_COL.t, size: 15 });
   for (let k = 0; k < 6; k++) addPart({ k: 'drop', x: m.x, y: FLOOR - 8, vx: rnd(-100, 100), vy: rnd(-220, -80), life: 0.6, gy: FLOOR, c: '#ffc94a', s: rnd(2, 3), rot: 0, vr: 0 });
   pops.push({ x: m.x, y: FLOOR - 60, text: lt('ネズミ退治! +4秒 +', 'Mouse bopped! +4s +') + yen(b), life: 1.6, col: '#1d8174', size: 17 });
 }
@@ -4203,6 +4203,8 @@ function revive() {
   pops.push({ x: W / 2, y: 190, text: lt('お守りの力で、もう一度!', 'The charm saved you!'), life: 2, col: '#c0392b', size: 22 });
   sfx.clear(); buzz([30, 30, 30]); bgmStart();
 }
+// 4.38.2：腕前の 3 つの色（加算の札・クリア札・結果画面で同じ色にそろえる）
+const SK_COL = { q: '#e0362c', s: '#1d8174', t: '#9b5fc0' };
 // 4.37.0：クリアの演出。紙ふぶきが上から降り、ネコはぴょんぴょん跳ねる。札の星は 1 つずつ鳴って出る
 let clearStars = 0;
 function clearFx() {
@@ -6209,8 +6211,8 @@ function draw() {
     const doneN = tasks.filter(t => t.done).length, starN = Math.min(doneN, Math.floor(Math.max(0, el - 0.3) / 0.3));   // 出ている星の数
     if (starN > clearStars) { clearStars = starN; sfx.star(); }
     // 腕前ボーナスの行（手際・完全犯罪／こっそり）と持ち越し
-    const bl = stageBonus ? [stageBonus.quick > 0 ? (stageBonus.close ? lt('ギリギリ! +', 'Just in time! +') : lt('手際（残り時間）+', 'Speed (time left) +')) + yen(stageBonus.quick) : null, stageBonus.sneaky > 0 ? (stageBonus.perfect ? lt('完全犯罪（見られなかった）+', 'Perfect crime (never seen) +') : lt('こっそり（あまり見られなかった）+', 'Sneaky (barely seen) +')) + yen(stageBonus.sneaky) : null].filter(Boolean) : [];
-    if (lastCarry > 0) bl.push(lt('+' + lastCarry + '秒 持ち越し', '+' + lastCarry + 's carried over'));
+    const bl = stageBonus ? [stageBonus.quick > 0 ? [(stageBonus.close ? lt('ギリギリ! +', 'Just in time! +') : lt('手際 +', 'Speed +')) + yen(stageBonus.quick), SK_COL.q] : null, stageBonus.sneaky > 0 ? [(stageBonus.perfect ? lt('完全犯罪 +', 'Perfect crime +') : lt('こっそり +', 'Sneaky +')) + yen(stageBonus.sneaky), SK_COL.s] : null].filter(Boolean) : [];
+    if (lastCarry > 0) bl.push([lt('+' + lastCarry + '秒 持ち越し', '+' + lastCarry + 's carried over'), '#4a2f1d']);
     // 札は、見えている画面の高さの 40% の所に置く（縦長の画面でも真ん中寄りに出る）
     const bw = 300, bh = 132 + bl.length * 24, cy = -OY + VH * 0.4;
     g.save(); g.translate(W / 2, cy); g.scale(sc, sc); g.globalAlpha = k;
@@ -6223,7 +6225,7 @@ function draw() {
       g.fillStyle = '#ffe9a8'; g.fillText(nn, x0 + tw0 + sw, y); g.textAlign = 'center'; }
     y += 38; { const bn = 1 + 0.12 * Math.max(0, 1 - el / 0.5) * Math.abs(Math.sin(el * 20)); g.save(); g.translate(0, y); g.scale(bn, bn); g.fillStyle = '#fff'; g.font = `800 30px ${FONT}`; g.lineWidth = 6; g.strokeStyle = 'rgba(94,58,28,.35)'; g.strokeText(lt('ステージクリア!', 'STAGE CLEAR!'), 0, 0); g.fillText(lt('ステージクリア!', 'STAGE CLEAR!'), 0, 0); g.restore(); }
     y += 36; g.font = `800 18px ${FONT}`; { const ck = clamp((el - 0.2) / 0.8, 0, 1), shown = Math.round(stageYen0 + (run.yen - stageYen0) * (1 - Math.pow(1 - ck, 3))); g.fillText(lt('被害額 ', 'Damage ') + yen(shown), 0, y); }
-    g.font = `800 15px ${FONT}`; g.fillStyle = '#fff3a0'; bl.forEach(t => { y += 24; g.fillText(t, 0, y); });
+    g.font = `800 15px ${FONT}`; bl.forEach(([t, col]) => { y += 24; g.fillStyle = '#fff'; rr(g, -g.measureText(t).width / 2 - 10, y - 11, g.measureText(t).width + 20, 22, 11); g.fill(); g.fillStyle = col; g.fillText(t, 0, y); });
     g.restore();
   }
   if (state === 'play' || state === 'clear' || state === 'pause' || state === 'caught') {
@@ -7034,7 +7036,7 @@ async function showOver() {
   ov.innerHTML = `<div class="panel">
     <p class="res-yen">${lt('本日の被害額', "Today's damage")}<b>${yen(run.yen)}</b></p>
     <p class="best" style="font-size:.9rem;font-weight:500;margin-top:2px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.12em;fill:#e0a52e"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.8 1.6 7L12 17.4 5.8 21l1.6-7L2 9.3l7.1-.7z"/></svg> ${run.stars}${run.skill > 0 ? lt(`　・　腕前 +${yen(run.skill)}`, ` · Skill +${yen(run.skill)}`) : ''}</p>
-    ${run.skill > 0 ? `<p class="best" style="font-size:.76rem;font-weight:500;margin:-4px 0 4px;color:var(--ink2)">${[[lt('手際', 'Speed'), run.skQ], [lt('こっそり', 'Sneaky'), run.skS], [lt('技', 'Tricks'), run.skT]].filter(([, v]) => v > 0).map(([k, v]) => k + ' +' + yen(Math.round(v))).join('　')}<br><span style="font-size:.7rem">${lt('手際＝残り時間が多いほど　こっそり＝見られずに落とすほど　技＝転がす・飛ばす・ニワトリ・ネズミ', 'Speed = time left · Sneaky = unseen drops · Tricks = rolling, launching, chicken, mice')}</span></p>` : ''}
+    ${run.skill > 0 ? `<p class="best" style="font-size:.76rem;font-weight:500;margin:-4px 0 4px;color:var(--ink2)">${[[lt('手際', 'Speed'), run.skQ, SK_COL.q], [lt('こっそり', 'Sneaky'), run.skS, SK_COL.s], [lt('技', 'Tricks'), run.skT, SK_COL.t]].filter(([, v]) => v > 0).map(([k, v, c]) => `<span style="color:${c};font-weight:800">${k} +${yen(Math.round(v))}</span>`).join('　')}</p>` : ''}
     ${newRec ? `<p class="best" style="color:var(--red-d)">${lt('ベスト更新!', 'New best!')}</p>${(LIFE.plays || 0) >= 3 ? coffeeHtml(true) : ''}` : ''}
     ${canPostEnd() ? `<div class="row"><button class="btn go" id="bNext" type="button">${lt(dayName(run.stage + 1) + 'からつづける', 'Continue to ' + dayName(run.stage + 1))}</button></div>` : ''}
     ${canCont() ? `<div class="row"><button class="btn go" id="bCont" type="button">${lt(dayName(run.ck.level) + 'の朝からつづける', 'Continue from ' + dayName(run.ck.level) + ' morning')}<small>${lt('被害額は朝の時点に戻る・続けた回数はランキングに載る', 'Damage goes back to that morning · restarts are shown in the ranking')}</small></button></div>` : ''}
