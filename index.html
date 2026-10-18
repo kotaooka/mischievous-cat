@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.42.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.42.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -2611,7 +2611,7 @@ function breakItem(it, plat) {
   }
   if (it.byRival) {
     // ボス猫が落とした：被害額はネコのものにならない。飼い主が見ていればボスが叱られ、見ていなければネコが疑われる
-    breakFx(it, plat); pops.push({ x: it.x, y: plat.y - 30, text: Math.random() < 0.4 ? lt('ボス「へへっ」', 'Boss: heh heh') : lt('ボスに取られた…', 'Boss got it…'), life: 1.4, col: '#8a8f96', size: 15 });
+    breakFx(it, plat); pops.push({ x: it.x, y: plat.y - 30, text: String(pick(BOSS_SAY.steal)), life: 1.4, col: '#8a8f96', size: 15 });
     if (rival && owner.mode !== 'away' && ownerSees(it.x)) scoldRival(); else hearNoise(it.x, d.noise * 0.7);
     return;
   }
@@ -2926,13 +2926,26 @@ function rivalGoal(it) {
   return { plat: p, x: sx, face: d };
 }
 function fur(x, y) { for (let k = 0; k < 6; k++) addPart({ k: 'paper', x: x + rnd(-8, 8), y: y + rnd(-8, 8), vx: rnd(-80, 80), vy: rnd(-120, -30), life: 1.2, gy: y + 30, c: pick(['#ffffff', '#c9ced6', '#9a9aa4']), s: rnd(2, 4), rot: rnd(0, 6), vr: rnd(-5, 5) }); }
+// 4.42.1：ボス猫の台詞（場面ごと）。吹き出しはボスの頭の上の札
+const BOSS_SAY = {
+  enter: [tx('「よう」', '"Yo"'), tx('「おじゃましま〜す」', '"Coming through~"'), tx('「うまそうな棚だな」', '"Nice shelf you got"'), tx('「ここ、おれのなわばりな」', '"This is my turf now"'), tx('「今日も見回りに来てやった」', '"Came to check on you"'), tx('「飼い主、留守か？」', '"Human out?"')],
+  bossday: [tx('「よう、下手くそ」', '"Yo, amateur"'), tx('「今日はおれの家だ」', '"My house today"'), tx('「見てろよ」', '"Watch this"'), tx('「今日は手加減しねえ」', '"No mercy today"'), tx('「お前の飼い主、おれが好きらしいぞ」', '"Your human likes me better"')],
+  ally: [tx('「どうせなら派手にやるぞ」', '"Might as well go big"'), tx('「おれが先に行く。ついてこい」', '"I go first. Keep up"'), tx('「今夜だけだからな」', '"Tonight only, got it?"')],
+  hit: [tx('「やるじゃねえか」', '"Not bad"'), tx('「痛ぇな！」', '"Ow, hey!"'), tx('「そんなもんか？」', '"That all?"'), tx('「本気出すぞ」', '"Now I\'m serious"')],
+  lose: [tx('「おぼえてろよ」', '"You\'ll regret this"'), tx('「今日は帰る」', '"I\'m out… for today"'), tx('「次は負けねえ」', '"Next time"'), tx('「ちぇっ」', '"Tch"')],
+  shoo: [tx('「へっ、下手くそ」', '"Heh, amateur"'), tx('「またな」', '"Later"'), tx('「おまえもやれよ」', '"Your turn"'), tx('「飼い主、おそ〜い」', '"Too slow, human"'), tx('「人間はひっこんでろ」', '"Stay out of it, human"'), tx('「はいはい、帰りますよ」', '"Yeah yeah, I\'m going"')],
+  steal: [tx('ボス「へへっ」', 'Boss: heh heh'), tx('ボス「もらった」', 'Boss: mine'), tx('ボス「おれの方がうまい」', 'Boss: I do it better'), tx('ボスに取られた…', 'Boss got it…')],
+  idle: [tx('「見てたぞ、へたくそ」', '"Saw that. Weak"'), tx('「それで全部か？」', '"That all you got?"'), tx('「まだまだだな」', '"Long way to go"'), tx('「おれなら 3 個いってる」', '"I\'d have three down by now"'), tx('「…なあ、ちゅーるある？」', '"…Hey, got any treats?"'), tx('「飼い主、こっち見てるぞ」', '"Human\'s watching you"')],
+  caught: [tx('「ざまあ」', '"Ha. Serves you right"'), tx('「ドンマイ」', '"Tough luck"'), tx('「見てらんねえ」', '"Can\'t watch this"')]
+};
+function bossSay(kind, x, y) { const r = rival; pops.push({ x: clamp(x != null ? x : (r ? r.x : W / 2), 50, W - 50), y: y != null ? y : (r ? r.y - 70 : 200), text: String(pick(BOSS_SAY[kind])), life: 1.8, col: '#5d7a9a', size: 15 }); }
 function scoldRival() {
   const r = rival; if (!r || r.mode === 'flee' || r.mode === 'wait' || r.mode === 'gone') return;
   r.mode = 'flee'; say(pick(LINES.boss), 1.6); owner.face = Math.sign(r.x - owner.x) || owner.face; sfx.yowl();
   // 4.32.0：飼い主はボスを追い回す（2.5 秒。足もとしか見えない＝ネコのチャンス）。ボスの捨て台詞
   const o = owner;
   if (['walk', 'warn', 'look', 'up', 'search', 'busy', 'phone', 'tidy'].includes(o.mode)) { setMode('shoo', 2.5); o.lureT = 0; o.up = false; }
-  pops.push({ x: clamp(r.x, 40, W - 40), y: r.y - 70, text: pick([lt('「へっ、下手くそ」', '"Heh, amateur"'), lt('「またな」', '"Later"'), lt('「おまえもやれよ」', '"Your turn"'), lt('「飼い主、おそ〜い」', '"Too slow, human"')]), life: 1.6, col: '#5d7a9a', size: 15 });
+  bossSay('shoo');
 }
 
 function hitRival(strong) {
@@ -2941,8 +2954,9 @@ function hitRival(strong) {
   if (r.mode === 'roam') { r.mode = 'fight'; r.t = 3; r.swipeT = 0.6; }
   sfx.hiss(); fur(r.x, r.y - 20); shake = Math.max(shake, 0.1); buzz(25); hearNoise(c.x, 0.3);
   pops.push({ x: r.x, y: r.y - 52, text: lt('ニャッ!', 'Mrrow!'), life: 0.9, col: '#5d7a9a', size: 16 });
+  if (r.hp > 0 && Math.random() < 0.6) bossSay('hit', r.x, r.y - 76);
   if (r.hp <= 0) {
-    r.mode = 'flee'; r.stun = 0.2; timeLeft += 5; run.boss++; taskHit('rival'); happyHop(); sfx.combo(4); sfx.yowl();
+    r.mode = 'flee'; r.stun = 0.2; timeLeft += 5; run.boss++; taskHit('rival'); happyHop(); sfx.combo(4); sfx.yowl(); bossSay('lose', r.x, r.y - 76);
     pops.push({ x: W / 2, y: 190, text: lt('なわばり防衛! +5秒', 'Turf defended! +5s'), life: 1.8, col: '#1d8174', size: 22 });
   }
 }
@@ -2952,10 +2966,11 @@ function updRival(dt) {
   if (r.mode === 'wait') {
     r.t -= dt;
     if (r.t <= 0) { Object.assign(r, { mode: 'roam', x: 14, y: FLOOR, plat: PL.floor, vx: 0, vy: 0, hp: 3, rest: 1, target: null, airX: null }); sfx.yowl();
-      if (r.bossday) pops.push({ x: 60, y: FLOOR - 96, text: pick([lt('「よう、下手くそ」', '"Yo, amateur"'), lt('「今日はおれの家だ」', '"My house today"'), lt('「見てろよ」', '"Watch this"')]), life: 1.8, col: '#5d7a9a', size: 15 });
-      if (r.ally && !r.said) { r.said = true; setTimeout(() => { if (rival && rival.ally && state === 'play') pops.push({ x: 90, y: FLOOR - 96, text: lt('「どうせなら派手にやるぞ」', '"Might as well go big"'), life: 1.8, col: '#5d7a9a', size: 16 }); }, 1700); } pops.push({ x: 50, y: FLOOR - 70, text: r.ally ? lt('ボス「おまえのせいで俺が疑われてんだよ」', 'Boss: "They blame ME for your mess"') : lt('ボス猫だ!', 'Boss cat!'), life: 1.6, col: '#5d7a9a', size: 18 }); }
+      if (r.bossday) bossSay('bossday', 60, FLOOR - 96); else if (!r.ally) bossSay('enter', 60, FLOOR - 96); r.sayCd = rnd(5, 8);
+      if (r.ally && !r.said) { r.said = true; setTimeout(() => { if (rival && rival.ally && state === 'play') bossSay('ally', 90, FLOOR - 96); }, 1700); } pops.push({ x: 50, y: FLOOR - 70, text: r.ally ? lt('ボス「おまえのせいで俺が疑われてんだよ」', 'Boss: "They blame ME for your mess"') : lt('ボス猫だ!', 'Boss cat!'), life: 1.6, col: '#5d7a9a', size: 18 }); }
     return;
   }
+  if (r.mode === 'roam' && !r.ally && r.plat) { r.sayCd = (r.sayCd || 0) - dt; if (r.sayCd <= 0 && Math.abs(r.x - cat.x) < 200 && state === 'play') { r.sayCd = rnd(7, 11); bossSay('idle'); } }   // 4.42.1：ときどき煽る
   let dir = 0;
   if (r.mode === 'flee') {
     // 逃げる：床に降りて、左の端から出ていく（一度だけ戻ってくる）
@@ -4263,6 +4278,7 @@ function caught(timeup) {
   { const sp = specialReact(!!timeup); if (sp) run.react = sp; }
   if (!timeup && DAY_REACT[dayOf(level)] && Math.random() < 0.6) run.react = pick(DAY_REACT[dayOf(level)]);
   if (nap && !timeup && Math.random() < 0.7) run.react = pick(LINES.napCaught);
+  if (rival && (rival.mode === 'roam' || rival.mode === 'fight') && !timeup) setTimeout(() => { if (state === 'caught') bossSay('caught', rival.x, rival.y - 76); }, 400);   // 4.42.1
   bgmStop(); if (timeup) sfx.timeup(); else { sfx.watch(); sfx.caught(); } buzz(timeup ? 80 : [60, 40, 120]); setPulse(null);
   if (owner.mode === 'away') { owner.x = clamp(cat.x - 70, 20, 330); owner.face = 1; }
   setMode('look', 9); owner.lureT = 0; owner.face = Math.sign(cat.x - owner.x) || 1; owner.up = false; chaseT = 0;
