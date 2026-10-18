@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.39.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.39.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -4893,10 +4893,10 @@ function drawItem(c, type, x, y, rot, water) {
 // ---------- 第2週の新しい部屋（4.38.0）：トイレ・屋根・駐車場・プール ----------
 // 足場の形はほかの部屋と同じ（side・table・shelf・tower・book・rail・hang・ac）。見た目と置いてあるもの、仕掛けだけが違う
 const R2 = {
-  toilet:  { out: false, wall: ['#f3f6f8', '#dde6ec'], floor: '#c9d3d9', shelf: '#e8eef2', hang: '#e8eef2', side: '#f4f8fa' },
+  toilet:  { out: false, wall: ['#eef3f6', '#d5e0e8'], floor: '#c9d3d9', shelf: '#9fb3c0', hang: '#9fb3c0', side: '#f4f8fa' },   // 4.39.3：足場は青灰色（白い壁で見えなかった）
   roof:    { out: true, floor: '#b5574a', shelf: '#8a6a4f', hang: '#8a6a4f' },
   parking: { out: true, floor: '#5a5f66', shelf: '#8a8f95', hang: '#8a8f95' },
-  pool:    { out: true, floor: '#cfe9f5', shelf: '#f4f8fa', hang: '#f4f8fa' }
+  pool:    { out: true, floor: '#cfe9f5', shelf: '#d9a46a', hang: '#d9a46a' }   // 4.39.3：棚はデッキの木の色
 };
 const r2 = () => R2[room] || null;
 const outdoor = () => room === 'garden' || !!(R2[room] && R2[room].out);
@@ -5054,10 +5054,10 @@ function r2Tall() {
 function r2High() {
   const r = PL.rail, h = PL.hang, a = PL.ac;
   if (room === 'toilet') {
-    g.fillStyle = '#c9d3d9'; rr(g, r.x0, r.y, r.x1 - r.x0, 6, 3); g.fill(); g.fillStyle = '#fff'; g.fillRect(r.x0 + 3, r.y + 1, r.x1 - r.x0 - 6, 1.5);   // タオル掛け
-    g.fillStyle = '#ff9fb2'; rr(g, r.x0 + 22, r.y + 6, 50, 46, 4); g.fill();
-    g.strokeStyle = '#8a6a4f'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(h.x0 + 8, -OY); g.lineTo(h.x0 + 8, h.y); g.moveTo(h.x1 - 8, -OY); g.lineTo(h.x1 - 8, h.y); g.stroke();
-    g.fillStyle = '#e8eef2'; rr(g, h.x0, h.y, h.x1 - h.x0, 8, 3); g.fill();
+    g.fillStyle = '#8a9aa6'; rr(g, r.x0, r.y, r.x1 - r.x0, 8, 3); g.fill(); g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(r.x0 + 3, r.y + 1.5, r.x1 - r.x0 - 6, 1.5); g.fillStyle = '#6f7f8a'; g.fillRect(r.x0 + 4, r.y + 8, 4, 6); g.fillRect(r.x1 - 8, r.y + 8, 4, 6);   // タオル掛け（青灰色）
+    g.fillStyle = '#ff9fb2'; rr(g, r.x0 + 22, r.y + 8, 50, 46, 4); g.fill();
+    g.strokeStyle = '#6f7f8a'; g.lineWidth = 2; g.beginPath(); g.moveTo(h.x0 + 8, -OY); g.lineTo(h.x0 + 8, h.y); g.moveTo(h.x1 - 8, -OY); g.lineTo(h.x1 - 8, h.y); g.stroke();
+    g.fillStyle = '#9fb3c0'; rr(g, h.x0, h.y, h.x1 - h.x0, 8, 3); g.fill(); g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(h.x0 + 4, h.y + 8, h.x1 - h.x0 - 8, 3);
     // 換気扇
     g.fillStyle = '#e8eef2'; rr(g, a.x0 - 4, a.y, a.x1 - a.x0 + 8, 36, 4); g.fill(); g.strokeStyle = 'rgba(0,0,0,.15)'; g.lineWidth = 1.2; g.stroke();
     const cx = (a.x0 + a.x1) / 2, cy = a.y + 19; g.fillStyle = '#c9d3d9'; g.beginPath(); g.arc(cx, cy, 13, 0, TAU); g.fill(); g.strokeStyle = '#8a8f95'; g.lineWidth = 3; for (let i = 0; i < 3; i++) { const an = tAnim * 6 + i * TAU / 3; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(an) * 11, cy + Math.sin(an) * 11); g.stroke(); }
@@ -5079,8 +5079,8 @@ function r2High() {
   }
   if (room === 'pool') {
     // 監視台（レール）・飛び込み台（吊り棚）・日よけ（エアコン）
-    g.fillStyle = '#fff'; g.fillRect(r.x0 + 10, r.y, 6, FLOOR - r.y); g.fillRect(r.x1 - 16, r.y, 6, FLOOR - r.y); rr(g, r.x0, r.y, r.x1 - r.x0, 8, 3); g.fill(); g.fillStyle = '#e0362c'; rr(g, r.x0 + 30, r.y - 16, 40, 16, 3); g.fill();
-    g.fillStyle = '#a7adb5'; g.fillRect(h.x1 - 10, h.y, 6, FLOOR - h.y); g.fillStyle = '#7fc1f0'; rr(g, h.x0, h.y, h.x1 - h.x0, 8, 3); g.fill();
+    g.fillStyle = '#d9a46a'; g.fillRect(r.x0 + 10, r.y, 6, FLOOR - r.y); g.fillRect(r.x1 - 16, r.y, 6, FLOOR - r.y); rr(g, r.x0, r.y, r.x1 - r.x0, 8, 3); g.fill(); g.fillStyle = '#e0362c'; rr(g, r.x0 + 30, r.y - 16, 40, 16, 3); g.fill();
+    g.fillStyle = '#a7adb5'; g.fillRect(h.x1 - 10, h.y, 6, FLOOR - h.y); g.fillStyle = '#d9a46a'; rr(g, h.x0, h.y, h.x1 - h.x0, 8, 3); g.fill(); g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(h.x0 + 4, h.y + 8, h.x1 - h.x0 - 8, 3);
     g.fillStyle = '#8a5a34'; g.fillRect(a.x0 + 4, a.y + 10, 5, FLOOR - a.y - 10); g.fillRect(a.x1 - 9, a.y + 10, 5, FLOOR - a.y - 10); g.fillStyle = '#ffc94a'; rr(g, a.x0 - 8, a.y, a.x1 - a.x0 + 16, 10, 4); g.fill(); g.fillStyle = '#fff'; for (let x = a.x0 - 4; x < a.x1 + 8; x += 16) g.fillRect(x, a.y, 8, 10);
     return;
   }
@@ -5388,7 +5388,7 @@ function drawHigh() {
   // 吊り棚：板と、天井から下がる2本のひも
   const hy = PL.hang.y;
   g.strokeStyle = '#8a6a4f'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(PL.hang.x0 + 8, -OY); g.lineTo(PL.hang.x0 + 8, hy); g.moveTo(PL.hang.x1 - 8, -OY); g.lineTo(PL.hang.x1 - 8, hy); g.stroke();
-  g.fillStyle = ({ kitchen: '#e8e2d6', bed: '#c9a0dc', bath: '#dfeef5', kids: '#7fc1f0' })[room] || '#c98a4f'; rr(g, PL.hang.x0, hy, PL.hang.x1 - PL.hang.x0, 8, 3); g.fill();
+  g.fillStyle = ({ kitchen: '#e8e2d6', bed: '#c9a0dc', bath: '#b8cfdc', kids: '#7fc1f0' })[room] || '#c98a4f'; rr(g, PL.hang.x0, hy, PL.hang.x1 - PL.hang.x0, 8, 3); g.fill();
   g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(PL.hang.x0 + 4, hy + 8, PL.hang.x1 - PL.hang.x0 - 8, 3);
   // エアコン（キッチンは吊り戸棚）
   const ax = PL.ac.x0 - 4, aw = PL.ac.x1 - PL.ac.x0 + 8, ay = PL.ac.y;
@@ -5544,7 +5544,7 @@ function drawFurniture() {
   g.beginPath(); g.moveTo(S0.x1 - 20, sy + 8); g.lineTo(S0.x1 - 20, sy + 25); g.lineTo(S0.x1 - 35, sy + 8); g.closePath(); g.fill();
   if (room === 'garden') { g.fillStyle = '#8a5a34'; g.fillRect(S0.x0 + 7, sy + 9, 6, 12); g.fillRect(S0.x1 - 14, sy + 9, 6, 12); }
   if (r2() && r2().out) { g.fillStyle = room === 'pool' ? '#c9d3d9' : room === 'roof' ? '#6f7378' : '#8a8f95'; g.fillRect(S0.x0 + 6, sy + 8, 6, FLOOR - sy - 8); g.fillRect(S0.x1 - 12, sy + 8, 6, FLOOR - sy - 8); }   // 4.39.0：屋外は壁がないので、棚は脚つきの台
-  g.fillStyle = (r2() && r2().shelf) || ({ kitchen: '#e8e2d6', bed: '#c9a0dc', bath: '#dfeef5', kids: '#ffc94a', garden: '#b98a56' })[room] || '#c98a4f'; rr(g, S0.x0 - 2, sy, S0.x1 - S0.x0 + 4, 9, 4); g.fill(); }
+  g.fillStyle = (r2() && r2().shelf) || ({ kitchen: '#e8e2d6', bed: '#c9a0dc', bath: '#b8cfdc', kids: '#ffc94a', garden: '#b98a56' })[room] || '#c98a4f'; rr(g, S0.x0 - 2, sy, S0.x1 - S0.x0 + 4, 9, 4); g.fill(); }
   g.restore();
   // 背の高い家具（本棚・冷蔵庫・タンス・物置・収納棚・二段ベッド）。ネコは前を歩ける。大技で崩れる（bigPre／bigPost）
   bigPre(g);
