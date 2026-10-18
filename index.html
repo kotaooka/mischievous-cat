@@ -140,6 +140,11 @@
   #lb { position: fixed; inset: 0; z-index: 60; background: rgba(40,20,8,.82); display: flex; align-items: center; justify-content: center; padding: 12px; cursor: zoom-out; }
   #lb[hidden] { display: none; }
   #lb img { width: min(96vw, 1200px); max-height: 90vh; height: auto; object-fit: contain; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.4); background: #f6e2c4; }
+  #lb .lb-in { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 96vw; }
+  #lb img.sq { width: min(80vw, 420px); }
+  #lb b { color: #fff; font-size: 1.3rem; }
+  #lb small { color: #ffe9a8; font-size: .9rem; font-weight: 500; text-align: center; max-width: 320px; }
+  #lb b:empty, #lb small:empty { display: none; }
   .share-row .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
   .btn.sm { padding: 7px 6px; font-size: .92rem; border-radius: 12px; }
   .btn.go small { display: block; font-size: .76rem; font-weight: 500; line-height: 1.3; margin-top: 2px; }
@@ -200,7 +205,7 @@
   .panel.paged { display: flex; flex-direction: column; }
   .panel.paged > * { flex: none; }
   .panel.paged > .pager { flex: 1 1 auto; }
-  .panel.paged > .rk-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  .panel.paged > .rk-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 2px; }
   .stat-list h4 { grid-column: 1 / -1; }
   .pg-title { margin: 4px 0 6px; text-align: center; color: var(--org-d); }
   .pager-nav { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
@@ -238,7 +243,7 @@
   .rank tr.now td { background: #fff0dc; border-color: var(--org); }
   .rank-in { color: var(--org-d) !important; }
   /* 4.37.0：ランキングの表彰台（上位 3 人）。1 位は真ん中で高く、金・銀・銅 */
-  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 6px; margin: 6px 0 4px; padding-top: 26px; }
+  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 6px; margin: 6px 0 4px; padding: 26px 6px 6px; }
   .pd { flex: 1 1 0; min-width: 0; border-radius: 14px 14px 8px 8px; border: 2px solid var(--line); background: #fff; text-align: center; padding: 6px 4px 6px; position: relative; }
   .pd canvas { width: 72px; height: 54px; display: block; margin: 0 auto; }
   .pd b { display: block; font-size: .8rem; line-height: 1.2; word-break: break-all; }
@@ -358,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.39.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.39.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -406,12 +411,12 @@ const HIGH = [PL.rail, PL.hang, PL.ac];
 const RUBP = { x0: 347, x1: W - 4, y: FLOOR - 46 };
 const BIG = {
   living:  { fall: true, n: tx('本棚なだれ', 'Bookshelf Avalanche'), how: tx('本棚のものを1面で3つ落とす', 'Knock 3 things off the bookshelf in one stage'), need: 3, line: tx('本棚がーっ!! …本が、本が', 'The bookshelf!! …my books'), cols: ['#ff5a5a', '#2b8fd9', '#ffc94a', '#2fb3a3', '#9b7fc0'] },
-  kitchen: { n: tx('冷蔵庫なだれ', 'Fridge Avalanche'), how: tx('床から冷蔵庫を強パンチで3回たたく', 'Power-punch the fridge 3 times from the floor'), need: 3, line: tx('冷蔵庫が… 卵が… 全部…', 'The fridge… the eggs… everything…'), cols: ['#fff3df', '#ffe08a', '#ff8a3d', '#9cc8ef', '#e8f4ff'], wet: true },
-  study:   { n: tx('資料なだれ', 'Paper Avalanche'), how: tx('床から本棚を強パンチで3回たたく', 'Power-punch the bookshelf 3 times from the floor'), need: 3, line: tx('今日の会議の資料が……', 'The documents for today\'s meeting……'), cols: ['#ff5a5a', '#2b8fd9', '#ffc94a', '#2fb3a3', '#9b7fc0', '#ffffff'] },
-  bed:     { n: tx('タンスなだれ', 'Dresser Avalanche'), how: tx('床からタンスを強パンチで3回たたく', 'Power-punch the dresser 3 times from the floor'), need: 3, line: tx('たたんだのに!! 全部!!', 'I JUST folded those!!'), cols: ['#ff9fb2', '#9fd3ef', '#ffffff', '#ffc94a', '#b9a0e0'] },
-  garden:  { n: tx('物置なだれ', 'Shed Collapse'), how: tx('地面から物置を強パンチで3回たたく', 'Power-punch the shed 3 times from the ground'), need: 3, line: tx('物置が…おじいさんの物置が…', 'The shed… Grandpa\'s shed…'), cols: ['#8fa6b5', '#5d7a9a', '#b8743f', '#2fb3a3', '#3a3f46'] },
+  kitchen: { n: tx('冷蔵庫なだれ', 'Fridge Avalanche'), how: tx('床から冷蔵庫を必殺ネコパンチで3回たたく', 'Mega-punch the fridge 3 times from the floor'), need: 3, line: tx('冷蔵庫が… 卵が… 全部…', 'The fridge… the eggs… everything…'), cols: ['#fff3df', '#ffe08a', '#ff8a3d', '#9cc8ef', '#e8f4ff'], wet: true },
+  study:   { n: tx('資料なだれ', 'Paper Avalanche'), how: tx('床から本棚を必殺ネコパンチで3回たたく', 'Mega-punch the bookshelf 3 times from the floor'), need: 3, line: tx('今日の会議の資料が……', 'The documents for today\'s meeting……'), cols: ['#ff5a5a', '#2b8fd9', '#ffc94a', '#2fb3a3', '#9b7fc0', '#ffffff'] },
+  bed:     { n: tx('タンスなだれ', 'Dresser Avalanche'), how: tx('床からタンスを必殺ネコパンチで3回たたく', 'Mega-punch the dresser 3 times from the floor'), need: 3, line: tx('たたんだのに!! 全部!!', 'I JUST folded those!!'), cols: ['#ff9fb2', '#9fd3ef', '#ffffff', '#ffc94a', '#b9a0e0'] },
+  garden:  { n: tx('物置なだれ', 'Shed Collapse'), how: tx('地面から物置を必殺ネコパンチで3回たたく', 'Mega-punch the shed 3 times from the ground'), need: 3, line: tx('物置が…おじいさんの物置が…', 'The shed… Grandpa\'s shed…'), cols: ['#8fa6b5', '#5d7a9a', '#b8743f', '#2fb3a3', '#3a3f46'] },
   kids:    { fall: true, low: 442, n: tx('二段ベッド崩壊', 'Bunk Bed Collapse'), how: tx('二段ベッドの上で5回ジャンプする', 'Jump 5 times on top of the bunk bed'), need: 5, line: tx('ぼくのベッドがーっ!!', 'My BED!!'), cols: ['#5d8fd0', '#ffb020', '#ffffff', '#7fc1f0', '#4a7ab8'] },
-  bath:    { n: tx('棚なだれ', 'Shelf Avalanche'), how: tx('床から棚を強パンチで3回たたく', 'Power-punch the shelf 3 times from the floor'), need: 3, line: tx('シャンプーがーっ!! すべるっ!!', 'The shampoo!! It\'s slippery!!'), cols: ['#ff9fb2', '#9fd3ef', '#ffc94a', '#ffffff', '#e8eef2'], wet: true }
+  bath:    { n: tx('棚なだれ', 'Shelf Avalanche'), how: tx('床から棚を必殺ネコパンチで3回たたく', 'Mega-punch the shelf 3 times from the floor'), need: 3, line: tx('シャンプーがーっ!! すべるっ!!', 'The shampoo!! It\'s slippery!!'), cols: ['#ff9fb2', '#9fd3ef', '#ffc94a', '#ffffff', '#e8eef2'], wet: true }
 };
 let bigEv = { done: false, anim: 0, cnt: 0, wob: 0 };
 const bigAvail = () => !!BIG[room] && !bigEv.done && run && !(run.bigs || []).includes(room);
@@ -862,12 +867,12 @@ const CARDS = [
   { id: 'dog',    name: tx('犬に吠えられる', 'Barked At'),          desc: tx('犬に吠えられる', 'Get barked at by the dog'), test: r => r.barks >= 1 },
   // 大技（部屋ごと）
   { id: 'big_living',  name: tx('本棚なだれ', 'Bookshelf Avalanche'), desc: tx('リビング：本棚のものを1面で3つ落とす', 'Living room: knock 3 things off the bookshelf in one stage'), test: r => !!r.ev.big_living },
-  { id: 'big_kitchen', name: tx('冷蔵庫なだれ', 'Fridge Avalanche'),  desc: tx('キッチン：床から冷蔵庫を強パンチで3回', 'Kitchen: power-punch the fridge 3 times from the floor'), test: r => !!r.ev.big_kitchen },
-  { id: 'big_study',   name: tx('資料なだれ', 'Paper Avalanche'),     desc: tx('書斎：床から本棚を強パンチで3回', 'Study: power-punch the bookshelf 3 times from the floor'), test: r => !!r.ev.big_study },
-  { id: 'big_bed',     name: tx('タンスなだれ', 'Dresser Avalanche'), desc: tx('寝室：床からタンスを強パンチで3回', 'Bedroom: power-punch the dresser 3 times from the floor'), test: r => !!r.ev.big_bed },
-  { id: 'big_garden',  name: tx('物置なだれ', 'Shed Collapse'),       desc: tx('庭：地面から物置を強パンチで3回', 'Garden: power-punch the shed 3 times from the ground'), test: r => !!r.ev.big_garden },
+  { id: 'big_kitchen', name: tx('冷蔵庫なだれ', 'Fridge Avalanche'),  desc: tx('キッチン：床から冷蔵庫を必殺ネコパンチで3回', 'Kitchen: power-punch the fridge 3 times from the floor'), test: r => !!r.ev.big_kitchen },
+  { id: 'big_study',   name: tx('資料なだれ', 'Paper Avalanche'),     desc: tx('書斎：床から本棚を必殺ネコパンチで3回', 'Study: power-punch the bookshelf 3 times from the floor'), test: r => !!r.ev.big_study },
+  { id: 'big_bed',     name: tx('タンスなだれ', 'Dresser Avalanche'), desc: tx('寝室：床からタンスを必殺ネコパンチで3回', 'Bedroom: power-punch the dresser 3 times from the floor'), test: r => !!r.ev.big_bed },
+  { id: 'big_garden',  name: tx('物置なだれ', 'Shed Collapse'),       desc: tx('庭：地面から物置を必殺ネコパンチで3回', 'Garden: power-punch the shed 3 times from the ground'), test: r => !!r.ev.big_garden },
   { id: 'big_kids',    name: tx('二段ベッド崩壊', 'Bunk Bed Collapse'), desc: tx('子ども部屋：二段ベッドの上で5回ジャンプ', "Kid's room: jump 5 times on top of the bunk bed"), test: r => !!r.ev.big_kids },
-  { id: 'big_bath',    name: tx('棚なだれ', 'Shelf Avalanche'),       desc: tx('お風呂場：床から棚を強パンチで3回', 'Bathroom: power-punch the shelf 3 times from the floor'), test: r => !!r.ev.big_bath }
+  { id: 'big_bath',    name: tx('棚なだれ', 'Shelf Avalanche'),       desc: tx('お風呂場：床から棚を必殺ネコパンチで3回', 'Bathroom: power-punch the shelf 3 times from the floor'), test: r => !!r.ev.big_bath }
 ];
 // 4.26.0：称号（被害額の t1〜t5 以外）はいたずらカードに統合した。TITLES の行動・通算の称号を 't_<id>' のカードとして足す（取り方は TDESC）
 const MERGED_T = ['foe4', 'nohit', 'idle', 'print', 'book', 'fast', 'zero', 'food', 'day', 'stars', 'streak', 'perfect', 'space', 'ghost', 'big5', 'guest', 'bowl', 'regular', 'million', 'cups', 'night', 'boxer', 'rooms', 'family', 'days3', 'wrecker7', 'endings'];
@@ -1073,7 +1078,7 @@ const LINES = {
 const TASKS = {
   kaku:    { t: tx('目が合ってから落とす', 'Knock one off while staring'), ok: () => true },
   chain:   { t: tx('2連鎖を出す', 'Make a 2x chain'), ok: () => ['side', 'table', 'shelf', 'book'].some(k => mains().filter(i => i.plat === PL[k]).length >= 2) },
-  strong:  { t: tx('強パンチで3個落とす', '3 knocks by power punch'), ok: () => mains().length >= 3, need: 3 },
+  strong:  { t: tx('必殺ネコパンチで3個落とす', '3 knocks by mega punch'), ok: () => mains().length >= 3, need: 3 },
   big:     { t: tx('1万円以上のものを落とす', 'Knock off a ¥10,000+ item'), ok: () => items.some(i => IT[i.t].yen >= 10000) },
   water:   { t: tx('水入りコップを割る', 'Break a cup of water'), ok: () => items.some(i => i.water) },
   high:    { t: tx('本棚の上のものを落とす', 'Knock one off the bookshelf'), ok: () => mains().some(i => i.home === 'book') },
@@ -3076,7 +3081,7 @@ function punchFoe(strong, reach) {
   const F = foe, c = cat; if (!F || F.dead) return;
   const n = strong ? 2 : 1;
   if (F.kind === 'vacbot' && c.plat === PL.floor) {
-    const dx = (F.x - c.x) * c.face; if (dx > -6 && dx < reach + 20) { hurtFoe(n, F.x, FLOOR - 10); if (!F.dead) { F.vx = c.face * (strong ? 320 : 200); F.stun = 0.5; if (F.mode === 'charge' || F.mode === 'wind') { F.mode = 'rest'; F.t = 0.8; F.dizzy = 0; } } }
+    const dx = (F.x - c.x) * c.face; if (dx > -6 && dx < reach + 20) { hurtFoe(n, F.x, FLOOR - 10); if (!F.dead) { F.vx = c.face * (strong ? 320 : 200); F.stun = strong ? 3 : 2; F.mode = 'rest'; F.t = F.stun + 0.5; F.cd = 2; F.dizzy = F.stun + 0.5; } }   // 4.39.1：パンチで 2〜3 秒止まる（目を回す）
   } else if (F.kind === 'crow') {
     for (const b of F.birds) {
       if (b.dead || b.mode !== 'land' || b.plat !== c.plat) continue;
@@ -5990,7 +5995,7 @@ function drawCatNow() {
   } else if (c.pDown && c.pHeld > 0.12 && play) {
     const r = clamp((c.pHeld - 0.12) / 0.23, 0, 1);
     g.strokeStyle = r >= 1 ? '#ff3b30' : '#ffb020'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.arc(c.x, c.y - 20, 30, -Math.PI / 2, -Math.PI / 2 + r * TAU); g.stroke();
-    if (r >= 1) { g.font = `800 ${16 + Math.sin(tAnim * 20) * 2}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(lt('強!', 'POWER!'), c.x, c.y - 62); g.fillStyle = '#ff3b30'; g.fillText(lt('強!', 'POWER!'), c.x, c.y - 62); }   // 4.33.1：ためきった合図
+    if (r >= 1) { g.font = `800 ${16 + Math.sin(tAnim * 20) * 2}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(lt('必殺ネコパンチ!', 'MEGA PUNCH!'), c.x, c.y - 62); g.fillStyle = '#ff3b30'; g.fillText(lt('必殺ネコパンチ!', 'MEGA PUNCH!'), c.x, c.y - 62); }   // 4.33.1：ためきった合図
   }
   g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
   const label = (t, x, y, col, size) => { g.font = `800 ${size}px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(t, x, y); g.fillStyle = col; g.fillText(t, x, y); };
@@ -6409,7 +6414,7 @@ function bindA2hs() {
 }
 // PC向けのキー案内（マウス環境のときだけ CSS で表示する。タイトル画面とポーズ画面に出す）
 const keysBox = () => `<div class="keys" aria-label="${lt('キー操作', 'Keyboard')}">
-    <span><kbd>←</kbd><kbd>→</kbd>${lt('うごく', 'Move')}</span><span><kbd>↑</kbd>${lt('ジャンプ', 'Jump')}</span><span><kbd>Z</kbd>${lt('パンチ（長押しで強）', 'Punch (hold = strong)')}</span><span><kbd>X</kbd>${lt('にゃー', 'Meow')}</span><span><kbd>P</kbd>${lt('ポーズ', 'Pause')}</span></div>`;
+    <span><kbd>←</kbd><kbd>→</kbd>${lt('うごく', 'Move')}</span><span><kbd>↑</kbd>${lt('ジャンプ', 'Jump')}</span><span><kbd>Z</kbd>${lt('パンチ（長押しで必殺ネコパンチ）', 'Punch (hold = mega punch)')}</span><span><kbd>X</kbd>${lt('にゃー', 'Meow')}</span><span><kbd>P</kbd>${lt('ポーズ', 'Pause')}</span></div>`;
 // 初回（まだ1回も遊び終えていない）は、ネコ1匹と「あそぶ」だけの軽いタイトルにする。ネコ・きせかえ・きろくは1回遊ぶと出る
 const firstTime = () => !(LIFE.plays || 0) && !bestYen;
 function showTitle() {
@@ -6637,7 +6642,7 @@ function postAndRefresh() {
 }
 function showRank(tab) {
   // ランキング：みんな（Firestore）／この端末（上位10件）
-  const back = state === 'over' ? showOver : showTitle;
+  const back = recBack();
   dailyKey = jstDay(); tab = tab || (onlineOn() ? 'world' : 'local');
   const coll = tab === 'daily' ? dailyColl() : 'scores';
   ov.hidden = false;
@@ -6705,7 +6710,7 @@ function recTabs(cur) {
   return `<div class="tabs rec-tabs">${b('rank', lt('ランキング', 'Ranking'))}${b('cards', lt('いたずら図鑑', 'Cards'))}${b('life', lt('通算', 'Stats'))}</div>`;
 }
 function bindRecTabs() { ov.querySelectorAll('.rec-tabs button').forEach(bt => bt.addEventListener('click', () => { const t = bt.dataset.rt; if (t === 'rank') showRank(); else if (t === 'cards') showCards(0); else showLife(0); })); }
-const recBack = () => state === 'over' ? showOver : showTitle;
+const recBack = () => state === 'over' ? showOver : state === 'pause' ? showPause : showTitle;   // 4.39.1：ポーズからも開ける
 // ページ送り：◀ ▶ と左右のスワイプでページを変える（称号図鑑・通算記録）
 let lfPage = 0, cdPage = 0;
 const pagedH = () => Math.max(380, Math.min(640, (ov.clientHeight || 600) - 28));   // ページ送りの画面の高さ（どのページでも同じ。ボタンの位置が動かない）
@@ -6734,10 +6739,11 @@ function showCards(page) {
     <div class="big-logo" style="font-size:1.5rem">${lt('いたずら図鑑', 'Mischief Cards')}</div><p class="sub">${cardsGot.size} / ${CARDS.length}</p>
     <div class="pager"><div class="cards">${list.map(cd => {
       if (cd.kind) return `<div class="${cd.ok ? '' : 'off'}"><i>${cd.ok ? (cd.kind === 'title' ? ICO.trophy : ICO.clap) : ICO.q}</i><b>${cd.ok ? cd.name : (cd.kind === 'ending' ? 'ENDING ？？？' : '？？？')}</b><small>${cd.desc}</small></div>`;
-      const ok = cardsGot.has(cd.id), pic = ok && cardPics[cd.id]; return `<div class="${ok ? '' : 'off'}">${pic ? `<img src="${pic}" alt="" width="128" height="128">` : `<i>${ok ? ICO.paw : ICO.q}</i>`}<b>${ok ? cd.name : '？？？'}</b><small>${cd.desc}</small></div>`; }).join('')}</div></div>
+      const ok = cardsGot.has(cd.id), pic = ok && cardPics[cd.id]; return `<div class="${ok ? '' : 'off'}"${pic ? ` data-pic="${pic}" data-nm="${esc(String(cd.name))}" data-ds="${esc(String(cd.desc))}" style="cursor:zoom-in"` : ''}>${pic ? `<img src="${pic}" alt="" width="128" height="128">` : `<i>${ok ? ICO.paw : ICO.q}</i>`}<b>${ok ? cd.name : '？？？'}</b><small>${cd.desc}</small></div>`; }).join('')}</div></div>
     ${pagerNav(cdPage, n)}
     <button class="btn go" id="cdBack" type="button">${lt('もどる', 'Back')}</button></div>`;
   $('cdBack').addEventListener('click', recBack()); bindRecTabs(); bindPager(cdPage, n, showCards);
+  ov.querySelectorAll('.cards div[data-pic]').forEach(d => d.addEventListener('click', () => showLb(d.dataset.pic, d.dataset.nm, d.dataset.ds)));   // 4.39.1：タップで大きく
 }
 function showSettings(back) {
   ov.hidden = false;
@@ -6747,7 +6753,7 @@ function showSettings(back) {
     <div class="row"><button class="btn w" id="sVib" type="button">${lt('振動：', 'Vibration: ') + (SET.vib ? 'ON' : 'OFF')}</button><button class="btn w" id="sSwap" type="button">${lt('ボタン：', 'Buttons: ') + (SET.swap ? lt('左右反転', 'Mirrored') : lt('ふつう', 'Normal'))}</button></div>
     <div class="row"><button class="btn w" id="sOh" type="button">${ohLabel()}</button><button class="btn w" id="sLg" type="button" lang="${lt('en', 'ja')}">${lt('English', '日本語')}</button></div>
     <div class="row"><button class="btn w" id="sFx" type="button">${lt('演出：', 'Effects: ') + (SET.calm ? lt('ひかえめ（揺れ・ズーム・点滅なし）', 'Reduced (no shake, zoom, flashing)') : lt('ふつう', 'Full'))}</button></div>
-    <p class="best" style="font-weight:500;font-size:.78rem">${lt('ゲームパッド：十字キー／左スティックで移動、A ジャンプ、X か B パンチ（長押しで強）、Y 鳴く、START ポーズ', 'Gamepad: D-pad/stick move, A jump, X or B punch (hold = power), Y meow, START pause')}</p>
+    <p class="best" style="font-weight:500;font-size:.78rem">${lt('ゲームパッド：十字キー／左スティックで移動、A ジャンプ、X か B パンチ（長押しで必殺ネコパンチ）、Y 鳴く、START ポーズ', 'Gamepad: D-pad/stick move, A jump, X or B punch (hold = power), Y meow, START pause')}</p>
     <button class="btn go" id="sBack" type="button">${lt('もどる', 'Back')}</button>${verLine()}</div>`;
   const bind = (id, key, store_) => { const el = $(id); el.addEventListener('input', () => { SET[key] = +el.value; $(id + 'V').textContent = el.value; store.set(store_, String(SET[key])); audio(); applySettings(); }); };
   bind('sBgm', 'bgm', 'nekoBgmVol'); bind('sSe', 'se', 'nekoSeVol');
@@ -6990,14 +6996,14 @@ function showPause() {
     <div class="big-logo" style="font-size:1.6rem">${lt('ひとやすみ', 'Paused')}</div><p class="sub">PAUSE</p>
     <button class="btn go" id="pResume" type="button">${lt('つづける', 'Resume')}</button>
     <div class="row"><button class="btn w" id="pRetry" type="button">${lt('やりなおす', 'Restart')}</button><button class="btn w" id="pTop" type="button">${lt('トップへ', 'Title')}</button></div>
-    <div class="row"><button class="btn w" id="pSnd" type="button">${muted ? lt('おとをオン', 'Sound on') : lt('おとをオフ', 'Sound off')}</button><button class="btn w" id="pSet" type="button">${lt('せってい', 'Settings')}</button></div>
+    <div class="row"><button class="btn w" id="pRk" type="button">${lt('きろく', 'Records')}</button><button class="btn w" id="pSet" type="button">${lt('せってい', 'Settings')}</button></div>
     ${loadSave() ? `<p class="best" style="margin:2px 0 0;font-weight:500;font-size:.76rem;color:var(--ink2)">${lt('この面の始まりまでセーブずみ。いつやめても、トップの「つづきから」で再開できます', 'Saved up to the start of this stage. Quit any time and pick "Continue" on the title')}</p>` : ''}
     ${keysBox()}
 </div>`;
   $('pResume').addEventListener('click', resumeGame);
   $('pRetry').addEventListener('click', () => { audio(); startGame(); });
   $('pTop').addEventListener('click', showTitle);
-  $('pSnd').addEventListener('click', () => { toggleSound(); showPause(); });
+  $('pRk').addEventListener('click', () => showRank());
   $('pSet').addEventListener('click', () => showSettings(showPause));
 }
 let cardBlob = null, cardUrl = null, cardFor = null, cardLang = null;
@@ -7081,10 +7087,11 @@ async function showOver() {
   buildCard();
 }
 // 画像を大きく見る（結果画面・完走画面の写真をタップ）
-function showLb(src) {
+function showLb(src, nm, ds) {
   if (!src) return;
-  let lb = $('lb'); if (!lb) { lb = document.createElement('div'); lb.id = 'lb'; lb.innerHTML = '<img alt="">'; lb.addEventListener('click', () => { lb.hidden = true; }); document.body.appendChild(lb); }
-  lb.querySelector('img').src = src; lb.hidden = false;
+  let lb = $('lb'); if (!lb) { lb = document.createElement('div'); lb.id = 'lb'; lb.innerHTML = '<div class="lb-in"><img alt=""><b></b><small></small></div>'; lb.addEventListener('click', () => { lb.hidden = true; }); document.body.appendChild(lb); }
+  const im = lb.querySelector('img'); im.src = src; im.classList.toggle('sq', !!nm);
+  lb.querySelector('b').textContent = nm || ''; lb.querySelector('small').textContent = ds || ''; lb.hidden = false;
 }
 // シェア用の画像を作る（結果画面・完走画面）。同じ回・同じ言語なら作り直さない
 async function buildCard() {

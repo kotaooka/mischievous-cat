@@ -47,7 +47,7 @@ Walking, jumping, meowing and eating are all "normal cat things", so you won't g
 |---|---|---|
 | Walk | ＜ ＞ at the bottom | ← → / A D |
 | Jump | Jump | Space / ↑ / W |
-| Punch (hold for a power punch) | Punch | Left click / Z |
+| Punch (hold for a mega punch) | Punch | Left click / Z |
 | Meow (hold for a long one, tap 3 times for "mew mew mew!") | Meow | Right click / X |
 | Pause | ⏸ top right | Esc / P |
 
@@ -55,7 +55,7 @@ On PC, Enter (or A on a gamepad) presses PLAY on the title and Play again on the
 
 Gamepads work on PC too (D-pad/stick move, A jump, X or B punch, Y meow, START pause). Volume, vibration, mirrored buttons and reduced effects (no screen shake, zoom or flashing) are under **Settings**.
 
-Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. **Wherever you touch the game screen becomes a stick**: slide left/right to walk, flick up to jump, tap to punch (the cat turns toward the side you tap), hold still for a power punch or scratching, and tap the cat to meow.
+Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. **Wherever you touch the game screen becomes a stick**: slide left/right to walk, flick up to jump, tap to punch (the cat turns toward the side you tap), hold still for a mega punch or scratching, and tap the cat to meow.
 
 ## 💡 Tips
 
