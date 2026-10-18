@@ -117,6 +117,8 @@ Each room has its own watcher: the owner, a kid (fast but short-sighted), grandm
 </tr>
 </table>
 
+Every room has its own furniture (a sofa in the living room, a cupboard and microwave in the kitchen, a desk chair in the study, a vanity and a headboard shelf in the bedroom, a bunk bed in the kids' room…) and its own set of places to stand. The wall shelves and the air conditioner also move from stage to stage.
+
 As stages go on, pricey items start appearing up high (hanging shelf, curtain rail, air conditioner). New ways to make mischief appear little by little, too: a rolling yarn ball and scratching spots.
 
 ## 🐱 The cats

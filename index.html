@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.46.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.47.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -405,9 +405,80 @@ const PL = {
   rail:  { x0: 14,  x1: 118, y: 285 },   // カーテンレール（壁の棚の左端から登る）
   hang:  { x0: 148, x1: 252, y: 280 },   // 吊り棚（壁の棚から登る）
   ac:    { x0: 262, x1: 338, y: 210 },   // エアコン（キッチンは吊り戸棚。吊り棚か本棚から登る）
-  tank:  { x0: 24,  x1: 96,  y: 400 }    // 水槽のふた（子ども部屋だけ。サイドテーブルの上）
+  tank:  { x0: 24,  x1: 96,  y: 400 },   // 水槽のふた（子ども部屋だけ。サイドテーブルの上）
+  // 4.47.0：部屋ごとに足す足場（ROOM_GEO の ex）。使わない部屋では画面の外に置き、PLS から外す
+  ex1:   { x0: -900, x1: -860, y: -900 },
+  ex2:   { x0: -900, x1: -860, y: -900 }
 };
+const OFFP = { x0: -900, x1: -860, y: -900 };   // 使わない足場の置き場所（画面の外）
+const EXK = ['ex1', 'ex2'];
+const plOn = k => PL[k].x1 > -100;   // その面で使う足場か
+// 足す足場に置けるもの：as の足場に置けるものと同じ（例：ソファーの背もたれは side と同じもの）
+const onList = list => list.concat(EXK.filter(k => plOn(k) && PL[k].as && list.includes(PL[k].as)));
 const HIGH = [PL.rail, PL.hang, PL.ac];
+// 4.47.0：部屋ごとの家具（足場の位置と形）。絵は必ず PL の値から描くので、足場の判定と絵がずれない
+// 足場の役：side 低い台、table 横長の台、rail 左の高い所、tower 安全地帯、book 右の背の高い家具。ここに書いた部屋だけ、既定の位置を上書きする
+const PL_DEF = {}; for (const k in PL) PL_DEF[k] = Object.assign({}, PL[k]);
+const ROOM_GEO = {
+  // キッチン：左に食器棚（下の台＝side、上＝rail）。窓は食器棚の後ろになるので描かない。壁の棚・吊り棚は食器棚に重ならないよう右へ寄せる
+  kitchen: { side: { x0: 14, x1: 108, y: 430 }, rail: { x0: 14, x1: 108, y: 285 }, table: { x0: 116, x1: 300, y: 430 }, shelfMin: 128, hangMin: 118, noWindow: true, sideMaxH: 40, noGrab: [['rail', 'side']], niche: { plat: 'side', h: 46 }, mis: { dishcloth: [38, 74] } },
+  // 書斎：デスクチェア（side）とデスク（table）。壁紙の爪とぎは窓の下、ネズミの穴は机と本棚の間
+  study: { side: { x0: 92, x1: 134, y: 452 }, table: { x0: 142, x1: 300, y: 430 }, mis: { papers: [152, 188], wall: [10, 44] }, hole: 174 },
+  // リビング：窓の下にソファー（座面＝side。ひじかけは座面と同じ高さ）。テーブルは右へ詰める。ネズミの穴はソファーとテーブルの間
+  // 足す足場：ソファーの背もたれ（ex1）と、壁のテレビの上（ex2）
+  living: { side: { x0: 12, x1: 132, y: 456 }, table: { x0: 156, x1: 300, y: 430 }, mis: { wall: [154, 192] }, hole: 144,
+    ex: { ex1: { x0: 16, x1: 128, y: 422, as: 'side' }, ex2: { x0: 264, x1: 340, y: 264, as: 'ac', wall: true } } },
+  // 寝室：ナイトテーブルの代わりに鏡台（ドレッサー）。ベッドは宮付き（宮の上＝ex1）。鏡は窓の下に収まる高さ
+  bed: { side: { x0: 14, x1: 102, y: 438 }, table: { x0: 160, x1: 300, y: 430 }, hole: 180, ex: { ex1: { x0: 118, x1: 156, y: 392, as: 'side' } } },
+  // 子ども部屋：学習机（table）と、絵本の本棚（tower）。二段ベッドの下の段（ex1）にも乗れる
+  kids: { table: { x0: 134, x1: 300, y: 430 }, tower: { x0: 300, x1: 346, y: 440 }, mis: { homework: [148, 194], wall: [144, 190] },
+    ex: { ex1: { x0: 356, x1: 444, y: 431, as: 'table' } } },   // 下の段には机と同じもの（子ども部屋にはサイドテーブルがない）
+  // 庭：木の下にベンチ。壁の棚はなく、代わりに塀の上（ex1）を歩ける
+  // 塀はベンチの右から（ベンチの上まで塀があると、高く跳ぶネコはベンチに降りられず塀に乗ってしまう）。左は生け垣
+  garden: { side: { x0: 10, x1: 110, y: 452 }, hole: 262, off: ['shelf'], ex: { ex1: { x0: 122, x1: 340, y: 355, as: 'shelf', wall: true } } },
+  // キッチン・書斎の足す足場：調理台の電子レンジ、モニターの上
+  // お風呂場・トイレ：吊り棚はなく、小窓の窓台（ex1）まで登れる
+  bath: { off: ['hang'], ex: { ex1: { x0: 162, x1: 268, y: 155, as: 'ac', wall: true } } },
+  // トイレ：細くて背の高い収納棚
+  toilet: { side: { x0: 20, x1: 84, y: 430 }, off: ['hang'], ex: { ex1: { x0: 176, x1: 254, y: 146, as: 'ac', wall: true } } },
+  // 屋根：横長の室外機と、右へ寄せた天窓
+  roof: { side: { x0: 14, x1: 112, y: 450 }, table: { x0: 146, x1: 300, y: 430 } },
+  // 駐車場：タイヤの山を右へ。作業台は短く
+  parking: { side: { x0: 32, x1: 104, y: 447 }, table: { x0: 150, x1: 300, y: 430 } },
+};
+// ネズミの穴：床の家具と重ならず、季節の床の飾り（x=318）とも重ならない所。キッチンは流しの下、書斎は机の下、寝室はベッドの下
+ROOM_GEO.kitchen.hole = 330; ROOM_GEO.kitchen.deco = 308; ROOM_GEO.kitchen.tower = { x0: 342, x1: 382, y: 440 };   // キッチンは床のすき間が調理台とスツールの間だけなので、穴と季節の飾りを並べ、スツールを少し右へ
+ROOM_GEO.kitchen.ex = { ex1: { x0: 236, x1: 290, y: 398, as: 'side' } };   // 電子レンジ（調理台の右）
+ROOM_GEO.study.ex = { ex1: { x0: 255, x1: 301, y: 372, as: 'ac' } };        // モニターの上
+// 4.47.0：壁の棚・吊り棚・エアコンの配置は部屋ごとに 6 通り（前は全部屋で共通）。[shelf x0, x1, y]、[hang x0, x1, y]、[ac x0, x1]。
+// 書いていない足場（庭の棚、お風呂場・トイレの吊り棚）はその部屋にない。最初の 3 通りは 1〜3 日目、4 日目から 6 通り
+// 部屋ごとの決まり：リビングは吊り棚とエアコンをテレビ（x 262〜342）にかけない。キッチンは吊り戸棚を吊り棚の真上に置かない。
+// 書斎は棚をモニターの上（x 245 から右）に置かない。寝室は棚を宮の上（x 160 より左）に置かない。お風呂場・トイレはエアコン（換気扇）を窓台の近くに
+const ROOM_LAYS = {
+  living:  [[[150, 290, 356], [120, 220, 282], [150, 226]], [[110, 240, 358], [160, 250, 280], [360, 436]], [[170, 300, 360], [100, 190, 284], [176, 252]],
+            [[130, 250, 355], [140, 240, 283], [60, 136]], [[160, 300, 357], [104, 200, 281], [366, 442]], [[120, 260, 359], [150, 246, 285], [100, 176]]],
+  kitchen: [[[130, 250, 356], [140, 240, 282], [262, 338]], [[180, 300, 358], [120, 200, 284], [228, 304]], [[140, 236, 360], [170, 255, 280], [270, 346]],
+            [[150, 290, 355], [150, 240, 283], [360, 436]], [[140, 290, 357], [176, 255, 281], [28, 104]], [[170, 300, 359], [130, 220, 285], [240, 316]]],
+  study:   [[[110, 240, 356], [150, 250, 282], [262, 338]], [[150, 244, 358], [100, 190, 284], [210, 286]], [[100, 200, 360], [180, 255, 280], [60, 136]],
+            [[140, 244, 355], [120, 210, 283], [360, 436]], [[120, 230, 357], [170, 255, 281], [262, 338]], [[96, 210, 359], [130, 226, 285], [240, 316]]],
+  bed:     [[[170, 290, 356], [130, 230, 282], [262, 338]], [[170, 300, 358], [180, 255, 284], [100, 176]], [[200, 300, 360], [120, 210, 280], [230, 306]],
+            [[166, 270, 355], [140, 240, 283], [360, 436]], [[180, 300, 357], [104, 200, 281], [262, 338]], [[162, 240, 359], [160, 255, 285], [290, 366]]],
+  kids:    [[[105, 250, 355], [150, 250, 282], [262, 338]], [[140, 300, 358], [104, 190, 284], [200, 276]], [[100, 210, 360], [170, 255, 280], [272, 348]],
+            [[160, 300, 356], [120, 220, 283], [360, 436]], [[120, 240, 357], [136, 236, 281], [290, 366]], [[96, 200, 359], [170, 255, 285], [300, 376]]],
+  garden:  [[null, [148, 252, 280], [262, 338]], [null, [120, 210, 284], [230, 306]], [null, [180, 270, 282], [100, 176]],
+            [null, [130, 220, 281], [360, 436]], [null, [200, 290, 283], [130, 206]], [null, [160, 250, 285], [250, 326]]],
+  bath:    [[[105, 270, 355], null, [140, 216]], [[120, 300, 358], null, [262, 338]], [[92, 280, 360], null, [120, 196]],
+            [[140, 300, 356], null, [276, 352]], [[110, 300, 357], null, [100, 176]], [[130, 290, 359], null, [240, 316]]],
+  toilet:  [[[105, 270, 355], null, [150, 226]], [[130, 300, 358], null, [262, 338]], [[96, 280, 360], null, [110, 186]],
+            [[150, 300, 356], null, [240, 316]], [[110, 290, 357], null, [280, 356]], [[120, 280, 359], null, [276, 352]]],
+  roof:    [[[105, 270, 355], [148, 252, 280], [262, 338]], [[150, 300, 358], [110, 200, 284], [220, 296]], [[120, 230, 360], [170, 260, 282], [300, 376]],
+            [[160, 290, 356], [130, 220, 281], [360, 436]], [[140, 300, 357], [200, 290, 283], [110, 186]], [[140, 280, 359], [160, 250, 285], [250, 326]]],
+  parking: [[[105, 270, 355], [148, 252, 280], [262, 338]], [[160, 300, 358], [200, 290, 284], [300, 376]], [[120, 240, 360], [170, 260, 282], [96, 172]],
+            [[150, 290, 356], [210, 300, 281], [330, 406]], [[110, 230, 357], [190, 280, 283], [130, 206]], [[130, 280, 359], [140, 236, 285], [250, 326]]],
+  pool:    [[[105, 270, 355], [148, 252, 280], [262, 338]], [[140, 300, 358], [100, 190, 284], [210, 286]], [[96, 220, 360], [170, 260, 282], [290, 366]],
+            [[150, 300, 356], [120, 214, 281], [360, 436]], [[110, 240, 357], [190, 280, 283], [300, 376]], [[120, 270, 359], [136, 232, 285], [240, 316]]]
+};
+const roomGeo = rm => ROOM_GEO[rm] || null;
 // 大技：部屋の背の高い家具（本棚・冷蔵庫・収納棚・タンス・物置・二段ベッド・棚）を崩す。
 // 条件は部屋ごと。発動すると上に載っていたものが全部落ち（連鎖）、家具はがれきの足場（RUBP）になり、飼い主は3秒固まる。
 // 被害額はその面の目安（stageValue）の 0.75 倍で、腕前ボーナスには入れない。1回のプレイで部屋ごとに1回。残り時間は止めない
@@ -437,11 +508,12 @@ function bigTrigger() {
   run.bigs = run.bigs || []; run.bigs.push(room); run.ev['big_' + room] = 1;
   // 上に載っていたものを全部落とす（ひとつの連鎖として数える）
   const id = ++chainSeq;
-  for (const it of items) if (it.plat === PL.book && it.state !== 'fall') { it.state = 'fall'; it.plat = null; it.y0 = PL.book.y; it.y = PL.book.y - 2; it.vy = -rnd(60, 160); it.vx = -rnd(40, 130); it.vr = rnd(-8, 8); it.chain = id; it.strong = true; }
+  for (const it of items) if ((it.plat === PL.book || (B.fall && room === 'kids' && it.plat === PL.ex1)) && it.state !== 'fall') { it.state = 'fall'; it.plat = null; it.y0 = PL.book.y; it.y = PL.book.y - 2; it.vy = -rnd(60, 160); it.vx = -rnd(40, 130); it.vr = rnd(-8, 8); it.chain = id; it.strong = true; }
   if (B.fall && cat.plat === PL.book) { cat.plat = null; cat.vy = -200; cat.vx = -120; }
   if (snack && !snack.got) snack.got = true;
   // 足場：崩れる家具（本棚・二段ベッド）は上の足場がなくなり、低い足場（がれき／下の段）に乗れる。立ったままの家具は上の足場もそのまま
-  if (B.fall) { PLS = PLS.filter(pl => pl !== PL.book); RUBP.y = B.low || FLOOR - 46; if (!PLS.includes(RUBP)) PLS.push(RUBP); }
+  // 4.47.0：二段ベッドが崩れると下の段（PL.ex1）もがれきの下になる
+  if (B.fall) { PLS = PLS.filter(pl => pl !== PL.book && !(room === 'kids' && pl === PL.ex1)); RUBP.y = B.low || FLOOR - 46; if (!PLS.includes(RUBP)) PLS.push(RUBP); }
   // 被害額：その面の目安の 0.75 倍。腕前ボーナスの元にはしない
   const amt = Math.round(stageValue(level) * 0.75); damage(amt, 'big', 395, PL.book.y - 20, 1.6); stageYen0 += amt; run.bigYen = (run.bigYen || 0) + amt;
   // 破片・水たまり
@@ -553,8 +625,10 @@ const WATERP = { x0: 206, x1: 284, y: 430, water: true };   // ものが落ち�
 const RIMP = { x0: 286, x1: 300, y: 430 };                   // 浴槽の右のふち
 let waterZ = null;
 // 4.43.0：プールも浴槽と同じくテーブルの右側が水（x1 = 204）。駐車場の本棚はバンの荷台の屋根だけ（x0 = 396）
-const ROOM_SPOT = { bath: { table: [140, 192] }, pool: { table: [140, 192] }, parking: { book: [406, 414] } };
-const spotOf = s => (ROOM_SPOT[room] && ROOM_SPOT[room][s]) || (s === 'shelf' ? [PL.shelf.x0 + 20, PL.shelf.x1 - 15] : s === 'hang' ? [PL.hang.x0 + 12, PL.hang.x1 - 12] : s === 'ac' ? [PL.ac.x0 + 10, PL.ac.x1 - 10] : SPOT[s]);   // 4.39.0：エアコンも配置で動く
+const ROOM_SPOT = { bath: { table: [140, 192] }, pool: { table: [140, 192] }, parking: { book: [406, 414] },
+  kitchen: { side: [26, 96], rail: [26, 96], table: [136, 222] },   // 4.47.0：食器棚の台と上。調理台は電子レンジの手前まで
+  study: { side: [108, 118], table: [152, 285] } };   // 4.47.0：デスクチェアの座面とデスク（キーボードの上は置かない）
+const spotOf = s => (ROOM_SPOT[room] && ROOM_SPOT[room][s]) || (EXK.includes(s) ? [PL[s].x0 + 10, PL[s].x1 - 10] : s === 'side' ? [PL.side.x0 + 10, PL.side.x1 - 8] : s === 'table' ? [PL.table.x0 + 20, PL.table.x1 - 15] : s === 'shelf' ? [PL.shelf.x0 + 20, PL.shelf.x1 - 15] : s === 'hang' ? [PL.hang.x0 + 12, PL.hang.x1 - 12] : s === 'ac' ? [PL.ac.x0 + 10, PL.ac.x1 - 10] : SPOT[s]);   // 4.39.0：エアコンも配置で動く
 // 足場の配置：壁の棚と吊り棚の位置を面ごとに変える（前の面とは別の配置）。段差はメインクーンでも届く 75px 以内
 // shelf の y は 355〜360（テーブルから 75 以内）。hang は棚と重なり、x1 が 255 以下（テレビにかからない）。カーテンレールへは棚か吊り棚から跳んで届く（テストで確認）
 const LAYOUTS = [
@@ -573,14 +647,38 @@ let layoutIx = 0;
 function layoutFor(L) { let k = 0; for (let i = 2; i <= L; i++) { const n = dayOf(i) >= 4 ? LAYOUTS.length : 3; k = (k + 1 + ((seedRng(jstDay() + '#lay' + i)() * (n - 1)) | 0)) % n; } return k; }   // 4.39.0：4 日目からは 6 通り（それまでは 3 通り）
 function applyLayout(L) {
   layoutIx = layoutFor(L);
-  const lo = LAYOUTS[layoutIx];
-  Object.assign(PL.shelf, { x0: lo.shelf[0], x1: lo.shelf[1], y: lo.shelf[2] });
-  Object.assign(PL.hang, { x0: lo.hang[0], x1: lo.hang[1], y: lo.hang[2] });
+  const rm = phaseOf(L).room, rg = roomGeo(rm), RL = ROOM_LAYS[rm], lo = RL ? { shelf: RL[layoutIx][0], hang: RL[layoutIx][1], ac: RL[layoutIx][2] } : LAYOUTS[layoutIx];
+  // 4.47.0：低い家具・高い所は、まず既定の位置に戻してから部屋ごとに上書きする
+  for (const k of ['side', 'table', 'tower', 'book', 'rail', 'tank']) Object.assign(PL[k], PL_DEF[k]);
+  for (const k of EXK) { Object.assign(PL[k], OFFP); delete PL[k].as; delete PL[k].wall; }
+  if (lo.shelf) Object.assign(PL.shelf, { x0: lo.shelf[0], x1: lo.shelf[1], y: lo.shelf[2] }); else Object.assign(PL.shelf, OFFP);
+  if (lo.hang) Object.assign(PL.hang, { x0: lo.hang[0], x1: lo.hang[1], y: lo.hang[2] }); else Object.assign(PL.hang, OFFP);
   { const ac = lo.ac || AC0; PL.ac.x0 = ac[0]; PL.ac.x1 = ac[1]; }
+  if (rg) {
+    for (const k of ['side', 'table', 'tower', 'book', 'rail']) if (rg[k]) Object.assign(PL[k], rg[k]);
+    if (rg.ex) for (const k in rg.ex) Object.assign(PL[k], rg.ex[k]);
+    if (rg.shelfMin && PL.shelf.x0 < rg.shelfMin) PL.shelf.x0 = rg.shelfMin;
+    if (rg.hangMin && PL.hang.x0 < rg.hangMin) PL.hang.x0 = rg.hangMin;
+  }
+  tidyHang();
   SHELF_MID = (PL.shelf.x0 + PL.shelf.x1) / 2;
   // 棚・吊り棚の上のいたずらの場所も一緒に動かす
+  for (const id in MIS_X0) MISCHIEF[id].x = MIS_X0[id].slice();
   MISCHIEF.towel.x = MIS_BASE.towel.map(v => v + PL.shelf.x0 - 105);
   MISCHIEF.laundry.x = MIS_BASE.laundry.map(v => v + PL.hang.x0 - 148);
+  if (rg && rg.mis) for (const id in rg.mis) MISCHIEF[id].x = rg.mis[id].slice();
+}
+// 4.47.0：吊り棚と、左右の同じくらいの高さの足場（カーテンレール・本棚・テレビの上など）とのすき間をはっきりさせる。
+// すき間が中途半端（数十 px）だと、横に歩いたときに渡れるのか落ちるのか分からないので、
+// 左（カーテンレール）とは 16px 未満なら同じ高さでくっつけて歩いて渡れるように、それ以外は 40px 以上あけてジャンプで渡るようにする。右とは 40px 以上あける
+function tidyHang() {
+  const h = PL.hang; if (h.x1 < -100) return;
+  const L = PL.rail, gl = h.x0 - L.x1;
+  if (Math.abs(h.y - L.y) < 14 && gl < 40) { if (gl < 16) { h.x0 = L.x1 + 1; h.y = L.y; } else h.x0 = L.x1 + 40; }
+  for (const R of [PL.book, PL.ex1, PL.ex2]) {
+    if (R.x1 < -100 || R.x0 < h.x0 + 20 || Math.abs(h.y - R.y) >= 14) continue;   // 14px 以上の段差（テレビの上など）は見て分かるのでそのまま
+    if (R.x0 - h.x1 < 40) h.x1 = R.x0 - 40;
+  }
 }
 // 吊り照明の位置：どの角度に揺れても台に立ったネコの頭（足場 − 30）から 26px 以上離れ、カーテンレール・吊り棚・棚・本棚のどれかからジャンプで届く所を選ぶ
 function placeLamp() {
@@ -767,9 +865,11 @@ const MISCHIEF = {
   tp:       { n: tx('トイレットペーパーをからから', 'Unroll the toilet paper'), yen: 3000, plat: 'side', x: [24, 60], need: 1.6, noise: 0.2 },
   cloth:    { n: tx('テーブルクロス引き', 'Tablecloth yank'), yen: 2000, plat: 'floor', x: [300, 324], need: 0.9, noise: 0.5 },
   towel:    { n: tx('タオルを引きずり下ろす', 'Pull down the towel'), yen: 4000, plat: 'shelf', x: [125, 175], need: 1.2, noise: 0.3 },
-  scratchcar: { n: tx('車をひっかく', 'Scratch the car'), yen: 30000, plat: 'floor', x: [300, 330], need: 1.8, noise: 0.5 }   // 4.38.0：駐車場
+  scratchcar: { n: tx('車をひっかく', 'Scratch the car'), yen: 30000, plat: 'floor', x: [300, 330], need: 1.8, noise: 0.5 },   // 4.38.0：駐車場
+  dishcloth: { n: tx('ふきんを引きずり下ろす', 'Pull down the dish towel'), yen: 2000, plat: 'side', x: [38, 74], need: 1.2, noise: 0.3 }   // 4.47.0：キッチンの食器棚の台
 };
-const ROOM_MIS = { toilet: ['tp', 'wall'], roof: ['laundry'], parking: ['scratchcar'], pool: ['towel'], living: ['curtain', 'wall', 'cloth'], kitchen: ['curtain', 'trash'], study: ['papers', 'wall'], bed: ['curtain', 'sheets'], garden: ['dig', 'laundry', 'cloth'], kids: ['homework', 'wall'], bath: ['tp', 'towel'] };
+const MIS_X0 = {}; for (const id in MISCHIEF) MIS_X0[id] = MISCHIEF[id].x.slice();   // 4.47.0：部屋ごとに動かす前の位置
+const ROOM_MIS = { toilet: ['tp', 'wall'], roof: ['laundry'], parking: ['scratchcar'], pool: ['towel'], living: ['curtain', 'wall', 'cloth'], kitchen: ['dishcloth', 'trash'], study: ['papers', 'wall'], bed: ['curtain', 'sheets'], garden: ['dig', 'laundry', 'cloth'], kids: ['homework', 'wall'], bath: ['tp', 'towel'] };
 // 転がるもの（物理ギミック）：部屋ごとに見た目が違う
 const BALL = { living: { n: tx('毛糸玉', 'yarn ball'), c: '#e05a8a', c2: '#ff9fbf' }, kitchen: { n: tx('みかん', 'mandarin'), c: '#ff9a1f', c2: '#ffc46b' }, study: { n: tx('ボール', 'ball'), c: '#2b8fd9', c2: '#ffffff' }, bed: { n: tx('毛糸玉', 'yarn ball'), c: '#9b7fc0', c2: '#c9b6e6' },
   garden: { n: tx('テニスボール', 'tennis ball'), c: '#d8e84a', c2: '#ffffff' }, toilet: { n: tx('ボール', 'ball'), c: '#2fb3a3', c2: '#ffffff' }, roof: { n: tx('テニスボール', 'tennis ball'), c: '#d8e84a', c2: '#ffffff' }, parking: { n: tx('ボール', 'ball'), c: '#e0362c', c2: '#ffffff' }, pool: { n: tx('ビーチボール', 'beach ball'), c: '#2b8fd9', c2: '#ffc94a' }, kids: { n: tx('スーパーボール', 'bouncy ball'), c: '#ff5a5a', c2: '#ffd0d0' }, bath: { n: tx('ボール', 'ball'), c: '#2fb3a3', c2: '#ffffff' } };
@@ -1655,7 +1755,8 @@ function setupStageCore(L) {
   items = []; puddles = []; prints = []; parts = []; pops = []; coins = [];
   // 置き場所：面が進むと高い所が増える（壁の棚 → 本棚・吊り棚 → カーテンレール → エアコン）
   const ph = phaseOf(L); room = ph.room; introT = fastPlay() ? 1.3 : 2;
-  const avail = room === 'kids' ? ['table'] : ['side', 'table']; if (L >= 2) avail.push('shelf'); if (L >= 3) avail.push('book', 'hang'); if (L >= 4) avail.push('rail'); if (L >= 5) avail.push('ac');
+  let avail = room === 'kids' ? ['table'] : ['side', 'table']; if (L >= 2) avail.push('shelf'); if (L >= 3) avail.push('book', 'hang'); if (L >= 4) avail.push('rail'); if (L >= 5) avail.push('ac');
+  avail = onList(avail).filter(plOn);   // 4.47.0：部屋にない足場は外し、足す足場（ex）は同じものが置ける足場が使えるときに使う
   // 部屋ごとの足場：お風呂場のテーブルは浴槽（ふたの所だけ乗れる）。子ども部屋のサイドテーブルの上は水槽
   PL.table.x1 = wetRoom() ? 204 : 300; waterZ = wetRoom() ? BATHW : null; BOX.x = wetRoom() ? 110 : 215; toiletDoor = 0; toiletPeek = 0;
   PL.book.x0 = room === 'parking' ? 396 : 345;   // 4.40.3：駐車場はバンの荷台の屋根だけが足場
@@ -1685,7 +1786,8 @@ function setupStageCore(L) {
     const set = [], bag = day1(L) ? pool.slice() : null;   // 1 日目は表のものをそのまま 1 つずつ使う
     for (let guard = 0; set.length < n && guard < 200; guard++) {
       const bi = bag && bag.length ? (Math.random() * bag.length) | 0 : -1, t = bi >= 0 ? bag[bi] : pick(pool);
-      const ok = ON[t].filter(s => avail.includes(s)); if (!ok.length) continue;
+      const rgH = roomGeo(room) && roomGeo(room).sideMaxH;   // 4.47.0：食器棚の台のくぼみに入らない背の高いものは置かない
+      const ok = onList(ON[t]).filter(s => avail.includes(s) && !(s === 'side' && rgH && IT[t].h > rgH)); if (!ok.length) continue;
       const s = pick(ok), r = spotOf(s), x = rnd(r[0], r[1]);
       // 4.43.0：置けなかったものは袋に残す（前は袋から先に抜いていたので、1 日目の表のものが消えて、ほかのものが重複していた）
       if (set.some(o => o.plat === PL[s] && Math.abs(o.x - x) < 30)) continue;
@@ -1709,7 +1811,7 @@ function setupStageCore(L) {
   // 物理ギミック：てこ（ステージ2から。テーブルの左端の板。内側の端にものが乗っていると、外の端に飛び乗ると飛ぶ）
   // てこ（テーブルの右端の板）は v3.2 で廃止：乗ったものが落としにくく、通り道の邪魔になるため。関連の処理は lever が null のときは何もしない
   lever = null; ball = null;
-  PLS = Object.values(PL).filter(p => p === PL.tank ? room === 'kids' : !(p === PL.side && room === 'kids')); if (lever) PLS.push(LEVP); if (wetRoom()) PLS.push(RIMP);
+  PLS = Object.values(PL).filter(p => p.x1 > -100 && (p === PL.tank ? room === 'kids' : !(p === PL.side && room === 'kids'))); if (lever) PLS.push(LEVP); if (wetRoom()) PLS.push(RIMP);
   bigEv = { done: false, anim: 0, cnt: 0, wob: 0 };
   // 転がるもの（ステージ3から）：パンチすると転がり、当たったものを押す。足場から落ちると跳ねる
   if (L >= 3) {
@@ -1724,7 +1826,8 @@ function setupStageCore(L) {
   // 小物：3 + ステージ数（最大 9 個）。ほかのものに少し寄せて置き、連鎖で一緒に崩れやすくする
   const nj = Math.min(3 + L, 9), jt = ROOM_JUNK[room] || ['book', 'pencil', 'toy', 'can'];
   for (let guard = 0, k = 0; k < nj && guard < 120; guard++) {
-    const t = pick(jt), ok = JUNK_ON[t].filter(q => q === 'floor' || avail.includes(q)), sp = pick(ok), r = spotOf(sp), pl = PL[sp];
+    const rgH = roomGeo(room) && roomGeo(room).sideMaxH;
+    const t = pick(jt), ok = onList(JUNK_ON[t]).filter(q => (q === 'floor' || avail.includes(q)) && !(q === 'side' && rgH && IT[t].h > rgH)), sp = pick(ok), r = spotOf(sp), pl = PL[sp];
     let x = rnd(r[0], r[1]);
     if (sp === 'book' && Math.random() < 0.6) x = rnd(PL.book.x0 + 10, PL.book.x1 - 30);
     if (items.some(o => o.plat === pl && Math.abs(o.x - x) < (IT[o.t].w + IT[t].w) / 2 + 3)) continue;
@@ -1794,7 +1897,7 @@ function setupStageCore(L) {
   PL.table.soft = room === 'bed';
   // 新しい仕掛け：庭のニワトリ、ときどき出てくるネズミ（キッチンは必ず、ほかは4割。お風呂場と最初の面は出ない）、子ども部屋の水槽とボス猫（2日目からはほかの部屋にも）
   chick = room === 'garden' ? { x: 170, y: FLOOR, vx: 0, vy: 0, plat: PL.floor, face: 1, dir: 1, mode: 'walk', t: 2, cd: 2, anim: 0, perchT: 0, chainId: 0 } : null;
-  mouse = L >= 2 && !wetRoom() && room !== 'roof' && !(day1(L) && day1(L).noMouse) && (room === 'kitchen' || (L > DAY_LEN && Math.random() < 0.4)) ? { hole: room === 'garden' ? 392 : 112, x: 0, mode: 'hide', t: rnd(8, 14), dir: 1, face: 1, gx: 200, runT: 0, scareCd: 0, anim: 0 } : null;
+  mouse = L >= 2 && !wetRoom() && room !== 'roof' && !(day1(L) && day1(L).noMouse) && (room === 'kitchen' || (L > DAY_LEN && Math.random() < 0.4)) ? { hole: (roomGeo(room) && roomGeo(room).hole) || 112, x: 0, mode: 'hide', t: rnd(8, 14), dir: 1, face: 1, gx: 200, runT: 0, scareCd: 0, anim: 0 } : null;
   if (mouse) mouse.x = mouse.hole;
   tank = room === 'kids' ? { fish: [{ x: 44, d: 0.6, vx: 14, sc: 0 }, { x: 76, d: 0.4, vx: -11, sc: 0 }], n: 0, anim: 0 } : null;
   rival = room === 'kids' || ph.rule === 'bossday' || ph.special === 'bossnight' || (L > NPH && room !== 'bath' && Math.random() < 0.35)
@@ -2073,7 +2176,7 @@ function updOwner(dt) {
         // 拾った小物を、元の段のあいている所へ戻す（もう一度落とすと、また「散らかし」になる）
         const it = o.cur && o.cur.item;
         if (it && items.includes(it) && it.plat === PL.floor && it.state === 'rest') {
-          const hp = PL[it.home] || PL.side, r = SPOT[it.home] || SPOT.side;
+          const hp = PL[it.home] || PL.side, r = spotOf(it.home) || spotOf('side');   // 4.47.0：部屋ごとの足場の幅に合わせる（前は既定の範囲で、足場の外に戻すことがあった）
           let x = rnd(r[0], r[1]);
           for (let k = 0; k < 12 && items.some(q => q !== it && q.plat === hp && Math.abs(q.x - x) < 14); k++) x = rnd(r[0], r[1]);
           Object.assign(it, { plat: hp, x, y: hp.y, vx: 0, vy: 0, rot: 0, vr: 0, state: 'rest', scored: it.home === 'floor', spotted: false });
@@ -2115,6 +2218,7 @@ function itemInReach(c, reach) {
 }
 function updCat(dt) {
   const c = cat, T = c.type;
+  if (c.plat) c.fromPlat = c.plat;   // 4.47.0：最後に立っていた段（家具の中から上の段の端をつかまないように）
   c.anim += dt; c.sq += (0 - c.sq) * Math.min(1, dt * 12);
   if (c.bathT > 0) {
     // お風呂に落ちた：しばらくバシャバシャして、近いほうの外へ飛び出す
@@ -2197,6 +2301,8 @@ function updCat(dt) {
   }
   if (!c.plat) {
     const py = c.y; c.vy += GRAV * dt; c.y += c.vy * dt;
+    // 4.47.0：家具のくぼみ（キッチンの食器棚の台）から跳んだときは、上の戸棚で頭を打つ（中を通り抜けて上に乗らない）
+    { const ni = roomGeo(room) && roomGeo(room).niche; if (ni && c.vy < 0 && c.fromPlat === PL[ni.plat]) { const P = PL[ni.plat], top = P.y - ni.h; if (c.x >= P.x0 - 4 && c.x <= P.x1 + 4 && c.y - 38 < top) { c.y = top + 38; c.vy = 0; } } }
     if (waterZ && state === 'play' && c.vy > 0 && py <= waterZ.y && c.y >= waterZ.y && c.x > waterZ.x0 && c.x < waterZ.x1) { fallInBath(); return; }
     if (lamp && !c.hang && c.grabCd <= 0 && state === 'play') {
       const bx = lamp.ax + lamp.L * Math.sin(lamp.th), by = lamp.ay + lamp.L * Math.cos(lamp.th);
@@ -2226,6 +2332,7 @@ function updCat(dt) {
           if (head < p.y - 2 || head > p.y + 16) continue;
           const side = c.x <= p.x0 + 2 && c.x >= p.x0 - 12 ? 1 : c.x >= p.x1 - 2 && c.x <= p.x1 + 12 ? -1 : 0;
           if (!side) continue;
+          { const ng = roomGeo(room) && roomGeo(room).noGrab; if (ng && ng.some(([a, b]) => PL[a] === p && PL[b] === c.fromPlat)) continue; }   // 4.47.0：食器棚の台から、棚の上の端はつかめない（ガラス戸の中を登ってしまう）
           if (traps.some(t => t.plat === p && t.type === 'tape' && Math.abs(t.x - (side > 0 ? p.x0 : p.x1)) < 30)) continue;   // テープの端はつかめない
           c.ledge = { p, side, t: 0 }; c.vx = 0; c.vy = 0; c.plat = null; c.face = side; sfx.hide(); break;
         }
@@ -2298,7 +2405,7 @@ function updCat(dt) {
   // お題：ダンボールで見張りをやりすごす・ロボに乗る
   if (c.hidden && (owner.mode === 'look' || owner.mode === 'search' || owner.mode === 'warn') && ownerSees(c.x)) { hideT += dt; if (hideT > 2) taskHit('hide'); }
   if (riding) { rideStage += dt; if (rideStage > 3) taskHit('ride'); }
-  c.onFurn = !!c.ledge || c.hang || c.plat === PL.tank || c.plat === RIMP || c.plat === PL.side || c.plat === PL.table || c.plat === PL.shelf || c.plat === PL.book || c.plat === LEVP || HIGH.includes(c.plat);
+  c.onFurn = !!c.ledge || c.hang || c.plat === PL.tank || c.plat === PL.ex1 || c.plat === PL.ex2 || c.plat === RIMP || c.plat === PL.side || c.plat === PL.table || c.plat === PL.shelf || c.plat === PL.book || c.plat === LEVP || HIGH.includes(c.plat);
   c.acting = (c.plat !== VACP && Math.abs(c.vx) > 6) || !c.plat || c.punchT > 0 || c.meowT > 0 || !!c.scratch;
   if (c.happyT > 0) c.happyT -= dt;
   if (c.danceT > 0) c.danceT -= dt;
@@ -2325,7 +2432,8 @@ function updCat(dt) {
 function navNodes() { return PLS.filter(p => p !== VACP); }
 function navEdges(A, jh) {
   const out = [], nodes = navNodes(), apex = A.y - jh - 10;
-  const landAt = (x, y0) => { let best = null; for (const p of nodes) if (p.y > y0 && x >= p.x0 - 4 && x <= p.x1 + 4 && (!best || p.y < best.y)) best = p; return best; };
+  // 着地する段：歩いて端から降りると横にも流れるので、少し広め（±14px）に見て、途中で引っかかる段を先に見つける（4.47.0）
+  const landAt = (x, y0, wide) => { let best = null; const m = wide ? 14 : 4; for (const p of nodes) if (p.y > y0 && x >= p.x0 - m && x <= p.x1 + m && (!best || p.y < best.y)) best = p; return best; };
   for (const B of nodes) {
     if (B === A) continue;
     if (B.y < A.y && A.y - B.y <= jh) {
@@ -2346,8 +2454,9 @@ function navEdges(A, jh) {
   for (const side of [-1, 1]) {
     const ex = side < 0 ? A.x0 - 8 : A.x1 + 8;
     if (ex < 12 || ex > W - 12) continue;
-    if (waterZ && A.y < waterZ.y && ex > waterZ.x0 - 8 && ex < waterZ.x1 + 8) continue;   // お風呂のお湯には降りない
-    const L = landAt(ex, A.y);
+    if (nodes.some(p => p !== A && p.y === A.y && ex >= p.x0 - 4 && ex <= p.x1 + 4)) continue;   // 4.47.0：同じ高さの段が続いている端からは降りられない（隣の段に乗るだけ。前はここで行ったり来たりした）
+    const L = landAt(ex, A.y, true);
+    if (waterZ && A.y < waterZ.y && ex > waterZ.x0 - 8 && ex < waterZ.x1 + 8 && (!L || L.y >= waterZ.y - 8)) continue;   // お風呂・プールのお湯には降りない（4.47.0：間に段があってそこに乗るなら降りてよい）
     if (L && L !== A) out.push({ to: L, kind: 'drop', dir: side, ax: clamp(ex + side * 6, L.x0 + 6, L.x1 - 6) });
   }
   return out;
@@ -2410,7 +2519,7 @@ function drawSeason() {
     }
   }
   // 床の飾り（テーブルとキャットタワーの間）：かぼちゃ・小さなツリー・鏡もち
-  const fx = 318, F = FLOOR;
+  const fx = (roomGeo(room) && roomGeo(room).deco) || 318, F = FLOOR;
   if (room !== 'bath') {
     if (se === 'halloween') { g.fillStyle = '#ff8a1f'; g.beginPath(); g.ellipse(fx, F - 9, 11, 9, 0, 0, TAU); g.fill(); g.strokeStyle = 'rgba(160,70,0,.5)'; g.lineWidth = 1; g.beginPath(); g.moveTo(fx, F - 18); g.lineTo(fx, F); g.stroke(); g.fillStyle = '#4a7a2a'; g.fillRect(fx - 1.5, F - 22, 3, 5); g.fillStyle = '#3a2210'; g.beginPath(); g.moveTo(fx - 6, F - 11); g.lineTo(fx - 3, F - 14); g.lineTo(fx - 1, F - 10); g.fill(); g.beginPath(); g.moveTo(fx + 6, F - 11); g.lineTo(fx + 3, F - 14); g.lineTo(fx + 1, F - 10); g.fill(); g.beginPath(); g.moveTo(fx - 5, F - 6); g.lineTo(fx + 5, F - 6); g.lineTo(fx, F - 3); g.fill(); }
     else if (se === 'xmas') { g.fillStyle = '#8a5a34'; g.fillRect(fx - 2, F - 6, 4, 6); g.fillStyle = '#2f9e5a'; for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(fx, F - 30 + k * 7); g.lineTo(fx - 9 - k * 2, F - 16 + k * 5); g.lineTo(fx + 9 + k * 2, F - 16 + k * 5); g.closePath(); g.fill(); } g.fillStyle = '#ffc94a'; g.beginPath(); g.arc(fx, F - 31, 2.5, 0, TAU); g.fill(); }
@@ -2905,7 +3014,12 @@ function updRival(dt) {
   let dir = 0;
   if (r.mode === 'flee') {
     // 逃げる：床に降りて、左の端から出ていく（一度だけ戻ってくる）
-    dir = r.plat && r.plat !== PL.floor ? (r.x < (r.plat.x0 + r.plat.x1) / 2 ? -1 : 1) : -1;
+    // 4.47.0：段の近いほうの端から降りる。ただし壁ぎわまで続く段（カーテンレール・木の枝・ソファーなど）は、壁側からは降りられない（x は 12〜W-12 で止まる）ので反対側へ。
+    // 前は左端で止まったまま、いつまでも逃げられなかった
+    // 床までの道は aiNav（ふだんの移動と同じ道さがし）で探す。見つからないときだけ、降りられる側の端へ
+    if (r.plat === PL.floor) dir = -1;
+    else if (!r.plat) dir = r.airX != null && Math.abs(r.airX - r.x) > 3 ? Math.sign(r.airX - r.x) : 0;
+    else { const d = aiNav(r, { plat: PL.floor, x: 12 }); if (d != null) dir = d; else { const p = r.plat; dir = r.x < (p.x0 + p.x1) / 2 ? -1 : 1; if (dir < 0 && p.x0 - 4 <= 13) dir = 1; else if (dir > 0 && p.x1 + 4 >= W - 13) dir = -1; } }
     bodyStep(r, r.stun > 0 ? 0 : dir, 190, dt);
     if (r.plat === PL.floor && r.x <= 14) { if (r.back > 0) { r.back--; r.mode = 'wait'; r.t = r.ally || r.bossday ? rnd(5, 8) : rnd(14, 20); } else r.mode = 'gone'; }   // 味方のボス・ボス猫の日は早めに戻る
     return;
@@ -3474,7 +3588,7 @@ function drawTv() {
     const k = (tAnim * 1.2) % 1; g.globalAlpha = 1 - k; g.fillStyle = (tv.show || 0) === 2 ? '#ff7ab8' : '#9b7fc0'; g.font = `800 14px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
     g.fillText((tv.show || 0) === 0 ? lt('ｗ', 'lol') : '♪', X + w + 6, Y + 14 - k * 16); g.globalAlpha = 1;
   } else { g.fillStyle = '#3a4a5a'; g.fillRect(sx, sy, sw, sh); g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(sx + 4, sy + 3, 22, 3); }
-  g.fillStyle = '#3a3f46'; g.fillRect(X + w / 2 - 5, Y + h, 10, 4);
+  // 4.47.0：画面の下の小さな脚はなくした（壁掛けなのに脚があって不自然だった）
   g.restore();
 }
 // ---------- エンディング ----------
@@ -5034,10 +5148,31 @@ function r2Bg() {
 }
 // ---- サイドテーブル ----
 function r2Side() {
-  if (room === 'toilet') { g.fillStyle = '#f4f8fa'; rr(g, 20, 445, 80, 55, 4); g.fill(); g.strokeStyle = 'rgba(80,120,140,.25)'; g.lineWidth = 1.5; g.strokeRect(26, 452, 68, 42); g.fillStyle = '#c9d3d9'; g.fillRect(56, 470, 8, 3); }
-  else if (room === 'roof') { g.fillStyle = '#8a8f95'; rr(g, 22, 445, 76, 55, 4); g.fill(); g.fillStyle = '#6f7378'; g.fillRect(28, 452, 64, 3); g.fillStyle = '#5aa6d8'; g.beginPath(); g.arc(60, 475, 14, 0, TAU); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(60, 475, 5, 0, TAU); g.fill(); }   // 室外機
-  else if (room === 'parking') { for (let i = 0; i < 3; i++) { g.fillStyle = '#2a2f36'; rr(g, 24, 447 + i * 18, 72, 16, 7); g.fill(); g.fillStyle = '#8a8f95'; rr(g, 50, 451 + i * 18, 20, 8, 4); g.fill(); } }   // タイヤの山
-  else if (room === 'pool') { g.fillStyle = '#ffffff'; rr(g, 22, 445, 76, 10, 4); g.fill(); g.fillStyle = '#9fd3ef'; g.fillRect(28, 455, 6, 45); g.fillRect(86, 455, 6, 45); g.fillStyle = '#ff9fb2'; g.fillRect(34, 470, 52, 6); }   // デッキチェア
+  // 4.47.0：どれも PL.side から描く（部屋ごとに位置と高さが違う）
+  const p = PL.side, x0 = p.x0, x1 = p.x1, y = p.y, w = x1 - x0, cx = (x0 + x1) / 2, h = FLOOR - y;
+  if (room === 'toilet') {
+    // 細くて背の高い収納棚：上は開き戸、下は引き出し。上にトイレットペーパー
+    g.fillStyle = '#f4f8fa'; rr(g, x0, y + 2, w, h - 2, 4); g.fill(); g.strokeStyle = 'rgba(80,120,140,.3)'; g.lineWidth = 1.5;
+    g.strokeRect(x0 + 5, y + 10, w / 2 - 7, h * 0.55); g.strokeRect(cx + 2, y + 10, w / 2 - 7, h * 0.55); g.strokeRect(x0 + 5, y + 16 + h * 0.55, w - 10, h * 0.3);
+    g.fillStyle = '#c9d3d9'; g.fillRect(cx - 6, y + 10 + h * 0.27, 3, 10); g.fillRect(cx + 3, y + 10 + h * 0.27, 3, 10); g.fillRect(cx - 5, y + 16 + h * 0.7, 10, 3);
+    g.fillStyle = '#9fb3c0'; rr(g, x0 - 2, y - 1, w + 4, 7, 3); g.fill();   // 天板（足場）
+  } else if (room === 'roof') {
+    // 横長の室外機：ファンが回る
+    g.fillStyle = '#8a8f95'; rr(g, x0, y + 2, w, h - 8, 4); g.fill(); g.fillStyle = '#6f7378'; g.fillRect(x0 + 6, FLOOR - 6, 8, 6); g.fillRect(x1 - 14, FLOOR - 6, 8, 6);
+    const fx = x0 + w * 0.38, fy = y + 2 + (h - 8) / 2; g.fillStyle = '#5d6268'; g.beginPath(); g.arc(fx, fy, 17, 0, TAU); g.fill();
+    g.save(); g.translate(fx, fy); g.rotate(tAnim * 6); g.fillStyle = '#5aa6d8'; for (let i = 0; i < 3; i++) { g.rotate(TAU / 3); g.beginPath(); g.ellipse(7, 0, 8, 3.5, 0.3, 0, TAU); g.fill(); } g.restore();
+    g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1.5; for (let k = 0; k < 4; k++) { g.beginPath(); g.moveTo(x1 - 34, y + 12 + k * 8); g.lineTo(x1 - 8, y + 12 + k * 8); g.stroke(); }
+    g.fillStyle = '#6f7378'; rr(g, x0 - 2, y - 1, w + 4, 6, 2); g.fill();   // 上（足場）
+  } else if (room === 'parking') {
+    // タイヤの山（3本）
+    const n = Math.round(h / 18), th = h / n;
+    for (let i = 0; i < n; i++) { g.fillStyle = '#2a2f36'; rr(g, x0, y + i * th, w, th - 2, 7); g.fill(); g.fillStyle = '#8a8f95'; rr(g, cx - 10, y + 4 + i * th, 20, th - 10, 4); g.fill(); }
+  } else if (room === 'pool') {
+    // 長いデッキチェア：左にまくら。座面が足場
+    g.fillStyle = '#9fd3ef'; g.fillRect(x0 + 6, y + 8, 5, h - 8); g.fillRect(x1 - 11, y + 8, 5, h - 8); g.fillRect(x0 + 6, FLOOR - 14, w - 12, 3);
+    g.fillStyle = '#ffffff'; rr(g, x0, y - 1, w, 9, 4); g.fill(); g.fillStyle = '#ff9fb2'; for (let x = x0 + 4; x < x1 - 6; x += 12) g.fillRect(x, y + 1, 6, 5);
+    g.fillStyle = '#ffffff'; rr(g, x0 - 2, y - 7, 22, 8, 4); g.fill(); g.strokeStyle = 'rgba(0,0,0,.15)'; g.lineWidth = 1; g.stroke();   // まくら
+  }
 }
 // ---- テーブル ----
 function r2Table() {
@@ -5047,13 +5182,16 @@ function r2Table() {
     g.fillStyle = '#dfeef5'; rr(g, 121, 428, 183, 11, 3); g.fill(); g.fillStyle = '#c9d3d9'; g.beginPath(); g.ellipse(212, 433, 24, 4, 0, 0, TAU); g.fill();
     g.strokeStyle = '#a7adb5'; g.lineWidth = 4; g.beginPath(); g.moveTo(212, 428); g.lineTo(212, 410); g.lineTo(200, 410); g.stroke();
   } else if (room === 'roof') {
-    // 天窓の箱：上に乗れる
-    g.fillStyle = '#8a8f95'; g.fillRect(127, 438, 171, 62); g.fillStyle = '#9cc8ef'; rr(g, 133, 446, 159, 46, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(140, 452, 60, 6);
-    g.fillStyle = '#6f7378'; rr(g, 121, 428, 183, 11, 3); g.fill();
+    // 天窓の箱：上に乗れる（4.47.0：PL.table から描く）
+    const T = PL.table, tw = T.x1 - T.x0;
+    g.fillStyle = '#8a8f95'; g.fillRect(T.x0 + 2, T.y + 8, tw - 4, FLOOR - T.y - 8); g.fillStyle = '#9cc8ef'; rr(g, T.x0 + 8, T.y + 16, tw - 16, FLOOR - T.y - 24, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(T.x0 + 15, T.y + 22, tw * 0.35, 6);
+    g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(T.x0 + tw / 2 - 1, T.y + 16, 2, FLOOR - T.y - 24);
+    g.fillStyle = '#6f7378'; rr(g, T.x0 - 4, T.y - 2, tw + 8, 11, 3); g.fill();
   } else if (room === 'parking') {
-    // 作業台：工具の箱
-    g.fillStyle = '#6f7378'; g.fillRect(133, 438, 7, 62); g.fillRect(285, 438, 7, 62); g.fillStyle = '#8a8f95'; rr(g, 121, 428, 183, 11, 3); g.fill();
-    g.fillStyle = '#e0362c'; rr(g, 170, 446, 70, 40, 4); g.fill(); g.fillStyle = '#4a2f1d'; g.fillRect(170, 462, 70, 3); g.fillStyle = '#c9ced6'; g.fillRect(200, 440, 10, 8);
+    // 作業台：工具の箱（4.47.0：PL.table から描く）
+    const T = PL.table, tw = T.x1 - T.x0;
+    g.fillStyle = '#6f7378'; g.fillRect(T.x0 + 8, T.y + 8, 7, FLOOR - T.y - 8); g.fillRect(T.x1 - 15, T.y + 8, 7, FLOOR - T.y - 8); g.fillRect(T.x0 + 8, FLOOR - 22, tw - 16, 4); g.fillStyle = '#8a8f95'; rr(g, T.x0 - 4, T.y - 2, tw + 8, 11, 3); g.fill();
+    const bx = T.x1 - 62, by = FLOOR - 54; g.fillStyle = '#e0362c'; rr(g, bx, by, 44, 32, 4); g.fill(); g.fillStyle = '#4a2f1d'; g.fillRect(bx, by + 12, 44, 3); g.fillStyle = '#c9ced6'; g.fillRect(bx + 17, by - 5, 10, 6);   // 下の段に載った工具箱（真ん中はタイヤの隠れ場所なので右に）
   } else if (room === 'pool') {
     // プール：左はデッキ（乗れる）、右は水（落ちるとずぶぬれ）。はしご
     g.fillStyle = '#4fa8e0'; g.fillRect(WATERP.x0 - 2, 427, WATERP.x1 - WATERP.x0 + 4, 15);
@@ -5127,10 +5265,11 @@ function r2Tall() {
 function r2High() {
   const r = PL.rail, h = PL.hang, a = PL.ac;
   if (room === 'toilet') {
+    drawSill();
     g.fillStyle = '#8a9aa6'; rr(g, r.x0, r.y, r.x1 - r.x0, 8, 3); g.fill(); g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(r.x0 + 3, r.y + 1.5, r.x1 - r.x0 - 6, 1.5); g.fillStyle = '#6f7f8a'; g.fillRect(r.x0 + 4, r.y + 8, 4, 6); g.fillRect(r.x1 - 8, r.y + 8, 4, 6);   // タオル掛け（青灰色）
     g.fillStyle = '#ff9fb2'; rr(g, r.x0 + 22, r.y + 8, 50, 46, 4); g.fill();
-    g.strokeStyle = '#6f7f8a'; g.lineWidth = 2; g.beginPath(); g.moveTo(h.x0 + 8, -OY); g.lineTo(h.x0 + 8, h.y); g.moveTo(h.x1 - 8, -OY); g.lineTo(h.x1 - 8, h.y); g.stroke();
-    g.fillStyle = '#9fb3c0'; rr(g, h.x0, h.y, h.x1 - h.x0, 8, 3); g.fill(); g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(h.x0 + 4, h.y + 8, h.x1 - h.x0 - 8, 3);
+    drawHangCord(h);
+    g.fillStyle = '#9fb3c0'; rr(g, h.x0, h.y, h.x1 - h.x0, 8, 3); g.fill(); 
     // 換気扇
     g.fillStyle = '#e8eef2'; rr(g, a.x0 - 4, a.y, a.x1 - a.x0 + 8, 36, 4); g.fill(); g.strokeStyle = 'rgba(0,0,0,.15)'; g.lineWidth = 1.2; g.stroke();
     const cx = (a.x0 + a.x1) / 2, cy = a.y + 19; g.fillStyle = '#c9d3d9'; g.beginPath(); g.arc(cx, cy, 13, 0, TAU); g.fill(); g.strokeStyle = '#8a8f95'; g.lineWidth = 3; for (let i = 0; i < 3; i++) { const an = tAnim * 6 + i * TAU / 3; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(an) * 11, cy + Math.sin(an) * 11); g.stroke(); }
@@ -5143,6 +5282,7 @@ function r2High() {
     g.strokeStyle = '#2f3236'; g.lineWidth = 1.5; rr(g, r.x0, r.y - 1, r.x1 - r.x0, 9, 3); g.fill(); g.stroke();
     g.fillStyle = '#6f7378'; g.fillRect(h.x0 - 6, h.y, 4, FLOOR - h.y); g.fillRect(h.x1 + 2, h.y, 4, FLOOR - h.y);
     g.fillStyle = '#8a6a4f'; g.strokeStyle = '#4a2f1d'; rr(g, h.x0 - 8, h.y - 1, h.x1 - h.x0 + 16, 9, 3); g.fill(); g.stroke();
+    drawLaundry(h.y + 8);
     g.fillStyle = '#8a8f95'; g.fillRect(a.x0 + 6, a.y + 30, 6, FLOOR - a.y - 30); g.fillRect(a.x1 - 12, a.y + 30, 6, FLOOR - a.y - 30); g.fillStyle = '#5d7a9a'; rr(g, a.x0 - 4, a.y, a.x1 - a.x0 + 8, 34, 8); g.fill(); g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(a.x0 + 4, a.y + 6, a.x1 - a.x0, 5);
     return;
   }
@@ -5156,7 +5296,7 @@ function r2High() {
   if (room === 'pool') {
     // 監視台（レール）・飛び込み台（吊り棚）・日よけ（エアコン）
     g.fillStyle = '#d9a46a'; g.fillRect(r.x0 + 10, r.y, 6, FLOOR - r.y); g.fillRect(r.x1 - 16, r.y, 6, FLOOR - r.y); rr(g, r.x0, r.y, r.x1 - r.x0, 8, 3); g.fill(); g.fillStyle = '#e0362c'; rr(g, r.x0 + 30, r.y - 16, 40, 16, 3); g.fill();
-    g.fillStyle = '#a7adb5'; g.fillRect(h.x1 - 10, h.y, 6, FLOOR - h.y); g.fillStyle = '#d9a46a'; rr(g, h.x0, h.y, h.x1 - h.x0, 8, 3); g.fill(); g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(h.x0 + 4, h.y + 8, h.x1 - h.x0 - 8, 3);
+    g.fillStyle = '#a7adb5'; g.fillRect(h.x1 - 10, h.y, 6, FLOOR - h.y); g.fillStyle = '#d9a46a'; rr(g, h.x0, h.y, h.x1 - h.x0, 8, 3); g.fill();
     g.fillStyle = '#8a5a34'; g.fillRect(a.x0 + 4, a.y + 10, 5, FLOOR - a.y - 10); g.fillRect(a.x1 - 9, a.y + 10, 5, FLOOR - a.y - 10); g.fillStyle = '#ffc94a'; rr(g, a.x0 - 8, a.y, a.x1 - a.x0 + 16, 10, 4); g.fill(); g.fillStyle = '#fff'; for (let x = a.x0 - 4; x < a.x1 + 8; x += 16) g.fillRect(x, a.y, 8, 10);
     return;
   }
@@ -5206,6 +5346,7 @@ function drawRoom() {
   drawTape();
   if (room === 'kids') { g.fillStyle = '#7fc1f0'; rr(g, 140, FLOOR + 8, 170, 22, 10); g.fill(); g.fillStyle = '#fff'; for (let x = 150; x < 300; x += 16) g.fillRect(x, FLOOR + 18, 8, 2); }   // 道路のラグ
   // 窓（時間帯で空の色が変わる）。カーテンレール（足場）の下に置くので、元の位置から 226px 下げて描く
+  if (roomGeo(room) && roomGeo(room).noWindow) {} else {   // 4.47.0：キッチンは食器棚の後ろなので描かない
   g.save(); g.translate(0, 226);
   g.fillStyle = '#fff'; rr(g, 28, 70, 84, 96, 8); g.fill();
   const sk = skyCols(ph), sky = g.createLinearGradient(0, 76, 0, 160); sky.addColorStop(0, sk[0]); sky.addColorStop(1, sk[1]);
@@ -5227,6 +5368,8 @@ function drawRoom() {
     if (cs.done) { g.fillStyle = 'rgba(255,255,255,.75)'; [[26, 166], [31, 170], [36, 167]].forEach(([x, y]) => { g.beginPath(); g.moveTo(x - 3, y); g.lineTo(x, y + 8); g.lineTo(x + 3, y); g.fill(); }); }
   }
   g.restore();
+  }
+  if (room === 'study') drawCoatHanger(62);   // 4.47.0：書斎のコートハンガー（飾り）
   // 時計（時間帯の時刻を指す）。吊り照明とぶつからないよう左に置く
   const hh = parseInt(ph.clock, 10) % 12, ha = hh / 12 * TAU - Math.PI / 2, ckx = 120;
   g.fillStyle = '#fff'; g.beginPath(); g.arc(ckx, 90, 22, 0, TAU); g.fill(); g.strokeStyle = '#ff8a3d'; g.lineWidth = 5; g.stroke();
@@ -5302,9 +5445,12 @@ function drawGardenBg() {
   g.fillStyle = '#c9d8e6'; [[30, 300, 70], [110, 270, 60], [190, 310, 80], [280, 290, 60]].forEach(([x, y, w]) => { g.fillRect(x, y, w, FLOOR - y); g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x + w / 2, y - 26); g.lineTo(x + w + 6, y); g.fill(); });
   g.fillStyle = '#8a5a34'; g.fillRect(0, 150, 14, FLOOR - 150);   // 木の幹（枝はカーテンレールの位置）
   g.fillStyle = '#5aa64a'; g.beginPath(); g.arc(8, 200, 52, 0, TAU); g.arc(54, 238, 34, 0, TAU); g.fill();
-  g.fillStyle = '#c99a62'; g.fillRect(0, 380, W, FLOOR - 380);
-  g.strokeStyle = 'rgba(94,58,28,.25)'; g.lineWidth = 2; for (let x = 0; x < W; x += 22) { g.beginPath(); g.moveTo(x, 380); g.lineTo(x, FLOOR); g.stroke(); }
-  g.fillStyle = '#b07d45'; g.fillRect(0, 374, W, 8);
+  // 塀：4.47.0 から上を歩ける（PL.ex1 の高さ）。物置の後ろまで続く
+  const fy = plOn('ex1') ? PL.ex1.y : 374, fx0 = plOn('ex1') ? PL.ex1.x0 - 4 : 0;
+  g.fillStyle = '#c99a62'; g.fillRect(fx0, fy + 6, W - fx0, FLOOR - fy - 6);
+  g.strokeStyle = 'rgba(94,58,28,.25)'; g.lineWidth = 2; for (let x = fx0 + 6; x < W; x += 22) { g.beginPath(); g.moveTo(x, fy + 6); g.lineTo(x, FLOOR); g.stroke(); }
+  g.fillStyle = '#b07d45'; rr(g, fx0, fy - 1, W - fx0, 8, 3); g.fill(); g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(fx0 + 3, fy, W - fx0 - 3, 2);
+  if (fx0 > 0) { g.fillStyle = '#4f9a42'; for (let x = 0; x < fx0 + 8; x += 18) { g.beginPath(); g.arc(x + 6, 412 + (x % 36 ? 4 : 0), 16, 0, TAU); g.fill(); } g.fillRect(0, 414, fx0 + 4, FLOOR - 414); g.fillStyle = '#5aa64a'; for (let x = 4; x < fx0; x += 15) { g.beginPath(); g.arc(x, 432 + (x % 30 ? 8 : 0), 4, 0, TAU); g.fill(); } }   // 生け垣
   g.fillStyle = '#7cc25a'; g.fillRect(0, FLOOR, W, BOT - FLOOR); g.fillStyle = '#5aa64a'; g.fillRect(0, FLOOR, W, 5); drawTape();
   g.strokeStyle = '#5aa64a'; g.lineWidth = 1.5; for (let y = FLOOR + 14, r = 0; y < BOT; y += 22, r++) for (let x = 6 + (r % 2) * 6; x < W; x += 13) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + 3, y - 6); g.stroke(); }
   const ds = spots.find(s => s.id === 'dig'), m = MISCHIEF.dig, k = ds ? clamp(ds.t / m.need, 0, 1) : 0, nf = ds && ds.done ? 0 : 5 - Math.floor(k * 5);
@@ -5321,15 +5467,7 @@ function drawGardenHigh() {
   g.fillStyle = '#5aa64a'; [[40, r.y - 4], [90, r.y - 2], [112, r.y + 2]].forEach(([x, y]) => { g.beginPath(); g.ellipse(x, y, 9, 5, 0.3, 0, TAU); g.fill(); });
   const h = PL.hang; g.fillStyle = '#a7adb5'; g.fillRect(h.x0 - 6, h.y, 4, FLOOR - h.y); g.fillRect(h.x1 + 2, h.y, 4, FLOOR - h.y);
   g.fillStyle = '#c9d3d9'; rr(g, h.x0 - 8, h.y, h.x1 - h.x0 + 16, 5, 2.5); g.fill();
-  const ls = spots.find(s => s.id === 'laundry'), lk = ls ? clamp(ls.t / MISCHIEF.laundry.need, 0, 1) : 0;
-  [[168, '#ff9fb2'], [198, '#7fc1f0'], [228, '#ffffff']].forEach(([x, col], i) => {
-    g.fillStyle = col; g.strokeStyle = 'rgba(0,0,0,.15)'; g.lineWidth = 1;
-    if (ls && ls.done) { rr(g, x - 12, FLOOR - 6, 24, 6, 2); g.fill(); g.stroke(); return; }
-    const sw = Math.sin(tAnim * (2 + lk * 18) + i) * (1.5 + lk * 4);
-    g.save(); g.translate(x, h.y + 5); g.rotate(sw * 0.03);
-    g.beginPath(); g.moveTo(-10, 0); g.lineTo(10, 0); g.lineTo(13, 8); g.lineTo(8, 9); g.lineTo(8, 30); g.lineTo(-8, 30); g.lineTo(-8, 9); g.lineTo(-13, 8); g.closePath(); g.fill(); g.stroke();
-    g.restore();
-  });
+  drawLaundry(h.y + 5);
   const a = PL.ac; g.fillStyle = '#a5683a'; g.fillRect(a.x0 + 2, a.y, 6, FLOOR - a.y); g.fillRect(a.x1 - 8, a.y, 6, FLOOR - a.y);
   g.fillStyle = '#b8743f'; rr(g, a.x0 - 6, a.y, a.x1 - a.x0 + 12, 8, 3); g.fill();
   g.fillStyle = '#5aa64a'; for (let x = a.x0; x < a.x1; x += 12) { g.beginPath(); g.ellipse(x + 4, a.y + 12 + (x % 24 ? 4 : 0), 6, 4, 0, 0, TAU); g.fill(); }
@@ -5348,6 +5486,34 @@ function drawBathBg() {
   g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 3; g.beginPath(); g.moveTo(44, 410); g.lineTo(66, 378); g.stroke();
   g.fillStyle = '#c9d3d9'; g.fillRect(0, FLOOR, W, BOT - FLOOR); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 1.5; for (let x = 0; x < W; x += 30) { g.beginPath(); g.moveTo(x, FLOOR); g.lineTo(x, BOT); g.stroke(); }
   g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(0, FLOOR, W, 5);
+}
+// 洗濯物（物干しの下に 3 枚。位置はいたずらの場所に合わせる）。4.47.0：屋根でも描く（前は庭だけで、屋根では見えないまま「洗濯物を落とす」ができた）
+function drawLaundry(y) {
+  const ls = spots.find(s => s.id === 'laundry'); if (!ls) return;
+  const lk = clamp(ls.t / MISCHIEF.laundry.need, 0, 1), m = MISCHIEF.laundry.x, c = (m[0] + m[1]) / 2;
+  [[c - 30, '#ff9fb2'], [c, '#7fc1f0'], [c + 30, '#ffffff']].forEach(([x, col], i) => {
+    g.fillStyle = col; g.strokeStyle = 'rgba(0,0,0,.15)'; g.lineWidth = 1;
+    if (ls.done) { rr(g, x - 12, FLOOR - 6, 24, 6, 2); g.fill(); g.stroke(); return; }
+    const sw = Math.sin(tAnim * (2 + lk * 18) + i) * (1.5 + lk * 4);
+    g.save(); g.translate(x, y); g.rotate(sw * 0.03);
+    g.beginPath(); g.moveTo(-10, 0); g.lineTo(10, 0); g.lineTo(13, 8); g.lineTo(8, 9); g.lineTo(8, 30); g.lineTo(-8, 30); g.lineTo(-8, 9); g.lineTo(-13, 8); g.closePath(); g.fill(); g.stroke();
+    g.restore();
+  });
+}
+// 小窓の窓台（お風呂場・トイレの PL.ex1）
+function drawSill() {
+  if (!plOn('ex1')) return; const p = PL.ex1;
+  g.fillStyle = '#c9d3d9'; rr(g, p.x0 - 3, p.y - 1, p.x1 - p.x0 + 6, 7, 3); g.fill(); g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(p.x0, p.y, p.x1 - p.x0, 2);
+  g.fillStyle = '#aab6bf'; g.fillRect(p.x0 + 6, p.y + 6, 4, 6); g.fillRect(p.x1 - 10, p.y + 6, 4, 6);
+}
+// キッチンの電子レンジ（調理台の上。上面 PL.ex1 が足場）
+function drawMicrowave(p, base) {
+  const w = p.x1 - p.x0, h = base - p.y;
+  g.fillStyle = '#f4f4f0'; rr(g, p.x0 - 2, p.y, w + 4, h, 4); g.fill(); g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 1.2; g.stroke();
+  g.fillStyle = '#3a3f46'; rr(g, p.x0 + 3, p.y + 5, w * 0.62, h - 10, 3); g.fill();
+  g.fillStyle = 'rgba(255,214,130,.35)'; rr(g, p.x0 + 6, p.y + 8, w * 0.62 - 6, h - 16, 2); g.fill();   // 中の明かり
+  g.fillStyle = '#c9ced6'; g.fillRect(p.x0 + w * 0.7, p.y + 6, w * 0.25, 7); g.fillStyle = '#2fb3a3'; g.fillRect(p.x0 + w * 0.72, p.y + 8, w * 0.1, 3);
+  g.fillStyle = '#a7adb5'; for (let k = 0; k < 2; k++) { g.beginPath(); g.arc(p.x0 + w * 0.82, p.y + 19 + k * 7, 2.4, 0, TAU); g.fill(); }
 }
 // 浴槽：ふた（左）・お湯（真ん中。落ちるとずぶぬれ）・ふち（右）。湯気が目印
 function drawTub() {
@@ -5425,10 +5591,16 @@ function drawCharmIcon(c, x, y, s) {
   c.fillStyle = '#fff'; c.fillRect(-1.8, 0, 3.6, 4);
   c.restore();
 }
-function drawMouse() {
+// ネズミの穴は床の家具のすぐあとに描く（4.47.0：前はネコやお掃除ロボより手前に描いていた）
+function drawMouseHole() {
   const m = mouse; if (!m) return;
   const hx = m.hole;
   g.fillStyle = '#2a1d14'; g.beginPath(); g.moveTo(hx - 9, FLOOR); g.lineTo(hx - 9, FLOOR - 7); g.arc(hx, FLOOR - 7, 9, Math.PI, TAU); g.lineTo(hx + 9, FLOOR); g.closePath(); g.fill();
+}
+function drawMouse() {
+  const m = mouse; if (!m) return;
+  const hx = m.hole;
+
   if (m.mode === 'hide') { if (m.t < 1.5 && Math.sin(tAnim * 9) > -0.3) { g.fillStyle = '#ffe96b'; g.fillRect(hx - 4, FLOOR - 8, 2, 2); g.fillRect(hx + 2, FLOOR - 8, 2, 2); } return; }   // 出てくる前に、穴の奥で目が光る
   const down = m.mode === 'down';
   g.save(); g.translate(m.x, FLOOR); g.scale(m.face, 1); if (down) { g.translate(0, -4); g.rotate(Math.PI); g.translate(0, 4); }
@@ -5449,15 +5621,28 @@ function drawRival() {
   g.font = `800 11px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.lineWidth = 3; g.strokeStyle = '#fff'; const nm = lt('ボス', 'BOSS');
   g.strokeText(nm, r.x, ty); g.fillStyle = '#5d7a9a'; g.fillText(nm, r.x, ty);
 }
+// 吊り棚の支え：4.47.0 から天井までのひもはやめて、棚の下の鉄の棚受け（L 字）で壁に固定する
+// （ひもを天井まで伸ばすとエアコンや時計を貫いて見え、短いひもで三角に吊ると揺れそうに見えた）
+function drawHangCord(h) {
+  if (h.x1 < -100) return;
+  g.fillStyle = '#4a4f58';
+  for (const bx of [h.x0 + 10, h.x1 - 14]) {
+    g.fillRect(bx, h.y + 6, 4, 16);   // 壁に沿った縦の板
+    g.beginPath(); g.moveTo(bx, h.y + 6); g.lineTo(bx + 4, h.y + 6); g.lineTo(bx + 4, h.y + 9); g.lineTo(bx + 1, h.y + 20); g.closePath(); g.fill();
+    g.strokeStyle = '#4a4f58'; g.lineWidth = 2; g.beginPath(); g.moveTo(bx + 2, h.y + 20); g.quadraticCurveTo(bx + 2, h.y + 8, bx + 12 * (bx < (h.x0 + h.x1) / 2 ? 1 : -1) + 2, h.y + 7); g.stroke();   // 斜めの補強
+    g.fillStyle = '#8a8f96'; g.beginPath(); g.arc(bx + 2, h.y + 17, 1.2, 0, TAU); g.fill(); g.fillStyle = '#4a4f58';   // ねじ
+  }
+}
 // 壁の高い足場：カーテンレール・吊り棚・エアコン（キッチンは吊り戸棚。お風呂場はタオル掛けと換気扇）
 function drawHigh() {
   drawCamPosts();
   if (r2()) { r2High(); return; }
   if (room === 'garden') { drawGardenHigh(); return; }
   if (room === 'bath') {
+    drawSill();
     const r = PL.rail; g.fillStyle = '#c9d3d9'; rr(g, r.x0, r.y, r.x1 - r.x0, 6, 3); g.fill(); g.fillStyle = '#fff'; g.fillRect(r.x0 + 3, r.y + 1, r.x1 - r.x0 - 6, 1.5);
     g.fillStyle = '#9fd3ef'; rr(g, r.x0 + 22, r.y + 6, 50, 46, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(r.x0 + 22, r.y + 40, 50, 3);
-  } else {
+  } else if (room === 'kitchen') { /* 4.47.0：食器棚の上が足場（drawCupboard） */ } else {
   // カーテンレール：木の箱型レール。上面が足場（y=285）
   g.fillStyle = '#9a6038'; rr(g, PL.rail.x0, PL.rail.y, PL.rail.x1 - PL.rail.x0, 9, 3); g.fill();
   g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(PL.rail.x0 + 3, PL.rail.y + 2, PL.rail.x1 - PL.rail.x0 - 6, 2);
@@ -5465,9 +5650,8 @@ function drawHigh() {
   }
   // 吊り棚：板と、天井から下がる2本のひも
   const hy = PL.hang.y;
-  g.strokeStyle = '#8a6a4f'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(PL.hang.x0 + 8, -OY); g.lineTo(PL.hang.x0 + 8, hy); g.moveTo(PL.hang.x1 - 8, -OY); g.lineTo(PL.hang.x1 - 8, hy); g.stroke();
+  drawHangCord(PL.hang);
   g.fillStyle = ({ kitchen: '#e8e2d6', bed: '#c9a0dc', bath: '#b8cfdc', kids: '#7fc1f0' })[room] || '#c98a4f'; rr(g, PL.hang.x0, hy, PL.hang.x1 - PL.hang.x0, 8, 3); g.fill();
-  g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(PL.hang.x0 + 4, hy + 8, PL.hang.x1 - PL.hang.x0 - 8, 3);
   // エアコン（キッチンは吊り戸棚）
   const ax = PL.ac.x0 - 4, aw = PL.ac.x1 - PL.ac.x0 + 8, ay = PL.ac.y;
   if (room === 'bath') {
@@ -5511,6 +5695,11 @@ function drawProps() {
       g.fillStyle = '#c9b39a'; g.beginPath(); g.arc(cx, y - 7, 2, 0, TAU); g.fill();
       if (len > 0) { g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(cx + 3, y - 2); g.quadraticCurveTo(cx + 18, y + len * 0.4, cx + 10, y + len); g.lineTo(cx + 3, y + len); g.quadraticCurveTo(cx + 10, y + len * 0.4, cx - 3, y - 2); g.closePath(); g.fill(); g.stroke(); }
       if (s.done) { g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(cx + 12, FLOOR - 4, 20, 6, 0, 0, TAU); g.fill(); g.stroke(); }
+    } else if (s.id === 'dishcloth') {
+      // 4.47.0：食器棚の台のふちに掛けたふきん。進むほど揺れ、終わると床に落ちる
+      const y = PL.side.y + 7;
+      if (!s.done) { const sw = Math.sin(tAnim * 20) * k * 3; g.fillStyle = '#ffffff'; rr(g, cx - 12 + sw, y, 24, 28, 3); g.fill(); g.fillStyle = '#7fc1f0'; g.fillRect(cx - 12 + sw, y + 6, 24, 3); g.fillRect(cx - 12 + sw, y + 20, 24, 3); }
+      else { g.fillStyle = '#ffffff'; rr(g, cx - 18, FLOOR - 6, 36, 6, 3); g.fill(); g.fillStyle = '#7fc1f0'; g.fillRect(cx - 18, FLOOR - 4, 36, 2); }
     } else if (s.id === 'towel') {
       const y = PL.shelf.y + 9;
       if (!s.done) { const sw = Math.sin(tAnim * 20) * k * 3; g.fillStyle = '#ff9fb2'; rr(g, cx - 14 + sw, y, 28, 34, 3); g.fill(); g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(cx - 14 + sw, y + 26, 28, 3); }
@@ -5553,68 +5742,191 @@ function drawBall() {
   if ((room === 'living' || room === 'bed') && b.plat) { g.strokeStyle = s.c; g.lineWidth = 1.2; g.beginPath(); g.moveTo(b.x - b.r * Math.sign(b.vx || 1), b.y - 3); g.quadraticCurveTo(b.x - (b.r + 8) * Math.sign(b.vx || 1), b.y - 1, b.x - (b.r + 14) * Math.sign(b.vx || 1), b.y); g.stroke(); }
 }
 let furnPart = '';   // 4.39.0：'back' 壁側（棚・背の高い家具）／'front' 床側（サイドテーブル・テーブル・タワー）／'' 全部
+// ---- 4.47.0：部屋ごとの家具。どれも PL の足場から位置と大きさを決める ----
+// キッチンの食器棚：上（PL.rail）と、腰の高さの台（PL.side）が足場。台の上は物を置くくぼみ
+function drawCupboard() {
+  const t = PL.rail, s = PL.side, x0 = Math.min(t.x0, s.x0), x1 = Math.max(t.x1, s.x1), w = x1 - x0, uBot = s.y - 46;
+  // 本体（側板）
+  g.fillStyle = '#b8743f'; g.fillRect(x0, t.y + 4, w, FLOOR - t.y - 4);
+  // 上の段：ガラス戸。中にお皿とコップ
+  const ud = (w - 12) / 2;
+  for (let i = 0; i < 2; i++) {
+    const dx = x0 + 4 + i * (ud + 4);
+    g.fillStyle = '#9a6038'; g.fillRect(dx, t.y + 10, ud, uBot - t.y - 14);
+    g.fillStyle = '#dff1f4'; g.fillRect(dx + 4, t.y + 14, ud - 8, uBot - t.y - 22);
+    g.fillStyle = '#9a6038'; g.fillRect(dx + 4, t.y + 14 + (uBot - t.y - 22) / 2 - 1, ud - 8, 3);   // 中の棚板
+    const r1 = t.y + 14 + (uBot - t.y - 22) / 2 - 2, r2 = uBot - 9;
+    g.fillStyle = '#ffffff'; g.strokeStyle = 'rgba(94,58,28,.25)'; g.lineWidth = 1;
+    for (let k = 0; k < 3; k++) { g.beginPath(); g.ellipse(dx + 10 + k * 3, r1 - 9, 3, 9, 0, 0, TAU); g.fill(); g.stroke(); }   // 立てたお皿
+    g.fillStyle = i ? '#ff9fb2' : '#9fd3ef'; rr(g, dx + ud - 18, r1 - 12, 9, 12, 2); g.fill(); rr(g, dx + ud - 30, r1 - 12, 9, 12, 2); g.fill();   // コップ
+    g.fillStyle = '#ffffff'; for (let k = 0; k < 3; k++) { rr(g, dx + 6, r2 - 3 - k * 3, ud - 20, 3, 1.5); g.fill(); g.stroke(); }   // 重ねたお皿
+    g.fillStyle = 'rgba(255,255,255,.45)'; g.beginPath(); g.moveTo(dx + 6, t.y + 30); g.lineTo(dx + 14, t.y + 18); g.lineTo(dx + 16, t.y + 18); g.lineTo(dx + 8, t.y + 30); g.fill();   // ガラスの光
+    g.fillStyle = '#ffc94a'; g.fillRect(i ? dx + 2 : dx + ud - 4, uBot - t.y > 60 ? t.y + (uBot - t.y) / 2 : t.y + 30, 2, 10);   // 取っ手
+  }
+  // くぼみ（台の上の奥）
+  g.fillStyle = '#8a5530'; g.fillRect(x0 + 4, uBot - 4, w - 8, s.y - uBot + 4);
+  g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(x0 + 4, uBot - 4, w - 8, 5);
+  // 台の天板（足場 PL.side）
+  g.fillStyle = '#e8e2d6'; rr(g, s.x0 - 2, s.y - 1, s.x1 - s.x0 + 4, 9, 3); g.fill(); g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(s.x0, s.y + 8, s.x1 - s.x0, 2);
+  // 下の段：引き出しと扉
+  g.fillStyle = '#9a6038'; g.fillRect(x0 + 4, s.y + 12, w - 8, 14); g.fillStyle = '#ffc94a'; g.fillRect(x0 + w / 2 - 6, s.y + 18, 12, 3);
+  for (let i = 0; i < 2; i++) { const dx = x0 + 4 + i * (ud + 4); g.fillStyle = '#9a6038'; g.fillRect(dx, s.y + 30, ud, FLOOR - s.y - 36); g.fillStyle = '#ffc94a'; g.fillRect(i ? dx + 4 : dx + ud - 6, s.y + 40, 2, 10); }
+  g.fillStyle = '#7a4a26'; g.fillRect(x0, FLOOR - 6, w, 6);   // 台輪
+  // 上の天板（足場 PL.rail）
+  g.fillStyle = '#9a6038'; rr(g, t.x0 - 3, t.y - 1, t.x1 - t.x0 + 6, 9, 3); g.fill(); g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(t.x0, t.y + 1, t.x1 - t.x0, 2);
+}
+// 書斎のデスクチェア：座面（PL.side）が足場。背もたれは左（机のほうを向いている）
+function drawDeskChair(p) {
+  const w = p.x1 - p.x0, cx = (p.x0 + p.x1) / 2, y = p.y;
+  g.strokeStyle = '#3a3f46'; g.lineWidth = 4; g.lineCap = 'round';
+  g.beginPath(); for (const dx of [-20, -9, 9, 20]) { g.moveTo(cx, FLOOR - 12); g.lineTo(cx + dx, FLOOR - 5); } g.stroke();   // 脚
+  g.fillStyle = '#2a2f36'; for (const dx of [-20, -9, 9, 20]) { g.beginPath(); g.arc(cx + dx, FLOOR - 3, 3, 0, TAU); g.fill(); }   // キャスター
+  g.fillStyle = '#6f7378'; g.fillRect(cx - 3, y + 9, 6, FLOOR - 12 - (y + 9));   // ガスシリンダー
+  g.fillStyle = '#3a3f46'; g.fillRect(cx - 12, y + 7, 24, 4);
+  g.fillStyle = '#2f5d7c'; rr(g, p.x0 - 1, y, w + 2, 10, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(p.x0 + 3, y + 2, w - 6, 2);   // 座面
+  g.fillStyle = '#3a3f46'; g.fillRect(p.x0 + 2, y - 8, 4, 10);   // 背もたれの支柱
+  g.fillStyle = '#2f5d7c'; rr(g, p.x0 - 4, y - 46, 11, 40, 5); g.fill(); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(p.x0 - 1, y - 42, 2, 30);   // 背もたれ
+}
+// キッチンのスツール（安全地帯 PL.tower）
+function drawBarStool(p) {
+  const w = p.x1 - p.x0, y = p.y;
+  g.strokeStyle = '#7a4a26'; g.lineWidth = 4; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(p.x0 + 7, y + 6); g.lineTo(p.x0 + 2, FLOOR - 1); g.moveTo(p.x1 - 7, y + 6); g.lineTo(p.x1 - 2, FLOOR - 1); g.moveTo(p.x0 + 4, y + 36); g.lineTo(p.x1 - 4, y + 36); g.stroke();
+  g.fillStyle = '#ff8a3d'; rr(g, p.x0 - 3, y, w + 6, 9, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(p.x0, y + 2, w, 2);
+}
+// 書斎のコートハンガー（飾り。足場ではないので、上は丸く細くして乗れそうに見せない）
+function drawCoatHanger(hx) {
+  g.fillStyle = '#6d4222'; g.fillRect(hx - 2, 334, 4, FLOOR - 340); rr(g, hx - 15, FLOOR - 6, 30, 6, 3); g.fill();
+  g.beginPath(); g.arc(hx, 331, 4, 0, TAU); g.fill();
+  g.strokeStyle = '#6d4222'; g.lineWidth = 2.5; g.lineCap = 'round'; g.beginPath(); g.moveTo(hx, 344); g.quadraticCurveTo(hx - 12, 344, hx - 12, 336); g.moveTo(hx, 344); g.quadraticCurveTo(hx + 12, 344, hx + 12, 336); g.stroke();
+  g.fillStyle = '#5d7a9a'; g.beginPath(); g.moveTo(hx + 9, 342); g.lineTo(hx + 18, 350); g.lineTo(hx + 20, 410); g.lineTo(hx + 3, 410); g.lineTo(hx + 5, 350); g.closePath(); g.fill();   // コート
+  g.fillStyle = '#4a6582'; g.fillRect(hx + 10, 352, 2, 56);
+  g.fillStyle = '#e0362c'; g.beginPath(); g.moveTo(hx - 10, 342); g.lineTo(hx - 15, 372); g.lineTo(hx - 9, 372); g.lineTo(hx - 6, 346); g.closePath(); g.fill();   // マフラー
+}
+// リビングのソファー：座面（PL.side）が足場。ひじかけは座面と同じ高さの丸いロールにして、乗れない所が乗れそうに見えないようにする。背もたれは座面の奥（窓の下まで）
+function drawSofa(p) {
+  const x0 = p.x0, x1 = p.x1, y = p.y, w = x1 - x0, bt = y - 34;
+  g.fillStyle = '#c4524a'; rr(g, x0 + 4, bt, w - 8, 40, 10); g.fill();   // 背もたれ
+  g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(x0 + w / 2 - 1, bt + 6, 2, 28);
+  g.fillStyle = 'rgba(255,255,255,.16)'; rr(g, x0 + 10, bt + 4, w - 20, 5, 2.5); g.fill();
+  g.fillStyle = '#a8433c'; g.fillRect(x0, y + 8, w, FLOOR - 8 - (y + 8));   // 台座
+  g.fillStyle = '#ffc94a'; g.save(); g.translate(x0 + 24, y - 12); g.rotate(-0.25); rr(g, -12, -11, 24, 22, 7); g.fill(); g.fillStyle = 'rgba(0,0,0,.1)'; g.fillRect(-12, -1, 24, 2); g.restore();   // クッション（背もたれに立てかけ）
+  for (let i = 0; i < 2; i++) { g.fillStyle = '#de6b61'; rr(g, x0 + 8 + i * (w - 16) / 2, y - 1, (w - 16) / 2 - 1, 12, 5); g.fill(); }   // 座面のクッション
+  g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(x0 + 12, y + 1, w - 24, 2);
+  g.fillStyle = '#b5473f'; rr(g, x0, y - 1, 12, FLOOR - 7 - y, 6); g.fill(); rr(g, x1 - 12, y - 1, 12, FLOOR - 7 - y, 6); g.fill();   // ひじかけ（上は座面と同じ高さ）
+  g.fillStyle = '#5e3a1c'; g.fillRect(x0 + 3, FLOOR - 8, 5, 8); g.fillRect(x1 - 8, FLOOR - 8, 5, 8);   // 脚
+}
+// 寝室の鏡台：天板（PL.side）が足場。鏡は天板の奥に立つ小さな楕円（上端は窓の下）
+function drawVanity(p) {
+  const x0 = p.x0, x1 = p.x1, y = p.y, w = x1 - x0, cx = (x0 + x1) / 2;
+  g.fillStyle = '#b48fcb'; g.fillRect(cx - 2, y - 10, 4, 10); g.fillRect(cx - 12, y - 4, 24, 4);   // 鏡の台
+  g.fillStyle = '#b48fcb'; g.beginPath(); g.ellipse(cx, y - 21, 13, 16, 0, 0, TAU); g.fill();
+  g.fillStyle = '#e8f4fb'; g.beginPath(); g.ellipse(cx, y - 21, 10, 13, 0, 0, TAU); g.fill();
+  g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 2; g.beginPath(); g.moveTo(cx - 5, y - 16); g.lineTo(cx + 1, y - 27); g.stroke();
+  g.fillStyle = '#d9bdea'; g.fillRect(x0 + 2, y + 6, w - 4, FLOOR - 10 - (y + 6));   // 本体
+  const dw = (w - 12) / 2;
+  for (let i = 0; i < 2; i++) for (let r = 0; r < 2; r++) { const dx = x0 + 4 + i * (dw + 4), dy = y + 10 + r * 25; g.fillStyle = '#c9a0dc'; rr(g, dx, dy, dw, 21, 3); g.fill(); g.fillStyle = '#ffc94a'; g.beginPath(); g.arc(dx + dw / 2, dy + 10, 2.4, 0, TAU); g.fill(); }   // 引き出し
+  g.fillStyle = '#9b7ab0'; g.fillRect(x0 + 4, FLOOR - 10, 5, 10); g.fillRect(x1 - 9, FLOOR - 10, 5, 10);   // 脚
+  g.fillStyle = '#c9a0dc'; rr(g, x0 - 3, y - 1, w + 6, 8, 3); g.fill(); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x0, y + 1, w, 2);   // 天板（足場）
+}
+// 子ども部屋の学習机：天板（PL.table）が足場。左に側板とランドセル、右に引き出し
+function drawKidsDesk(T) {
+  const tw = T.x1 - T.x0;
+  g.fillStyle = '#e8a33a'; g.fillRect(T.x0 + 2, T.y + 8, 8, FLOOR - T.y - 8);   // 側板
+  g.fillStyle = '#f2b84b'; g.fillRect(T.x1 - 54, T.y + 8, 52, FLOOR - T.y - 8);   // 引き出し
+  g.strokeStyle = 'rgba(160,100,20,.45)'; g.lineWidth = 2; for (let r = 0; r < 3; r++) g.strokeRect(T.x1 - 50, T.y + 13 + r * 19, 44, 16);
+  g.fillStyle = '#ffffff'; for (let r = 0; r < 3; r++) g.fillRect(T.x1 - 33, T.y + 20 + r * 19, 10, 3);
+  g.fillStyle = '#c9b39a'; g.fillRect(T.x0 + 14, T.y + 8, 2, 8);   // フック
+  g.fillStyle = '#e0362c'; rr(g, T.x0 + 5, T.y + 15, 24, 28, 6); g.fill(); g.fillStyle = '#b52a22'; rr(g, T.x0 + 5, T.y + 15, 24, 12, 6); g.fill(); g.fillStyle = '#ffc94a'; g.fillRect(T.x0 + 15, T.y + 24, 4, 5);   // ランドセル
+  g.fillStyle = '#ffd27a'; rr(g, T.x0 - 2, T.y, tw + 4, 10, 3); g.fill(); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(T.x0 + 2, T.y + 2, tw - 4, 2);   // 天板（足場）
+}
+// 子ども部屋の絵本の本棚（安全地帯 PL.tower）：2段のカラーボックス。上の段は表紙を向けた絵本、下の段はおもちゃ箱
+function drawBookBox(p) {
+  const x0 = p.x0, x1 = p.x1, y = p.y, w = x1 - x0, mid = (y + FLOOR) / 2;
+  g.fillStyle = '#ffffff'; g.fillRect(x0, y + 4, w, FLOOR - y - 4); g.fillStyle = '#e3f1ff'; g.fillRect(x0 + 4, y + 8, w - 8, mid - y - 10); g.fillRect(x0 + 4, mid + 2, w - 8, FLOOR - mid - 6);
+  [['#ff5a5a', 0], ['#2fb3a3', 1], ['#ffc94a', 2]].forEach(([c, i]) => { const bx = x0 + 6 + i * (w - 12) / 3, bw = (w - 12) / 3 - 2; g.fillStyle = c; rr(g, bx, mid - 20 + (i % 2) * 2, bw, 20 - (i % 2) * 2, 2); g.fill(); g.fillStyle = 'rgba(255,255,255,.75)'; g.beginPath(); g.arc(bx + bw / 2, mid - 11 + (i % 2), 3.5, 0, TAU); g.fill(); });   // 絵本
+  g.fillStyle = '#7fc1f0'; rr(g, x0 + 6, mid + 6, w - 12, FLOOR - mid - 10, 3); g.fill(); g.fillStyle = '#ffffff'; g.font = `800 7px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('TOYS', (x0 + x1) / 2, (mid + FLOOR) / 2);   // おもちゃ箱
+  g.fillStyle = '#5d8fd0'; rr(g, x0 - 2, y, w + 4, 7, 3); g.fill();   // 天板（足場）
+}
+// 庭のベンチ：座板（PL.side）が足場。背もたれは座面の奥
+function drawBench(p) {
+  const x0 = p.x0, x1 = p.x1, y = p.y, w = x1 - x0;
+  g.fillStyle = '#5e3a1c'; g.fillRect(x0 + 8, y - 34, 4, 36); g.fillRect(x1 - 12, y - 34, 4, 36);   // 背もたれの柱
+  g.fillStyle = '#b98a56'; rr(g, x0 + 2, y - 34, w - 4, 8, 3); g.fill(); rr(g, x0 + 2, y - 20, w - 4, 8, 3); g.fill();   // 背もたれの板
+  g.strokeStyle = '#3a3f46'; g.lineWidth = 4; g.lineCap = 'round';
+  for (const lx of [x0 + 10, x1 - 10]) { g.beginPath(); g.moveTo(lx, y + 6); g.quadraticCurveTo(lx - 6, (y + FLOOR) / 2, lx, FLOOR - 2); g.moveTo(lx, y + 6); g.quadraticCurveTo(lx + 6, (y + FLOOR) / 2, lx + 3, FLOOR - 2); g.stroke(); }   // 鉄の脚
+  g.fillStyle = '#c99a62'; rr(g, x0 - 2, y - 1, w + 4, 9, 3); g.fill(); g.fillStyle = 'rgba(94,58,28,.3)'; g.fillRect(x0, y + 4, w, 1.5);   // 座板（足場）
+}
+// 低い家具の一般形（リビング以外で使う、脚つきの台）
+function drawTableBasic(T, top, leg) {
+  const tw = T.x1 - T.x0;
+  g.fillStyle = leg; g.fillRect(T.x0 + 8, T.y + 8, 7, FLOOR - T.y - 8); g.fillRect(T.x1 - 15, T.y + 8, 7, FLOOR - T.y - 8);
+  g.fillStyle = top; rr(g, T.x0 - 2, T.y, tw + 4, 10, 4); g.fill();
+  g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(T.x0 + 15, T.y + 10, tw - 30, 5);
+}
 function drawFurniture() {
   if (furnPart !== 'back') {
   // サイドテーブル（部屋ごとに見た目を変える：スツール・小さな引き出し・ナイトテーブル・植木台・洗面台・水槽）
   if (r2()) r2Side();
-  else if (room === 'garden') {
-    g.fillStyle = '#8a5a34'; g.fillRect(26, 451, 6, 49); g.fillRect(86, 451, 6, 49); g.fillRect(26, 474, 66, 4);
-    g.fillStyle = '#b98a56'; rr(g, 18, 445, 82, 8, 3); g.fill();
-  } else if (room === 'bath') {
+  else if (room === 'garden') drawBench(PL.side);
+  else if (room === 'bath') {
     g.fillStyle = '#f4f8fa'; rr(g, 20, 445, 80, 55, 4); g.fill(); g.strokeStyle = 'rgba(80,120,140,.25)'; g.lineWidth = 1.5; g.strokeRect(26, 452, 32, 42); g.strokeRect(62, 452, 32, 42);
     g.fillStyle = '#c9d3d9'; g.fillRect(84, 432, 4, 13); g.fillRect(76, 432, 12, 3);
   } else if (room === 'kids') drawTank();
-  else if (room === 'kitchen') {
-    g.fillStyle = '#7a4a26'; g.fillRect(34, 451, 5, 49); g.fillRect(80, 451, 5, 49); g.fillRect(57, 451, 4, 49);
-    g.fillStyle = '#ff8a3d'; rr(g, 22, 444, 76, 10, 5); g.fill();
-  } else if (room === 'study' || room === 'bed') {
-    g.fillStyle = room === 'bed' ? '#c9a0dc' : '#8a6a4f'; rr(g, 22, 445, 76, 55, 4); g.fill();
-    g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(28, 462, 64, 2); g.fillRect(28, 480, 64, 2);
-    g.fillStyle = '#ffc94a'; g.fillRect(56, 469, 8, 3); g.fillRect(56, 487, 8, 3);
-  } else {
-    g.fillStyle = '#7a4a26'; g.fillRect(24, 451, 6, 49); g.fillRect(86, 451, 6, 49);
-    g.fillStyle = '#a5683a'; rr(g, 18, 445, 82, 9, 4); g.fill();
-  }
+  else if (room === 'kitchen') { /* 4.47.0：食器棚の台（drawCupboard、奥の家具と一緒に描く） */ }
+  else if (room === 'study') drawDeskChair(PL.side);
+  else if (room === 'bed') drawVanity(PL.side);
+  else drawSofa(PL.side);   // リビング
   // テーブル（カウンター・机・ベッド・ガーデンテーブル・浴槽・勉強机）
   if (r2()) r2Table();
   else if (room === 'garden') {
     g.strokeStyle = '#e4e4de'; g.lineWidth = 4; g.beginPath(); g.moveTo(140, 438); g.quadraticCurveTo(132, 470, 138, 500); g.moveTo(285, 438); g.quadraticCurveTo(293, 470, 287, 500); g.stroke();
     g.fillStyle = '#f4f4f0'; rr(g, 123, 430, 179, 8, 4); g.fill(); g.strokeStyle = 'rgba(0,0,0,.2)'; g.lineWidth = 1; g.stroke();
   } else if (room === 'bath') drawTub();
-  else if (room === 'kids') {
-    g.fillStyle = '#e8a33a'; g.fillRect(133, 438, 7, 62); g.fillStyle = '#f2b84b'; g.fillRect(248, 438, 50, 62); g.fillStyle = '#ffc94a'; g.fillRect(256, 456, 34, 2); g.fillRect(256, 478, 34, 2);
-    g.fillStyle = '#ffd27a'; rr(g, 123, 430, 179, 10, 3); g.fill();
-  } else if (room === 'kitchen') {
-    g.fillStyle = '#f6efe2'; g.fillRect(127, 438, 171, 62); g.strokeStyle = 'rgba(94,58,28,.25)'; g.lineWidth = 2;
-    for (let x = 127; x < 298; x += 57) g.strokeRect(x + 3, 444, 51, 50);
-    g.fillStyle = '#c9b39a'; for (let x = 127; x < 298; x += 57) g.fillRect(x + 24, 454, 10, 3);
-    g.fillStyle = '#e8e2d6'; rr(g, 121, 428, 183, 11, 3); g.fill();
-    g.strokeStyle = '#a7adb5'; g.lineWidth = 4; g.beginPath(); g.moveTo(244, 428); g.lineTo(244, 404); g.lineTo(228, 404); g.stroke();   // 蛇口
+  else if (room === 'kids') drawKidsDesk(PL.table);
+  else if (room === 'kitchen') {
+    // 4.47.0：調理台は PL.table から描く（扉の数は幅に合わせる）
+    const T = PL.table, tw = T.x1 - T.x0, nd = Math.max(2, Math.round(tw / 57)), dw = tw / nd;
+    g.fillStyle = '#f6efe2'; g.fillRect(T.x0 + 2, T.y + 8, tw - 4, FLOOR - T.y - 8); g.strokeStyle = 'rgba(94,58,28,.25)'; g.lineWidth = 2;
+    for (let i = 0; i < nd; i++) g.strokeRect(T.x0 + 2 + i * dw + 3, T.y + 14, dw - 6, FLOOR - T.y - 20);
+    g.fillStyle = '#c9b39a'; for (let i = 0; i < nd; i++) g.fillRect(T.x0 + 2 + i * dw + dw / 2 - 5, T.y + 24, 10, 3);
+    g.fillStyle = '#e8e2d6'; rr(g, T.x0 - 4, T.y - 2, tw + 8, 11, 3); g.fill();
+    const fx = T.x0 + tw * 0.42; g.strokeStyle = '#a7adb5'; g.lineWidth = 4; g.beginPath(); g.moveTo(fx, T.y - 2); g.lineTo(fx, T.y - 26); g.lineTo(fx - 16, T.y - 26); g.stroke();   // 蛇口
+    if (plOn('ex1')) drawMicrowave(PL.ex1, T.y);
   } else if (room === 'study') {
-    g.fillStyle = '#5e3a1c'; g.fillRect(133, 438, 7, 62); g.fillStyle = '#6d4222'; g.fillRect(248, 438, 50, 62);
-    g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(252, 458, 42, 2); g.fillRect(252, 478, 42, 2);
-    g.fillStyle = '#7a4a26'; rr(g, 123, 430, 179, 10, 3); g.fill();
+    // 4.47.0：デスクは PL.table から描く（左に脚、右に引き出し、右端にモニター）
+    const T = PL.table, tw = T.x1 - T.x0;
+    g.fillStyle = '#5e3a1c'; g.fillRect(T.x0 + 8, T.y + 8, 7, FLOOR - T.y - 8); g.fillStyle = '#6d4222'; g.fillRect(T.x1 - 52, T.y + 8, 50, FLOOR - T.y - 8);
+    g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(T.x1 - 48, T.y + 28, 42, 2); g.fillRect(T.x1 - 48, T.y + 48, 42, 2);
+    g.fillStyle = '#ffc94a'; g.fillRect(T.x1 - 31, T.y + 17, 8, 3); g.fillRect(T.x1 - 31, T.y + 37, 8, 3); g.fillRect(T.x1 - 31, T.y + 57, 8, 3);
+    g.fillStyle = '#7a4a26'; rr(g, T.x0 - 2, T.y, tw + 4, 10, 3); g.fill();
     // モニター（キーボードを踏むと画面が乱れる）
-    g.fillStyle = '#2a2f36'; g.fillRect(281, 410, 4, 20); rr(g, 255, 372, 46, 38, 4); g.fill();
-    g.fillStyle = kb && kb.done ? '#2b6cd9' : '#9cc8ef'; g.fillRect(258, 375, 40, 31);
+    const mx = T.x1 - 45; g.fillStyle = '#2a2f36'; g.fillRect(mx + 26, T.y - 20, 4, 20); rr(g, mx, T.y - 58, 46, 38, 4); g.fill();
+    g.fillStyle = kb && kb.done ? '#2b6cd9' : '#9cc8ef'; g.fillRect(mx + 3, T.y - 55, 40, 31);
     g.fillStyle = '#fff'; g.font = `800 7px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    if (kb && kb.done) { g.fillText(lt('データが', 'DATA'), 278, 386); g.fillText(lt('消えました', 'LOST!'), 278, 396); }
-    else if (kb && kb.typing > 0) { g.fillStyle = '#1b1b22'; g.fillText(lt('ああああ', 'asdfgh'), 278, 384); g.fillText(lt('ｊｋｌ；ｊ', 'jkl;jkl'), 278, 394); }
-    else { g.fillStyle = 'rgba(255,255,255,.8)'; for (let r = 0; r < 4; r++) g.fillRect(262, 380 + r * 6, 24 - r * 3, 2); }
+    if (kb && kb.done) { g.fillText(lt('データが', 'DATA'), mx + 23, T.y - 44); g.fillText(lt('消えました', 'LOST!'), mx + 23, T.y - 34); }
+    else if (kb && kb.typing > 0) { g.fillStyle = '#1b1b22'; g.fillText(lt('ああああ', 'asdfgh'), mx + 23, T.y - 46); g.fillText(lt('ｊｋｌ；ｊ', 'jkl;jkl'), mx + 23, T.y - 36); }
+    else { g.fillStyle = 'rgba(255,255,255,.8)'; for (let r = 0; r < 4; r++) g.fillRect(mx + 7, T.y - 50 + r * 6, 24 - r * 3, 2); }
     if (kb) { g.fillStyle = '#e4e8ec'; rr(g, kb.x0, 424, kb.x1 - kb.x0, 6, 2); g.fill(); g.fillStyle = '#b9c0c8'; for (let x = kb.x0 + 3; x < kb.x1 - 3; x += 5) g.fillRect(x, 425.5, 3, 1.5); }
   } else if (room === 'bed') {
-    g.fillStyle = '#9a6038'; g.fillRect(117, 392, 10, 108); g.fillRect(292, 440, 8, 60); g.fillRect(127, 440, 8, 60);
-    g.fillStyle = '#ffffff'; rr(g, 123, 424, 179, 18, 8); g.fill();
-    g.fillStyle = '#ff9fb2'; rr(g, 168, 422, 134, 22, 8); g.fill();
-    g.fillStyle = '#fff3df'; rr(g, 128, 414, 36, 14, 7); g.fill();
-    g.fillStyle = 'rgba(255,255,255,.5)'; for (let x = 178; x < 296; x += 18) g.fillRect(x, 428, 8, 3);
-  } else {
-    g.fillStyle = '#7a4a26'; g.fillRect(133, 438, 7, 62); g.fillRect(285, 438, 7, 62);
-    g.fillStyle = '#b8743f'; rr(g, 123, 430, 179, 10, 4); g.fill();
-    g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(140, 440, 145, 5);
-  }
+    // 4.47.0：宮付きのベッド。宮の上（PL.ex1）とベッド（PL.table）が足場
+    const T = PL.table, tw = T.x1 - T.x0, M = PL.ex1;
+    if (plOn('ex1')) {
+      g.fillStyle = '#9a6038'; g.fillRect(M.x0, M.y + 4, M.x1 - M.x0, FLOOR - M.y - 4);
+      g.fillStyle = '#6d4222'; g.fillRect(M.x0 + 4, M.y + 10, M.x1 - M.x0 - 8, 22);   // 宮の棚（中に本と時計）
+      [['#ff9fb2', 0], ['#7fc1f0', 6], ['#ffc94a', 11]].forEach(([c, dx]) => { g.fillStyle = c; g.fillRect(M.x0 + 7 + dx, M.y + 14, 5, 18); });
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(M.x1 - 13, M.y + 23, 6, 0, TAU); g.fill(); g.strokeStyle = '#4a2f1d'; g.lineWidth = 1; g.beginPath(); g.moveTo(M.x1 - 13, M.y + 23); g.lineTo(M.x1 - 13, M.y + 19); g.moveTo(M.x1 - 13, M.y + 23); g.lineTo(M.x1 - 10, M.y + 23); g.stroke();
+      g.fillStyle = '#b8743f'; rr(g, M.x0 - 2, M.y - 1, M.x1 - M.x0 + 4, 7, 3); g.fill();   // 宮の天板（足場）
+    }
+    g.fillStyle = '#9a6038'; g.fillRect(T.x0 + 2, 440, 8, 60); g.fillRect(T.x1 - 8, 440, 8, 60);
+    g.fillStyle = '#ffffff'; rr(g, T.x0 - 2, 424, tw + 4, 18, 8); g.fill();
+    g.fillStyle = '#ff9fb2'; rr(g, T.x0 + 44, 422, tw - 42, 22, 8); g.fill();
+    g.fillStyle = '#fff3df'; rr(g, T.x0 + 4, 414, 36, 14, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.5)'; for (let x = T.x0 + 54; x < T.x1 - 6; x += 18) g.fillRect(x, 428, 8, 3);
+  } else drawTableBasic(PL.table, '#b8743f', '#7a4a26');   // リビングのテーブル
   }
   if (furnPart !== 'front') {
+  if (room === 'kitchen') drawCupboard();   // 4.47.0：食器棚（壁の棚より奥）
   // 棚（傾くときは真ん中を軸に回す）
   g.save(); { const a = shelfTilt.a + (shelfTilt.wob > 0 ? Math.sin(tAnim * 50) * 0.01 : 0); if (a) { g.translate(SHELF_MID, PL.shelf.y); g.rotate(a); g.translate(-SHELF_MID, -PL.shelf.y); } }
   { const S0 = PL.shelf, sy = S0.y;
@@ -5670,7 +5982,7 @@ function drawFurniture() {
   }
   if (furnPart === 'back') return;
   // キャットタワー（背の高い家具の手前に描く。庭は切り株、お風呂場は風呂いす）。描く位置は元の 305 から右へずらす
-  if (r2Tower()) {} else if (room === 'garden') drawStump(); else if (room === 'bath') drawStool(); else {
+  if (r2Tower()) {} else if (room === 'garden') drawStump(); else if (room === 'bath') drawStool(); else if (room === 'kitchen') drawBarStool(PL.tower); else if (room === 'kids') drawBookBox(PL.tower); else {
   g.save(); g.translate(PL.tower.x0 - 305, 0);
   g.fillStyle = '#9b7fc0'; rr(g, 304, 491, 42, 9, 4); g.fill();
   g.fillStyle = '#e3c890'; g.fillRect(321, 446, 8, 46);
@@ -6194,13 +6506,13 @@ function draw() {
   drawHigh();
   // 4.39.0：飼い主は壁のもの（棚・背の高い家具・その上のもの）の前、床の家具（サイドテーブル・テーブル・タワー）の後ろに描く
   furnPart = 'back'; drawFurniture();
-  const WALLP = [PL.shelf, PL.hang, PL.rail, PL.ac, PL.book];
+  const WALLP = [PL.shelf, PL.hang, PL.rail, PL.ac, PL.book, ...EXK.filter(k => PL[k].wall).map(k => PL[k])];
   const drawIt = it => { const sy = it.plat === PL.shelf ? shelfDy(it.x) : 0; drawItem(g, it.t, it.x, it.state === 'fall' ? it.y : it.plat.y + sy, it.rot + (it.plat === PL.shelf ? shelfTilt.a : 0), it.water); };
   for (const it of items) if (it.state !== 'fall' && WALLP.includes(it.plat)) drawIt(it);
   drawOwner();
   if (!(dog && dog.keep)) drawDog();
   drawCreaks();
-  furnPart = 'front'; drawFurniture(); furnPart = '';
+  furnPart = 'front'; drawFurniture(); furnPart = ''; drawMouseHole();
   if (dog && dog.keep) drawDog();   // 犬がいる日の犬は床の家具の前に描く（屋根・庭・お風呂場では、左の家具に隠れて見えなかった）
   drawLamp();
   drawGuest();
