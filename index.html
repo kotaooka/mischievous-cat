@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.41.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.42.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1805,7 +1805,7 @@ function setupStageCore(L) {
   }
   const T = CATS[selCat];
   cat = cat || {};
-  Object.assign(cat, { hang: false, grabCd: 0, rubT: 0, sticky: false, onTrap: null, scareT: 0, creakCd: 0, danceT: 0, bathT: 0, bathOut: false, inBath: false, type: T, x: room === 'bath' ? 322 : 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: VOICES[0].txt, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0, scratch: null, scrHold: false, autoScr: null, happyT: 0, aimUp: false, scrT: 0, purrT: 0, hopT: 0, jabN: 0, lastPunch: -9 });
+  Object.assign(cat, { ledge: null, hang: false, grabCd: 0, rubT: 0, sticky: false, onTrap: null, scareT: 0, creakCd: 0, danceT: 0, bathT: 0, bathOut: false, inBath: false, type: T, x: room === 'bath' ? 322 : 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: VOICES[0].txt, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0, scratch: null, scrHold: false, autoScr: null, happyT: 0, aimUp: false, scrT: 0, purrT: 0, hopT: 0, jabN: 0, lastPunch: -9 });
   { const f = failOf(); assist = f.l === L && f.n >= 3 && !(run && run.test) ? 5 : 0; }
   owner.mode = 'away'; owner.t = (day1(L) ? day1(L).away : rnd(2.5, 4.5)) + assist; owner.range = 0; owner.lureT = 0; owner.warned = false; owner.hint = null; owner.say = ''; owner.x = -60; owner.scareT = 0;
   sus = Math.min(sus, 25);
@@ -2153,6 +2153,18 @@ function updCat(dt) {
   else if (c.eatT > 0) { c.eatT -= dt; c.vx = 0; if (c.eatT <= 0) { const add = Math.round(10 * catStat('food')); timeLeft += add; run.fed++; pops.push({ x: c.x, y: c.y - 50, text: lt('+' + add + '秒', '+' + add + 's'), life: 1.4, col: '#1d8174', size: 20 }); bowl = null; if (owner.mode !== 'away' && ownerSees(c.x)) taskHit('eatSeen'); } }
   let dir = (c.stun > 0 || c.eatT > 0) ? 0 : (keys.R ? 1 : 0) - (keys.L ? 1 : 0);
   if (c.grabCd > 0) c.grabCd -= dt; if (c.scareT > 0) c.scareT -= dt; if (c.creakCd > 0) c.creakCd -= dt;
+  if (c.ledge) {
+    // 崖つかまり → よじ登り。ジャンプか逆向きで手を離す（落ちる）。両面テープの段ではずり落ちる
+    const L = c.ledge, p = L.p; L.t += dt; c.vx = 0; c.vy = 0; c.plat = null; c.onFurn = true; c.acting = true; c.still = 0; c.stare = false;
+    const ex = L.side > 0 ? p.x0 : p.x1;
+    const letGo = (c.jumpBuf > 0) || (dir && dir === -L.side);
+    if (letGo) { c.ledge = null; c.jumpBuf = 0; c.vy = 60; c.x = ex - L.side * 14; c.y = p.y + 40; c.grabCd = 0.4; return; }
+    const k = clamp((L.t - 0.15) / 0.25, 0, 1);
+    c.x = ex + L.side * (-10 + 22 * k); c.y = p.y + 44 * (1 - k); c.face = L.side;
+    if (k > 0 && Math.random() < dt * 25) addPart({ k: 'drop', x: ex + L.side * 4, y: p.y + 30 - 30 * k, vx: -L.side * rnd(20, 60), vy: rnd(-40, 20), life: 0.4, gy: p.y + 60, c: 'rgba(230,210,180,.8)', s: 2.5, rot: 0, vr: 0 });
+    if (k >= 1) { c.ledge = null; c.plat = p; c.y = p.y; c.x = ex + L.side * 12; c.sq = -0.22; c.grabCd = 0.2; sfx.land(); dust(c.x, p.y, 3, 0); learn('ledge'); run.ev.ledge = (run.ev.ledge || 0) + 1; }
+    return;
+  }
   if (c.hang && lamp) {
     // 吊り照明にぶら下がる：左右でこいで、ジャンプで手を離すと、振れた勢いで飛んでいく
     const bx = lamp.ax + lamp.L * Math.sin(lamp.th), by = lamp.ay + lamp.L * Math.cos(lamp.th);
@@ -2228,6 +2240,17 @@ function updCat(dt) {
         if (imp > 420) dust(c.x, best.y, imp > 650 ? 6 : 3, 0);   // 着地の煙（4.36.0：420 から。強い着地は多め）
         if (imp > 650 && !best.soft) sfx.land();
         if (best.soft && imp > 300) { c.sq = -0.35; sfx.boing(); taskHit('bounce'); }
+      } else if (state === 'play' && c.grabCd <= 0 && !c.sticky && c.bathT <= 0 && !c.inBath) {
+        // 4.42.0：崖つかまり。端から横 12px 以内で、頭（足から 44px 上）が段の高さより 0〜16px 下を通ったら、前足で端をつかむ
+        const head = c.y - 44;
+        for (const p of PLS) {
+          if (p === PL.floor || p.soft || p.water || p === VACP || p === LEVP) continue;
+          if (head < p.y - 2 || head > p.y + 16) continue;
+          const side = c.x <= p.x0 + 2 && c.x >= p.x0 - 12 ? 1 : c.x >= p.x1 - 2 && c.x <= p.x1 + 12 ? -1 : 0;
+          if (!side) continue;
+          if (traps.some(t => t.plat === p && t.type === 'tape' && Math.abs(t.x - (side > 0 ? p.x0 : p.x1)) < 30)) continue;   // テープの端はつかめない
+          c.ledge = { p, side, t: 0 }; c.vx = 0; c.vy = 0; c.plat = null; c.face = side; tapTarget = null; sfx.hide(); break;
+        }
       }
     }
   }
@@ -2297,7 +2320,7 @@ function updCat(dt) {
   // お題：ダンボールで見張りをやりすごす・ロボに乗る
   if (c.hidden && (owner.mode === 'look' || owner.mode === 'search' || owner.mode === 'warn') && ownerSees(c.x)) { hideT += dt; if (hideT > 2) taskHit('hide'); }
   if (riding) { rideStage += dt; if (rideStage > 3) taskHit('ride'); }
-  c.onFurn = c.hang || c.plat === PL.tank || c.plat === RIMP || c.plat === PL.side || c.plat === PL.table || c.plat === PL.shelf || c.plat === PL.book || c.plat === LEVP || HIGH.includes(c.plat);
+  c.onFurn = !!c.ledge || c.hang || c.plat === PL.tank || c.plat === RIMP || c.plat === PL.side || c.plat === PL.table || c.plat === PL.shelf || c.plat === PL.book || c.plat === LEVP || HIGH.includes(c.plat);
   c.acting = (c.plat !== VACP && Math.abs(c.vx) > 6) || !c.plat || c.punchT > 0 || c.meowT > 0 || !!c.scratch;
   if (c.happyT > 0) c.happyT -= dt;
   if (c.danceT > 0) c.danceT -= dt;
@@ -2401,7 +2424,7 @@ function platAt(wx, wy) {
   for (const p of PLS) if (p !== VACP && wx >= p.x0 - 8 && wx <= p.x1 + 8 && p.y >= wy - 14 && p.y < best.y) best = p;
   return best;
 }
-const SPOT_HINT = { cuke: tx('びっくりして跳ぶ', 'Scares you up'), lamp: tx('飛びつける', 'Grab it'), creak: tx('ギシッと鳴る', 'Creaks'), trap: tx('踏むと音がする', 'Noisy if stepped on'), cam: tx('映るとバレる', 'Camera sees you'), tv: tx('踏むとつく', 'Step to turn on'), cloth: tx('引っぱれる', 'Pull it'), mouse: tx('パンチで退治', 'Punch it'), chick: tx('おどかせる', 'Startle it'), tank: tx('水に落とせる', 'Drop things in'), guest: tx('見ている', 'Watching'), bone: tx('犬が起きる', 'Wakes the dog'), vac: tx('ぶつかると目が回る。上に乗れる', 'Bumps you dizzy. You can ride it'), ball: tx('パンチで転がしてものに当てる', 'Punch it into things'), shelf: tx('端に乗ると、2個以上ある側が傾く', 'Stand on an end: 2+ things tip it'), door: tx('だれか入ってる…', 'Someone\'s inside…'), mis: tx('パンチ長押しでいたずら', 'Hold punch here'),
+const SPOT_HINT = { cuke: tx('びっくりして跳ぶ', 'Scares you up'), lamp: tx('飛びつける', 'Grab it'), creak: tx('ギシッと鳴る', 'Creaks'), trap: tx('踏むと音がする', 'Noisy if stepped on'), cam: tx('映るとバレる', 'Camera sees you'), tv: tx('踏むとつく', 'Step to turn on'), cloth: tx('引っぱれる', 'Pull it'), mouse: tx('パンチで退治', 'Punch it'), chick: tx('おどかせる', 'Startle it'), tank: tx('水に落とせる', 'Drop things in'), guest: tx('見ている', 'Watching'), bone: tx('犬が起きる', 'Wakes the dog'), ledge: tx('届かなくても端をつかんで登れる', 'Grab the edge and climb'), vac: tx('ぶつかると目が回る。上に乗れる', 'Bumps you dizzy. You can ride it'), ball: tx('パンチで転がしてものに当てる', 'Punch it into things'), shelf: tx('端に乗ると、2個以上ある側が傾く', 'Stand on an end: 2+ things tip it'), door: tx('だれか入ってる…', 'Someone\'s inside…'), mis: tx('パンチ長押しでいたずら', 'Hold punch here'),
   foe_vacbot: tx('体当たりしてくる → パンチ3回', 'Rams you → punch 3 times'), foe_crow: tx('ものを盗む → パンチ2回', 'Steals things → punch 2 times'), foe_toybot: tx('ダーツを撃つ → 後ろからパンチ', 'Shoots darts → punch from behind'), foe_drone: tx('下にいるとピピピ → パンチ2回', 'Beeps if below → punch 2 times') };
 function drawSpot() {
   // 初めて出た仕掛け：黄色い輪が広がり、上から矢印が指す（1か所 1.5 秒）
@@ -6066,7 +6089,15 @@ function drawCatNow() {
   if (c.inBath === false && c.scareT > 0 && !c.plat) { eyes = 'shock'; ears = 'back'; tail = 'puff'; }
   if (c.rubT > 0.4) { eyes = 'happy'; tail = 'up'; }
   const sdy = c.plat === PL.shelf ? shelfDy(c.x) : 0, rubTilt = c.rubT > 0.4 ? Math.sin(tAnim * 6) * 0.08 : 0;
-  catEyes.p = null;   // 4.36.1：前のフレームの目の位置を残さない（ぶら下がり中に目だけ浮いていた）
+  catEyes.p = null;
+  if (c.ledge && play) {
+    // 4.42.0：崖つかまり：前足を端にかけて体を立てる。登る間に体を起こし、後ろ足をばたつかせる
+    const L = c.ledge, k = clamp((L.t - 0.15) / 0.25, 0, 1), sway = k > 0 ? Math.sin(tAnim * 40) * 0.08 : Math.sin(tAnim * 6) * 0.05;
+    g.save(); g.translate(c.x, c.y); g.rotate(-L.side * (1.15 * (1 - k)) + sway); g.translate(-c.x, -c.y);
+    drawCat(g, c.x, c.y, { type: c.type, face: L.side, scale: 1, t: c.anim, pose: 'walk', air: true, vy: k > 0 ? 400 : -200, acc: selAcc, eyes: k > 0 ? 'shock' : 'hunt', ears: 'back', tail: 'puff', eyesOut: catEyes });
+    g.restore();
+    return;
+  }   // 4.36.1：前のフレームの目の位置を残さない（ぶら下がり中に目だけ浮いていた）
   if (c.hang && lamp && play) {
     const th = lamp.th, bx = lamp.ax + lamp.L * Math.sin(th), by = lamp.ay + lamp.L * Math.cos(th), f = c.face;
     g.save(); g.translate(bx + Math.sin(th) * 22, by + Math.cos(th) * 22); g.rotate(-th - f * 1.35); g.translate(-16 * f, 10);
