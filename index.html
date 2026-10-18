@@ -358,7 +358,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.38.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.38.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1779,7 +1779,7 @@ function setupStageCore(L) {
   tasks = []; chaseN = 0; susQ = 0; warn85 = false; chaseT = 0; hideT = 0; rideStage = 0; tapTarget = null;
   {
     // この面で初めて出た仕掛けを集める（一度光らせたら learned に入れて、次からは出さない）
-    const add = (k, x, y) => { const seen = learned.has('see_' + k); if (!seen || !clearedL.has(L)) spot.push({ k, x, y, rep: seen }); };   // 4.38.1：クリアしていない面では毎回（見たことがある仕掛けは短め）
+    const add = (k, x, y) => { const seen = learned.has('see_' + k); if (!seen || !(run && run.ck && run.ck.level <= L && (run.clrL || []).includes(L))) spot.push({ k, x, y, rep: seen }); };   // 4.38.3：面の始まりには毎回出す（見たことがある仕掛けは短め）。同じ回でその面をクリアずみ（朝からつづけたとき）だけ出さない
     if (cuke) add('cuke', cuke.x, FLOOR - 8);
     if (lamp) add('lamp', lamp.ax + lamp.L * Math.sin(lamp.th), lamp.ay + lamp.L + 14);
     if (creaks.length) add('creak', creaks[0].x + creaks[0].w / 2, FLOOR + 4);
@@ -4214,7 +4214,7 @@ function clearFx() {
 }
 function checkClear() {
   if (state !== 'play' || mains().length) return;
-  failClear(level); markCleared(level);
+  failClear(level); markCleared(level); if (run) run.clrL = (run.clrL || []).concat([level]).slice(-8);
   // 面クリアの腕前ボーナス（この面で出した被害額に対する割合）
   // 手際：残り時間の割合 × 40%。完全犯罪：最大の怪しまれ度が 30% 未満なら 30%（50% 未満なら こっそり 15%）
   const sy = run.yen - stageYen0, perfect = stageMaxSus < 30;
