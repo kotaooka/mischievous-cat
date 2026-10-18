@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.40.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.40.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -5007,8 +5007,11 @@ function r2Table() {
 function r2Tall() {
   if (room === 'toilet') {
     // 個室の扉：中に飼い主がいる間は閉まっている（♪ が聞こえる）。パンチで開くと…
-    const x0 = 347, w = W - x0, top = FLOOR - 160;
-    g.fillStyle = '#c9d3d9'; g.fillRect(x0, top - 8, w, FLOOR - top + 8); g.fillStyle = '#9fb3c0'; g.fillRect(x0, top - 10, w, 6);
+    // 4.40.1：個室の仕切りは本棚と同じ高さ（上が足場 PL.book、y=285）。扉は下 160px、その上はすりガラス
+    const x0 = 347, w = W - x0, top = FLOOR - 160, wallTop = PL.book.y + 6;
+    g.fillStyle = '#c9d3d9'; g.fillRect(x0, wallTop, w, FLOOR - wallTop);
+    g.fillStyle = '#dfeef5'; rr(g, x0 + 12, wallTop + 12, w - 24, top - wallTop - 24, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.6)'; for (let y = wallTop + 18; y < top - 18; y += 7) g.fillRect(x0 + 16, y, w - 32, 2);   // すりガラス
+    g.fillStyle = '#9fb3c0'; g.fillRect(x0, top - 6, w, 6);
     const dw = 70, dx = x0 + 10, inside = toiletIn() || toiletDoor > 0, peek = toiletPeek > 0;
     if (peek) toiletPeek -= 1 / 60;
     if (inside || peek) { g.fillStyle = '#e6f2f6'; g.fillRect(dx, top, dw, FLOOR - top); g.fillStyle = '#fff'; rr(g, dx + 14, FLOOR - 50, 42, 40, 8); g.fill(); }   // 中（便器）
@@ -5020,7 +5023,7 @@ function r2Tall() {
     g.fillStyle = inside ? '#e0362c' : '#2fb3a3'; rr(g, dw / 2 - 10, 24, 20, 12, 3); g.fill(); g.fillStyle = '#fff'; g.font = `800 7px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(inside ? lt('使用中', 'IN USE') : lt('空き', 'FREE'), dw / 2, 30);
     g.restore();
     if (toiletIn() && toiletDoor <= 0) { const bob = Math.sin(tAnim * 6) * 3; g.fillStyle = '#2fb3a3'; g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(dx + dw / 2, top - 22 + bob, 12, 0, TAU); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.font = `800 14px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('♪', dx + dw / 2, top - 21 + bob); }
-    g.fillStyle = '#9fb3c0'; rr(g, x0 - 4, top - 14, w + 4, 8, 3); g.fill();
+    g.fillStyle = '#8a9aa6'; rr(g, x0 - 4, PL.book.y - 2, w + 4, 10, 3); g.fill();   // 仕切りの上（足場）
     return;
   }
   if (room === 'roof') {
