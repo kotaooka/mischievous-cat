@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.8', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.9', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -6804,7 +6804,7 @@ function update(dt) {
     if (chaseT > 0) { updChase(dt); updItems(dt); updBall(dt); updVac(dt); }
     else { /* 4.48.8：仕掛けの札の間も飼い主の留守の時間は減る（4.39.4〜4.48.7 は止めていた） */ updOwner(dt); updItems(dt); updBall(dt); updDog(dt); updVac(dt); updChick(dt); updMouse(dt); updTank(dt); updRival(dt); updFoe(dt); updNight2(dt); updCams(dt); updShelf(dt); updTv(dt); updSus(dt); checkClear(); updTut(); }
     if (state === 'play' && chaseT <= 0) {
-      if (!(introT <= 0 && spot.length > 0)) timeLeft -= dt;   // 4.39.4：札の間は時間も止める
+      timeLeft -= dt;   // 4.48.9：仕掛けの札の間も制限時間は減る（4.39.4〜4.48.8 は止めていた）
       const sec = Math.ceil(timeLeft); if (sec <= 10 && sec < lastTick && sec > 0) { lastTick = sec; sfx.tick(); }
       if (timeLeft <= 10 && !rushShown && mains().length) { rushShown = true; sfx.alert(); pops.push({ x: W / 2, y: 230, text: lt('ラストスパート!', 'FINAL SPRINT!'), life: 1.6, col: '#e0362c', size: 28 }); }
       if (timeLeft <= 0) { timeLeft = 0; caught(true); }
