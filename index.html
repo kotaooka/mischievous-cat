@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -3825,10 +3825,11 @@ function drawTrueEnding() {
   if (e > 21.6) {
     const k = clamp((e - 21.6) / 0.6, 0, 1), y = -OY + VH * 0.33 - (1 - k) * 60;
     g.save(); g.globalAlpha = k; g.translate(W / 2, y); g.rotate(-0.06 + 0.02 * Math.sin(tAnim * 1.5));
-    g.fillStyle = 'rgba(0,0,0,.25)'; rr(g, -124, -104, 248, 232, 6); g.fill();
-    g.fillStyle = '#fff'; rr(g, -120, -110, 240, 232, 6); g.fill();
-    if (endPhoto) { try { g.drawImage(endPhoto, -108, -98, 216, 180); } catch (x) {} } else { g.fillStyle = '#e8dcc4'; g.fillRect(-108, -98, 216, 180); }
-    g.fillStyle = '#4a2f1d'; g.font = `800 15px ${FONT}`; g.fillText(lt('7日間、おつかれさま', 'Seven days well spent'), 0, 100);
+    // 4.48.2：写真は正方形（部屋の幅いっぱい）。枠もポラロイドのように縦長に
+    g.fillStyle = 'rgba(0,0,0,.25)'; rr(g, -116, -112, 232, 268, 6); g.fill();
+    g.fillStyle = '#fff'; rr(g, -112, -118, 224, 268, 6); g.fill();
+    if (endPhoto) { try { g.drawImage(endPhoto, -100, -106, 200, 200); } catch (x) {} } else { g.fillStyle = '#e8dcc4'; g.fillRect(-100, -106, 200, 200); }
+    g.fillStyle = '#4a2f1d'; g.font = `800 15px ${FONT}`; g.fillText(lt('7日間、おつかれさま', 'Seven days well spent'), 0, 124);
     g.restore();
   }
   // 終わりの札
@@ -4290,11 +4291,11 @@ function updChase(dt) {
   if (chaseT <= 0) { chaseT = 0; caught(); }
 }
 let snapMode = false;
-function takeSnap(cx, cy) {
+function takeSnap(cx, cy, size) {
   // 見つかった瞬間の画面（犯行現場写真）を写し取る。お題・時間・吹き出し・数字は描かずに描き直し、ネコのまわりを正方形で切り取る（cx, cy を渡すとそこを中心に）
   try {
     snapMode = true; draw(); snapMode = false;
-    const S = 250, sx = clamp((cx == null ? cat.x : cx) - S / 2, 0, W - S), sy = clamp((cy == null ? cat.y : cy) - S * 0.62, 20, FLOOR + 30 - S);
+    const S = size || 250, sx = clamp((cx == null ? cat.x : cx) - S / 2, 0, W - S), sy = clamp((cy == null ? cat.y : cy) - S * 0.62, 20, FLOOR + 30 - S);
     const s = document.createElement('canvas'); s.width = s.height = 640; const c = s.getContext('2d');
     c.drawImage(cv, sx * DPR, (sy + OY) * DPR, S * DPR, S * DPR, 0, 0, 640, 640); return s;
   } catch (e) { snapMode = false; return null; }
@@ -6736,7 +6737,8 @@ function update(dt) {
     }
   } else if (state === 'ending') {
     endT += dt;
-    if (run.endType === 'true') { if (endT > 20.22 && !endSnapped) { endSnapped = true; try { endPhoto = takeSnap(214, FLOOR - 30); snap = endPhoto; } catch (e) {} } }   // 記念写真（フラッシュの瞬間）
+    // 4.48.2：記念写真は部屋の幅いっぱい（前は 250px で、犬・ロボ・カラス・ドローンなどが写っていなかった）
+    if (run.endType === 'true') { if (endT > 20.22 && !endSnapped) { endSnapped = true; try { endPhoto = takeSnap(W / 2, FLOOR - 30, W); snap = endPhoto; } catch (e) {} } }   // 記念写真（フラッシュの瞬間）
     else if (endT > 9.3 && !endSnapped) { endSnapped = true; try { snap = takeSnap(214, FLOOR); } catch (e) {} }   // シェア用の写真：オチの場面
     if (endT > (run.endType === 'true' ? TRUE_LEN : 15.8)) { state = 'credits'; credT = 0; CRED_LEN = credLen(); endBgmStart(true); EB.full = true; if (EB.on && ac) { EB.step = 0; EB.next = ac.currentTime + 0.05; } }   // スタッフロールの始まりを曲の 1 小節目に合わせる
   } else if (state === 'credits') {
