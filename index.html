@@ -358,7 +358,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.38.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.39.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -545,23 +545,29 @@ const WATERP = { x0: 206, x1: 284, y: 430, water: true };   // ものが落ち�
 const RIMP = { x0: 286, x1: 300, y: 430 };                   // 浴槽の右のふち
 let waterZ = null;
 const ROOM_SPOT = { bath: { table: [140, 192] } };
-const spotOf = s => (ROOM_SPOT[room] && ROOM_SPOT[room][s]) || (s === 'shelf' ? [PL.shelf.x0 + 20, PL.shelf.x1 - 15] : s === 'hang' ? [PL.hang.x0 + 12, PL.hang.x1 - 12] : SPOT[s]);
+const spotOf = s => (ROOM_SPOT[room] && ROOM_SPOT[room][s]) || (s === 'shelf' ? [PL.shelf.x0 + 20, PL.shelf.x1 - 15] : s === 'hang' ? [PL.hang.x0 + 12, PL.hang.x1 - 12] : s === 'ac' ? [PL.ac.x0 + 10, PL.ac.x1 - 10] : SPOT[s]);   // 4.39.0：エアコンも配置で動く
 // 足場の配置：壁の棚と吊り棚の位置を面ごとに変える（前の面とは別の配置）。段差はメインクーンでも届く 75px 以内
 // shelf の y は 355〜360（テーブルから 75 以内）。hang は棚と重なり、x1 が 255 以下（テレビにかからない）。カーテンレールへは棚か吊り棚から跳んで届く（テストで確認）
 const LAYOUTS = [
   { shelf: [105, 270, 355], hang: [148, 252, 280] },   // ふつう
   { shelf: [92, 212, 358], hang: [150, 252, 283] },    // 棚が短く左、吊り棚は右寄り
-  { shelf: [140, 300, 360], hang: [126, 222, 285] }    // 棚が右、吊り棚は左寄り（カーテンレールと並ぶ）
+  { shelf: [140, 300, 360], hang: [126, 222, 285] },   // 棚が右、吊り棚は左寄り（カーテンレールと並ぶ）
+  // 4.39.0：4 日目から使う 3 通り（エアコンの位置も動く。ac は [x0, x1]）
+  { shelf: [120, 262, 356], hang: [100, 200, 281], ac: [240, 316] },   // 吊り棚とエアコンが左寄り
+  { shelf: [160, 300, 358], hang: [136, 236, 284], ac: [284, 360] },   // 棚が右、吊り棚は真ん中、エアコンは本棚の上あたり
+  { shelf: [110, 240, 360], hang: [170, 255, 280], ac: [262, 338] }    // 棚は短く真ん中、吊り棚は右端
 ];
+const AC0 = [262, 338];
 const MIS_BASE = { towel: [125, 175], laundry: [165, 235] };
 let layoutIx = 0;
 // 面ごとの配置：1面目は0番、あとは前の面と違う配置を、日替わりの乱数で選ぶ（同じ日・同じ面ならだれでも同じ。朝からつづけても同じ）
-function layoutFor(L) { let k = 0; for (let i = 2; i <= L; i++) k = (k + 1 + ((seedRng(jstDay() + '#lay' + i)() * (LAYOUTS.length - 1)) | 0)) % LAYOUTS.length; return k; }
+function layoutFor(L) { let k = 0; for (let i = 2; i <= L; i++) { const n = dayOf(i) >= 4 ? LAYOUTS.length : 3; k = (k + 1 + ((seedRng(jstDay() + '#lay' + i)() * (n - 1)) | 0)) % n; } return k; }   // 4.39.0：4 日目からは 6 通り（それまでは 3 通り）
 function applyLayout(L) {
   layoutIx = layoutFor(L);
   const lo = LAYOUTS[layoutIx];
   Object.assign(PL.shelf, { x0: lo.shelf[0], x1: lo.shelf[1], y: lo.shelf[2] });
   Object.assign(PL.hang, { x0: lo.hang[0], x1: lo.hang[1], y: lo.hang[2] });
+  { const ac = lo.ac || AC0; PL.ac.x0 = ac[0]; PL.ac.x1 = ac[1]; }
   SHELF_MID = (PL.shelf.x0 + PL.shelf.x1) / 2;
   // 棚・吊り棚の上のいたずらの場所も一緒に動かす
   MISCHIEF.towel.x = MIS_BASE.towel.map(v => v + PL.shelf.x0 - 105);
@@ -1630,7 +1636,7 @@ function setupStageCore(L) {
   const ph = phaseOf(L); room = ph.room; introT = fastPlay() ? 1.3 : 2;
   const avail = room === 'kids' ? ['table'] : ['side', 'table']; if (L >= 2) avail.push('shelf'); if (L >= 3) avail.push('book', 'hang'); if (L >= 4) avail.push('rail'); if (L >= 5) avail.push('ac');
   // 部屋ごとの足場：お風呂場のテーブルは浴槽（ふたの所だけ乗れる）。子ども部屋のサイドテーブルの上は水槽
-  PL.table.x1 = wetRoom() ? 204 : 300; waterZ = wetRoom() ? BATHW : null; BOX.x = wetRoom() ? 110 : 215; toiletDoor = 0;
+  PL.table.x1 = wetRoom() ? 204 : 300; waterZ = wetRoom() ? BATHW : null; BOX.x = wetRoom() ? 110 : 215; toiletDoor = 0; toiletPeek = 0;
   // 部屋ごとに置かれるものが違う（k 番目の組は ステージ k+1 から出る）
   const POOLS = {
     living:  [['cup', 'cup', 'mug', 'tissue', 'remote'], ['pens', 'wine', 'cup', 'frame', 'plant'], ['phone', 'vase', 'figure'], ['tablet', 'vase', 'watch'], ['console', 'phone', 'laptop']],
@@ -2450,7 +2456,7 @@ function doPunch(strong) {
   if (bHit && !hit) sfx.pon(0.4);
   if (bHit) learn('ball');
   if (strong) { sfx.strong(); hearNoise(c.x, 0.5); } else sfx.weak();
-  if (room === 'toilet' && toiletIn() && c.plat === PL.floor && c.face === 1 && c.x > 296) { toiletOpen(); return; }   // 4.38.0：個室の扉をパンチ → 即アウト（ネタ）
+  if (room === 'toilet' && c.plat === PL.floor && c.face === 1 && c.x > 280) { if (toiletIn()) { toiletOpen(); return; } if (toiletPeek <= 0) { toiletPeek = 1.8; sfx.gatan(); pops.push({ x: 392, y: FLOOR - 120, text: lt('…だれもいない', '…Nobody here'), life: 1.2, col: '#8a6a4f', size: 14 }); } }   // 4.38.0：個室の扉をパンチ → 中に飼い主がいれば即アウト（ネタ）。いなければ空振り
   if (strong && c.plat === PL.floor && c.face === 1 && c.x > 292 && BIG[room] && !BIG[room].jump && room !== 'living') bigCount(c.x + 40);
   if (hit && !strong) sfx.thud();
   if (hit) buzz(strong ? 30 : 15);
@@ -3715,7 +3721,7 @@ function drawEnding() {
     endFall = endFall || [{ t: 'plate', x: 120, at: 9.2 }, { t: 'vase', x: 330, at: 9.6 }, { t: 'mug', x: 60, at: 10.0 }, { t: 'console', x: 390, at: 10.4 }];
     for (const f of endFall) { if (e < f.at) continue; const k = e - f.at, y = F - 320 + 320 * k * k; if (y >= F) { if (!f.done) { f.done = true; shake = 0.35; sfx.cera(1); for (let q = 0; q < 14; q++) addPart({ k: 'shard', x: f.x, y: F - 6, vx: rnd(-180, 180), vy: rnd(-340, -80), life: 8, gy: F, c: pick(['#ffffff', '#ffc94a', '#9fd3ef']), s: rnd(4, 8), rot: rnd(0, 6), vr: rnd(-9, 9) }); pops.push({ x: f.x, y: F - 60, text: '+' + yen(IT[f.t].yen), life: 0.8, col: '#e0362c', size: 22 }); } continue; } drawItem(g, f.t, f.x, y, k * 6, false); }
   }
-  if (e > 4.6 && e < 7.6 && Math.random() < 0.025) addPart({ k: 'heart', x: 214 + rnd(-10, 10), y: F - 52, vx: rnd(-8, 8), vy: -28, life: 1.6, gy: F - 300, c: '#ff7a95', s: 4, rot: 0, vr: 0 });   // 4.38.0：なでられている間だけ、ハートがゆっくり上がる（ちらつかない）
+  if (e > 4.6 && e < 7.6 && Math.random() < 0.025) addPart({ k: 'heart', x: 214 + rnd(-10, 10), y: F - 30, vx: rnd(-8, 8), vy: -22, life: 1.6, gy: F - 300, c: '#ff7a95', s: 4, rot: 0, vr: 0 });   // 4.38.0：なでられている間だけ、ハートがゆっくり上がる（ちらつかない）
   drawParts();
   // ことば
   g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
@@ -4886,7 +4892,7 @@ const R2 = {
 const r2 = () => R2[room] || null;
 const outdoor = () => room === 'garden' || !!(R2[room] && R2[room].out);
 const wetRoom = () => room === 'bath' || room === 'pool';   // 浴槽・プール：テーブルの右側が水
-let toiletDoor = 0;   // トイレの扉の開き（0 閉 → 1 開）
+let toiletDoor = 0, toiletPeek = 0;   // トイレの扉の開き（0 閉 → 1 開）、だれもいないときに開けた残り時間
 const toiletIn = () => room === 'toilet' && owner.mode === 'busy' && owner.busy && owner.busy.act === 'toilet';
 // 扉をパンチで開けた：中の飼い主と目が合って即アウト（ネタ）
 function toiletOpen() {
@@ -4993,10 +4999,11 @@ function r2Tall() {
     // 個室の扉：中に飼い主がいる間は閉まっている（♪ が聞こえる）。パンチで開くと…
     const x0 = 347, w = W - x0, top = FLOOR - 160;
     g.fillStyle = '#c9d3d9'; g.fillRect(x0, top - 8, w, FLOOR - top + 8); g.fillStyle = '#9fb3c0'; g.fillRect(x0, top - 10, w, 6);
-    const dw = 70, dx = x0 + 10, inside = toiletIn() || toiletDoor > 0;
-    if (inside) { g.fillStyle = '#e6f2f6'; g.fillRect(dx, top, dw, FLOOR - top); g.fillStyle = '#fff'; rr(g, dx + 14, FLOOR - 50, 42, 40, 8); g.fill(); }   // 中（便器）
+    const dw = 70, dx = x0 + 10, inside = toiletIn() || toiletDoor > 0, peek = toiletPeek > 0;
+    if (peek) toiletPeek -= 1 / 60;
+    if (inside || peek) { g.fillStyle = '#e6f2f6'; g.fillRect(dx, top, dw, FLOOR - top); g.fillStyle = '#fff'; rr(g, dx + 14, FLOOR - 50, 42, 40, 8); g.fill(); }   // 中（便器）
     g.save(); g.translate(dx, top);
-    const open = toiletDoor > 0 ? Math.min(1, toiletDoor) : 0;
+    const open = toiletDoor > 0 ? Math.min(1, toiletDoor) : peek ? Math.min(1, (1.8 - toiletPeek) * 6, toiletPeek * 3) : 0;
     g.scale(1 - open * 0.85, 1);
     g.fillStyle = '#e8dcc4'; rr(g, 0, 0, dw, FLOOR - top, 3); g.fill(); g.strokeStyle = 'rgba(94,58,28,.3)'; g.lineWidth = 2; g.stroke();
     g.fillStyle = 'rgba(94,58,28,.12)'; g.fillRect(8, 10, dw - 16, 60); g.fillStyle = '#4a2f1d'; g.beginPath(); g.arc(dw - 12, 90, 3, 0, TAU); g.fill();
@@ -5051,21 +5058,21 @@ function r2High() {
     // テレビアンテナ（レール）・物干し（吊り棚）・給水タンク（エアコン）
     g.fillStyle = '#6f7378'; g.fillRect(r.x0 + 48, r.y, 4, FLOOR - r.y); rr(g, r.x0, r.y - 2, r.x1 - r.x0, 7, 3); g.fill(); for (let x = r.x0 + 8; x < r.x1; x += 18) g.fillRect(x, r.y - 14, 3, 14);
     g.fillStyle = '#a7adb5'; g.fillRect(h.x0 - 6, h.y, 4, FLOOR - h.y); g.fillRect(h.x1 + 2, h.y, 4, FLOOR - h.y); g.fillStyle = '#c9d3d9'; rr(g, h.x0 - 8, h.y, h.x1 - h.x0 + 16, 5, 2.5); g.fill();
-    g.fillStyle = '#8a8f95'; g.fillRect(a.x0 + 6, a.y + 30, 6, 60); g.fillRect(a.x1 - 12, a.y + 30, 6, 60); g.fillStyle = '#5d7a9a'; rr(g, a.x0 - 4, a.y, a.x1 - a.x0 + 8, 34, 8); g.fill(); g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(a.x0 + 4, a.y + 6, a.x1 - a.x0, 5);
+    g.fillStyle = '#8a8f95'; g.fillRect(a.x0 + 6, a.y + 30, 6, FLOOR - a.y - 30); g.fillRect(a.x1 - 12, a.y + 30, 6, FLOOR - a.y - 30); g.fillStyle = '#5d7a9a'; rr(g, a.x0 - 4, a.y, a.x1 - a.x0 + 8, 34, 8); g.fill(); g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(a.x0 + 4, a.y + 6, a.x1 - a.x0, 5);
     return;
   }
   if (room === 'parking') {
     // 街灯の腕（レール）・カーポートのはり（吊り棚）・カーポートの屋根（エアコン）
     g.fillStyle = '#6f7378'; g.fillRect(r.x0 + 4, r.y, 6, FLOOR - r.y); rr(g, r.x0, r.y, r.x1 - r.x0, 8, 3); g.fill(); g.fillStyle = phaseOf(level).night ? '#fff3a0' : '#e8eef2'; rr(g, r.x1 - 22, r.y + 8, 20, 10, 3); g.fill();
     g.fillStyle = '#8a8f95'; g.fillRect(h.x0 + 4, h.y, 5, FLOOR - h.y); g.fillRect(h.x1 - 9, h.y, 5, FLOOR - h.y); rr(g, h.x0, h.y, h.x1 - h.x0, 8, 3); g.fill();
-    g.fillStyle = '#5d7a9a'; rr(g, a.x0 - 10, a.y, a.x1 - a.x0 + 20, 12, 4); g.fill(); g.fillStyle = '#8a8f95'; g.fillRect(a.x0, a.y + 12, 5, 40); g.fillRect(a.x1 - 5, a.y + 12, 5, 40);
+    g.fillStyle = '#8a8f95'; g.fillRect(a.x0, a.y + 12, 5, FLOOR - a.y - 12); g.fillRect(a.x1 - 5, a.y + 12, 5, FLOOR - a.y - 12); g.fillStyle = '#5d7a9a'; rr(g, a.x0 - 10, a.y, a.x1 - a.x0 + 20, 12, 4); g.fill();
     return;
   }
   if (room === 'pool') {
     // 監視台（レール）・飛び込み台（吊り棚）・日よけ（エアコン）
     g.fillStyle = '#fff'; g.fillRect(r.x0 + 10, r.y, 6, FLOOR - r.y); g.fillRect(r.x1 - 16, r.y, 6, FLOOR - r.y); rr(g, r.x0, r.y, r.x1 - r.x0, 8, 3); g.fill(); g.fillStyle = '#e0362c'; rr(g, r.x0 + 30, r.y - 16, 40, 16, 3); g.fill();
     g.fillStyle = '#a7adb5'; g.fillRect(h.x1 - 10, h.y, 6, FLOOR - h.y); g.fillStyle = '#7fc1f0'; rr(g, h.x0, h.y, h.x1 - h.x0, 8, 3); g.fill();
-    g.fillStyle = '#8a5a34'; g.fillRect(a.x0 + 4, a.y + 10, 5, 60); g.fillRect(a.x1 - 9, a.y + 10, 5, 60); g.fillStyle = '#ffc94a'; rr(g, a.x0 - 8, a.y, a.x1 - a.x0 + 16, 10, 4); g.fill(); g.fillStyle = '#fff'; for (let x = a.x0 - 4; x < a.x1 + 8; x += 16) g.fillRect(x, a.y, 8, 10);
+    g.fillStyle = '#8a5a34'; g.fillRect(a.x0 + 4, a.y + 10, 5, FLOOR - a.y - 10); g.fillRect(a.x1 - 9, a.y + 10, 5, FLOOR - a.y - 10); g.fillStyle = '#ffc94a'; rr(g, a.x0 - 8, a.y, a.x1 - a.x0 + 16, 10, 4); g.fill(); g.fillStyle = '#fff'; for (let x = a.x0 - 4; x < a.x1 + 8; x += 16) g.fillRect(x, a.y, 8, 10);
     return;
   }
 }
@@ -5458,7 +5465,9 @@ function drawBall() {
   g.restore();
   if ((room === 'living' || room === 'bed') && b.plat) { g.strokeStyle = s.c; g.lineWidth = 1.2; g.beginPath(); g.moveTo(b.x - b.r * Math.sign(b.vx || 1), b.y - 3); g.quadraticCurveTo(b.x - (b.r + 8) * Math.sign(b.vx || 1), b.y - 1, b.x - (b.r + 14) * Math.sign(b.vx || 1), b.y); g.stroke(); }
 }
+let furnPart = '';   // 4.39.0：'back' 壁側（棚・背の高い家具）／'front' 床側（サイドテーブル・テーブル・タワー）／'' 全部
 function drawFurniture() {
+  if (furnPart !== 'back') {
   // サイドテーブル（部屋ごとに見た目を変える：スツール・小さな引き出し・ナイトテーブル・植木台・洗面台・水槽）
   if (r2()) r2Side();
   else if (room === 'garden') {
@@ -5517,12 +5526,15 @@ function drawFurniture() {
     g.fillStyle = '#b8743f'; rr(g, 123, 430, 179, 10, 4); g.fill();
     g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(140, 440, 145, 5);
   }
+  }
+  if (furnPart !== 'front') {
   // 棚（傾くときは真ん中を軸に回す）
   g.save(); { const a = shelfTilt.a + (shelfTilt.wob > 0 ? Math.sin(tAnim * 50) * 0.01 : 0); if (a) { g.translate(SHELF_MID, PL.shelf.y); g.rotate(a); g.translate(-SHELF_MID, -PL.shelf.y); } }
   { const S0 = PL.shelf, sy = S0.y;
   g.fillStyle = '#7a4a26'; g.beginPath(); g.moveTo(S0.x0 + 20, sy + 8); g.lineTo(S0.x0 + 20, sy + 25); g.lineTo(S0.x0 + 35, sy + 8); g.closePath(); g.fill();
   g.beginPath(); g.moveTo(S0.x1 - 20, sy + 8); g.lineTo(S0.x1 - 20, sy + 25); g.lineTo(S0.x1 - 35, sy + 8); g.closePath(); g.fill();
   if (room === 'garden') { g.fillStyle = '#8a5a34'; g.fillRect(S0.x0 + 7, sy + 9, 6, 12); g.fillRect(S0.x1 - 14, sy + 9, 6, 12); }
+  if (r2() && r2().out) { g.fillStyle = room === 'pool' ? '#c9d3d9' : room === 'roof' ? '#6f7378' : '#8a8f95'; g.fillRect(S0.x0 + 6, sy + 8, 6, FLOOR - sy - 8); g.fillRect(S0.x1 - 12, sy + 8, 6, FLOOR - sy - 8); }   // 4.39.0：屋外は壁がないので、棚は脚つきの台
   g.fillStyle = (r2() && r2().shelf) || ({ kitchen: '#e8e2d6', bed: '#c9a0dc', bath: '#dfeef5', kids: '#ffc94a', garden: '#b98a56' })[room] || '#c98a4f'; rr(g, S0.x0 - 2, sy, S0.x1 - S0.x0 + 4, 9, 4); g.fill(); }
   g.restore();
   // 背の高い家具（本棚・冷蔵庫・タンス・物置・収納棚・二段ベッド）。ネコは前を歩ける。大技で崩れる（bigPre／bigPost）
@@ -5568,6 +5580,8 @@ function drawFurniture() {
     g.fillStyle = '#9a6038'; rr(g, 345, 285, W - 345, 8, 3); g.fill();
   }
   bigPost(g);
+  }
+  if (furnPart === 'back') return;
   // キャットタワー（背の高い家具の手前に描く。庭は切り株、お風呂場は風呂いす）。描く位置は元の 305 から右へずらす
   if (r2Tower()) {} else if (room === 'garden') drawStump(); else if (room === 'bath') drawStool(); else {
   g.save(); g.translate(PL.tower.x0 - 305, 0);
@@ -5706,7 +5720,7 @@ function drawOwner() {
   g.fillStyle = hairC; g.beginPath(); g.arc(-1, -4, 16, Math.PI, TAU); g.fill();
   if (wt === 'grandma') { g.beginPath(); g.arc(-15, -11, 6, 0, TAU); g.fill(); g.strokeStyle = '#2a2f36'; g.lineWidth = 1.2; g.beginPath(); g.arc(8, -1, 3.5, 0, TAU); g.stroke(); }   // おだんごとメガネ
   if (wt === 'dad') { g.fillStyle = '#3a2a22'; rr(g, 8, 3, 9, 2.6, 1.2); g.fill(); }   // ひげ
-  if (!kid && wt === 'owner' && dayOf(level) >= 7) { g.fillStyle = hairC; [[-14, -12, -20, -22], [-6, -17, -8, -27], [4, -17, 8, -27], [12, -12, 19, -20]].forEach(([x0, y0, x1, y1]) => { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.lineTo(x0 + 4, y0 + 1); g.fill(); }); }   // 7日目：寝不足で髪がはねる
+  if (!kid && wt === 'owner' && dayOf(level) >= 7) { g.strokeStyle = hairC; g.lineWidth = 4; g.lineCap = 'round'; [[-13, -12, -20, -19], [-5, -17, -9, -25], [5, -17, 9, -25], [12, -12, 19, -18]].forEach(([x0, y0, x1, y1]) => { g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo((x0 + x1) / 2 + 3, y1 - 2, x1, y1); g.stroke(); }); }   // 7日目：寝不足で髪がはねる（4.39.0：とがった三角ではなく丸い房）
   if (!kid && wt === 'owner' && dayOf(level) >= 6) { g.strokeStyle = 'rgba(80,60,120,.4)'; g.lineWidth = 2; g.beginPath(); g.arc(8, 2, 4, 0.2, Math.PI - 0.2); g.stroke(); }   // 6日目から目の下にクマ
   if (kid) { g.fillStyle = '#e4413a'; g.beginPath(); g.arc(-1, -5, 16.5, Math.PI, TAU); g.fill(); g.fillRect(6, -8, 18, 4); }   // 帽子
   else if (room === 'garden') { g.fillStyle = '#e6c38f'; g.beginPath(); g.ellipse(-1, -11, 25, 4.5, 0, 0, TAU); g.fill(); g.beginPath(); g.arc(-1, -12, 12, Math.PI, TAU); g.fill(); g.fillStyle = '#e0362c'; g.fillRect(-13, -15, 24, 2.5); }   // 麦わら帽子
@@ -6083,15 +6097,20 @@ function draw() {
   drawSeason();
   if (BOT > H) { const fg = g.createLinearGradient(0, FLOOR + 10, 0, BOT); fg.addColorStop(0, 'rgba(60,35,15,0)'); fg.addColorStop(1, 'rgba(60,35,15,.16)'); g.fillStyle = fg; g.fillRect(0, FLOOR + 10, W, BOT - FLOOR - 10); }   // 手前の床に奥行きの影
   drawHigh();
+  // 4.39.0：飼い主は壁のもの（棚・背の高い家具・その上のもの）の前、床の家具（サイドテーブル・テーブル・タワー）の後ろに描く
+  furnPart = 'back'; drawFurniture();
+  const WALLP = [PL.shelf, PL.hang, PL.rail, PL.ac, PL.book];
+  const drawIt = it => { const sy = it.plat === PL.shelf ? shelfDy(it.x) : 0; drawItem(g, it.t, it.x, it.state === 'fall' ? it.y : it.plat.y + sy, it.rot + (it.plat === PL.shelf ? shelfTilt.a : 0), it.water); };
+  for (const it of items) if (it.state !== 'fall' && WALLP.includes(it.plat)) drawIt(it);
   drawOwner();
   drawDog();
   drawCreaks();
-  drawFurniture();
+  furnPart = 'front'; drawFurniture(); furnPart = '';
   drawLamp();
   drawGuest();
   drawProps();
   drawPuddles();
-  for (const it of items) { const sy = it.plat === PL.shelf ? shelfDy(it.x) : 0; drawItem(g, it.t, it.x, it.state === 'fall' ? it.y : it.plat.y + sy, it.rot + (it.plat === PL.shelf ? shelfTilt.a : 0), it.water); }
+  for (const it of items) if (it.state === 'fall' || !WALLP.includes(it.plat)) drawIt(it);
   drawTraps();
   drawCuke();
   drawBall();
@@ -6152,7 +6171,7 @@ function draw() {
     g.fillStyle = vg; g.fillRect(0, -OY, W, VH);
   }
   // 隠れ場所の案内：ステージの始め（2秒ほど、名前つき）と、飼い主が探し始めたとき（追いかけっこの前）
-  if (state === 'play' && chaseT <= 0 && introT <= 0 && escT > 0) drawEsc(Math.min(1, escT / 0.3, (2.2 - escT) / 0.2), lt('隠れ場所', 'Hide'));
+  if (state === 'play' && chaseT <= 0 && introT <= 0 && escT > 0) drawEsc(Math.min(1, escT / 0.3, (2.2 - escT) / 0.2), lt('かくればしょ', 'Hide'));
   else if (state === 'play' && chaseT <= 0 && !isHiding() && (owner.mode === 'search' || sus >= 65)) drawEsc(0.55 + 0.35 * Math.abs(Math.sin(tAnim * 5)), '');
   if (state === 'play' && chaseT > 0) {
     // 追いかけっこ：画面のふちを赤く、逃げ込める場所に矢印
@@ -6971,7 +6990,7 @@ function showPause() {
     <div class="big-logo" style="font-size:1.6rem">${lt('ひとやすみ', 'Paused')}</div><p class="sub">PAUSE</p>
     <button class="btn go" id="pResume" type="button">${lt('つづける', 'Resume')}</button>
     <div class="row"><button class="btn w" id="pRetry" type="button">${lt('やりなおす', 'Restart')}</button><button class="btn w" id="pTop" type="button">${lt('トップへ', 'Title')}</button></div>
-    <div class="row"><button class="btn w" id="pSnd" type="button">${muted ? lt('音をオンにする', 'Sound on') : lt('音をオフにする', 'Sound off')}</button><button class="btn w" id="pSet" type="button">${lt('設定', 'Settings')}</button></div>
+    <div class="row"><button class="btn w" id="pSnd" type="button">${muted ? lt('おとをオン', 'Sound on') : lt('おとをオフ', 'Sound off')}</button><button class="btn w" id="pSet" type="button">${lt('せってい', 'Settings')}</button></div>
     ${loadSave() ? `<p class="best" style="margin:2px 0 0;font-weight:500;font-size:.76rem;color:var(--ink2)">${lt('この面の始まりまでセーブずみ。いつやめても、トップの「つづきから」で再開できます', 'Saved up to the start of this stage. Quit any time and pick "Continue" on the title')}</p>` : ''}
     ${keysBox()}
 </div>`;
