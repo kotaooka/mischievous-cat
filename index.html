@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.40.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.40.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -5035,14 +5035,16 @@ function r2Tall() {
     return;
   }
   if (room === 'parking') {
-    // 車：屋根の上が足場（book）。ひっかき傷は いたずらの進み具合で増える
-    const sp = spots.find(s => s.id === 'scratchcar'), k = sp ? clamp(sp.t / MISCHIEF.scratchcar.need, 0, 1) : 0, n = sp && sp.done ? 6 : Math.floor(k * 6);
-    g.fillStyle = '#2a2f36'; g.beginPath(); g.arc(372, FLOOR - 14, 16, 0, TAU); g.arc(432, FLOOR - 14, 16, 0, TAU); g.fill(); g.fillStyle = '#c9ced6'; g.beginPath(); g.arc(372, FLOOR - 14, 7, 0, TAU); g.arc(432, FLOOR - 14, 7, 0, TAU); g.fill();
-    g.fillStyle = '#e0362c'; g.beginPath(); g.moveTo(345, FLOOR - 22); g.lineTo(345, FLOOR - 80); g.quadraticCurveTo(350, FLOOR - 100, 380, FLOOR - 100); g.lineTo(395, FLOOR - 160); g.quadraticCurveTo(400, FLOOR - 175, 420, FLOOR - 175); g.lineTo(W, FLOOR - 175); g.lineTo(W, FLOOR - 22); g.closePath(); g.fill();
-    g.fillStyle = '#9cc8ef'; g.beginPath(); g.moveTo(400, FLOOR - 105); g.lineTo(410, FLOOR - 160); g.lineTo(W, FLOOR - 160); g.lineTo(W, FLOOR - 105); g.closePath(); g.fill();
-    g.fillStyle = '#ffe9a8'; rr(g, 347, FLOOR - 70, 12, 10, 3); g.fill(); g.fillStyle = '#4a2f1d'; g.fillRect(400, FLOOR - 95, 40, 4); g.fillStyle = '#c9ced6'; rr(g, 352, FLOOR - 40, 24, 8, 3); g.fill();
-    g.fillStyle = '#b52a22'; rr(g, 341, FLOOR - 183, W - 339, 10, 3); g.fill();   // 屋根（足場）
-    g.strokeStyle = '#fff'; g.lineWidth = 1.5; for (let i = 0; i < n; i++) { const x = 360 + i * 14, y = FLOOR - 60 + (i % 3) * 8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 10, y - 14); g.stroke(); }
+    // 4.40.2：背の高い配達バン。荷台の屋根が足場（PL.book、y=285）。ひっかき傷は いたずらの進み具合で増える
+    const sp = spots.find(s => s.id === 'scratchcar'), k = sp ? clamp(sp.t / MISCHIEF.scratchcar.need, 0, 1) : 0, n = sp && sp.done ? 6 : Math.floor(k * 6), top = PL.book.y + 6;
+    g.fillStyle = '#2a2f36'; g.beginPath(); g.arc(378, FLOOR - 16, 17, 0, TAU); g.arc(436, FLOOR - 16, 17, 0, TAU); g.fill(); g.fillStyle = '#c9ced6'; g.beginPath(); g.arc(378, FLOOR - 16, 7, 0, TAU); g.arc(436, FLOOR - 16, 7, 0, TAU); g.fill();
+    g.fillStyle = '#e0362c'; rr(g, 345, top, W - 345 + 10, FLOOR - 26 - top, 10); g.fill();   // 荷台
+    g.fillStyle = '#b52a22'; g.fillRect(345, FLOOR - 70, W - 345 + 10, 6); g.fillRect(345, top + 60, W - 345 + 10, 4);   // 帯
+    g.fillStyle = '#9cc8ef'; rr(g, 404, top + 14, 40, 34, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(410, top + 18, 10, 26);   // 運転席の窓（右端）
+    g.fillStyle = '#ffe9a8'; rr(g, 347, FLOOR - 60, 14, 10, 3); g.fill(); g.fillStyle = '#c9ced6'; rr(g, 352, FLOOR - 44, 26, 8, 3); g.fill();   // ライト・バンパー
+    g.fillStyle = '#fff'; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('NEKO', 398, top + 110);   // 社名（ネタ）
+    g.fillStyle = '#b52a22'; rr(g, 341, PL.book.y - 2, W - 339, 10, 3); g.fill();   // 屋根（足場）
+    g.strokeStyle = '#fff'; g.lineWidth = 1.5; for (let i = 0; i < n; i++) { const x = 352 + i * 15, y = FLOOR - 95 + (i % 3) * 8; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 10, y - 14); g.stroke(); }
     return;
   }
   if (room === 'pool') {
