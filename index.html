@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.45.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.46.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -783,45 +783,20 @@ const TITLES = [
   { id: 't3', name: tx('キッチンの悪夢', "Kitchen Nightmare"), tier: 2500000 },
   { id: 't4', name: tx('リビング崩壊請負猫', "Living Room Wrecker"), tier: 10000000 },
   { id: 't5', name: tx('伝説の食器破壊者', "Legendary Smasher"), tier: 16000000 },
-  { id: 'phone', name: tx('スマホ破壊神', "Phone Breaker"), test: r => (r.broke.phone || 0) >= 2 },
-  { id: 'foe1', name: tx('ネコパンチ道場', 'Cat Punch Dojo'), test: r => (r.foes || 0) >= 1 },
   { id: 'foe4', name: tx('退治屋', 'The Exterminator'), test: r => ['vacbot', 'crow', 'toybot', 'drone'].every(k => r.ev && r.ev['foe_' + k]) },
-  { id: 'week2', name: tx('7日間の支配者', 'Ruler of the Week'), test: r => !!r.trueEnded },
   { id: 'nohit', name: tx('無傷の夜', 'Untouched'), test: r => !!r.trueEnded && !(r.ev && r.ev.foeHit) },
-  { id: 'water', name: tx('水難の相', "Water Woes"), test: r => r.water >= 3 },
-  { id: 'kaku', name: tx('確信犯', "Guilty as Charged"), test: r => r.kakushin >= 3 },
-  { id: 'ride', name: tx('お掃除ロボ乗り', "Robo Rider"), test: r => r.rideT >= 8 },
-  { id: 'chain', name: tx('ピタゴラ職人', "Domino Master"), test: r => r.maxChain >= 3 },
   { id: 'idle', name: tx('堂々と寝る犯人', "Brazen Napper"), test: r => r.idle },
-  { id: 'paper', name: tx('紙吹雪の演出家', "Confetti Artist"), test: r => (r.broke.tissue || 0) >= 3 },
   { id: 'print', name: tx('足跡アーティスト', "Paw Print Artist"), test: r => r.prints >= 40 },
-  { id: 'dog', name: tx('番犬の天敵', "Watchdog's Nemesis"), test: r => r.barks >= 3 },
   { id: 'book', name: tx('本棚の主', "Lord of the Shelves"), test: r => r.bookBroke >= 3 },
   { id: 'fast', name: tx('秒殺', "Speed Demon"), test: r => r.fast },
   { id: 'zero', name: tx('ただの良いネコ', "Just a Good Cat"), test: r => r.yen === 0 && r.timeup },
   { id: 'food', name: tx('くいしんぼう', "Big Eater"), test: r => r.fed >= 3 },
   { id: 'day', name: tx('一日中いたずら', "All-Day Mischief"), test: r => r.days >= 1 },
-  { id: 'data', name: tx('在宅勤務の敵', "WFH Menace"), test: r => !!r.broke.data },
-  { id: 'alarm', name: tx('目覚まし係', "Wake-Up Call"), test: r => !!r.broke.alarm },
   { id: 'stars', name: tx('お題マスター', "Task Master"), test: r => r.stars >= 9 },
-  { id: 'escape', name: tx('逃げ足の達人', "Escape Artist"), test: r => r.escapes >= 2 },
-  { id: 'mis', name: tx('爪とぎ職人', "Scratch Master"), test: r => r.mis >= 3 },
-  { id: 'launch', name: tx('ネズミ作戦の参謀', 'Mouse Strategist'), test: r => r.scare >= 2 },   // 旧「カタパルト職人」（てこの廃止で入れ替え）
   { id: 'bowl', name: tx('ボウリング王', "Bowling King"), test: r => r.ballHits >= 3 },
-  { id: 'top', name: tx('天井の住人', "Ceiling Dweller"), test: r => r.top },
   { id: 'streak', name: tx('ノーマークの達人', "Unseen Master"), test: r => r.maxStreak >= 5 },
   { id: 'perfect', name: tx('完全犯罪', "Perfect Crime"), test: r => r.perfect >= 3 },
   { id: 'space', name: tx('踊るネコ', 'Dancing Cat'), test: r => r.space >= 1 },
-  { id: 'fish', name: tx('金魚ハンター', 'Goldfish Hunter'), test: r => r.fish >= 3 },
-  { id: 'mouse', name: tx('ネズミ退治の名人', 'Mouse Buster'), test: r => r.mice >= 2 },
-  { id: 'boss', name: tx('ボス猫キラー', 'Boss Beater'), test: r => r.boss >= 1 },
-  { id: 'chick', name: tx('ニワトリ使い', 'Chicken Whisperer'), test: r => r.chick >= 2 },
-  { id: 'bath', name: tx('水もしたたるいい猫', 'Soaked Cat'), test: r => r.bathFall >= 1 },
-  { id: 'cloth', name: tx('テーブルクロスの達人', 'Tablecloth Master'), test: r => r.cloth >= 1 },
-  { id: 'rub', name: tx('あざといネコ', 'Shameless Charmer'), test: r => r.rubT >= 5 },
-  { id: 'cuke', name: tx('きゅうり恐怖症', 'Cucumber Phobia'), test: r => r.cuke >= 1 },
-  { id: 'lamp', name: tx('空中ブランコ', 'Trapeze Cat'), test: r => r.lamp >= 1 },
-  { id: 'ending', name: tx('自称いい子', 'A "Good" Cat'), test: r => !!r.ended },
   // 行動・通算の称号（life は通算記録 LIFE で判定）
   { id: 'ghost', name: tx('幽霊ネコ', 'Ghost Cat'), test: r => r.ghost >= 1 },
   { id: 'big5', name: tx('大物狙い', 'Big Game Hunter'), test: r => r.bigN >= 5 },
@@ -834,7 +809,6 @@ const TITLES = [
   { id: 'rooms', name: tx('家じゅう制覇', 'Whole-House Tour'), life: L => Object.keys(L.rooms || {}).length >= Object.keys(ROOM_NAME).length },
   { id: 'family', name: tx('ネコ一家', 'The Whole Family'), life: () => catsOpen.size >= CATS.length },
   { id: 'days3', name: tx('三日坊主卒業', 'Three-Day Streak'), life: L => (L.dayStreak || 0) >= 3 },
-  { id: 'wrecker', name: tx('解体屋', 'Demolition Cat'), test: r => (r.bigs || []).length >= 1 },
   { id: 'wrecker7', name: tx('全室解体', 'Whole-House Demolition'), life: L => Object.keys(L.bigs || {}).length >= Object.keys(BIG).length },
   { id: 'endings', name: tx('全エンディング', 'All Endings'), life: () => endingsSeen.size >= Object.keys(ENDINGS).length }
 ];
@@ -843,29 +817,20 @@ const TDESC = {
   foe4: tx('1回で、4種類の相手（暴走ロボ掃除機・カラス・おもちゃのロボット・見張りドローン）を全部たおす', 'Beat all 4 foes (vacuum, crows, toy robot, drone) in one run'), nohit: tx('相手に一度もぶつからずに、7日目の夜を越える', 'Get through the 7th night without ever being hit by a foe'),
   t1: tx('はじめて遊ぶ', 'Play once'), t2: tx('1回で被害額 ¥500,000 以上', 'Deal ¥500,000+ in one run'), t3: tx('1回で被害額 ¥2,500,000 以上', 'Deal ¥2,500,000+ in one run'),
   t4: tx('1回で被害額 ¥10,000,000 以上', 'Deal ¥10,000,000+ in one run'), t5: tx('1回で被害額 ¥16,000,000 以上', 'Deal ¥16,000,000+ in one run'),
-  phone: tx('1回でスマホを2台割る', 'Break 2 phones in one run'), water: tx('1回で水の入ったものを3回こぼす', 'Spill 3 drinks in one run'),
-  kaku: tx('1回で、カメラ目線のまま3回落とす', 'Knock 3 things off while staring at the camera in one run'), ride: tx('1回でお掃除ロボに合計8秒乗る', 'Ride the robot vacuum for 8 seconds total in one run'),
-  chain: tx('3つ以上をまとめて落とす（3連鎖）', 'Make a 3x chain'), idle: tx('何もしていないときに見つかる', 'Get caught while doing nothing'),
-  paper: tx('1回でティッシュを3回落とす', 'Knock off tissues 3 times in one run'), print: tx('1回で足跡を40個つける', 'Leave 40 paw prints in one run'),
-  dog: tx('1回で犬に3回吠えられる', 'Get barked at 3 times in one run'), book: tx('1回で本棚のものを3つ落とす', 'Knock 3 things off the bookshelf in one run'),
+  idle: tx('何もしていないときに見つかる', 'Get caught while doing nothing'),
+  print: tx('1回で足跡を40個つける', 'Leave 40 paw prints in one run'),
+  book: tx('1回で本棚のものを3つ落とす', 'Knock 3 things off the bookshelf in one run'),
   fast: tx('2面目以降を15秒以内にクリア', 'Clear stage 2 or later within 15 seconds'), zero: tx('被害額 ¥0 のまま時間切れ', 'Run out of time with ¥0 damage'),
   food: tx('1回でごはん・おやつを3回食べる', 'Eat food or snacks 3 times in one run'), day: tx('1日（4面）を最後まで終える', 'Finish a whole day (4 stages)'),
-  data: tx('書斎でパソコンのデータを消す', 'Wipe the computer data in the study'), alarm: tx('目覚まし時計を落とす', 'Knock off the alarm clock'),
-  stars: tx('1回でお題の★を9個集める', 'Earn 9 task stars in one run'), escape: tx('1回で追いかけっこから2回逃げ切る', 'Escape 2 chases in one run'),
-  mis: tx('1回で落とす以外のいたずらを3回する', 'Do 3 non-knocking mischiefs in one run'), launch: tx('1回でネズミで飼い主を2回驚かす', 'Scare the owner with the mouse twice in one run'),
-  bowl: tx('1回で転がるボールを3回ものに当てる', 'Hit things with the rolling ball 3 times in one run'), top: tx('エアコンの上に登る', 'Climb on top of the air conditioner'),
+  stars: tx('1回でお題の★を9個集める', 'Earn 9 task stars in one run'),
+  bowl: tx('1回で転がるボールを3回ものに当てる', 'Hit things with the rolling ball 3 times in one run'),
   streak: tx('見られずに5回続けて落とす', 'Knock off 5 in a row unseen'), perfect: tx('1回で怪しまれ度30%未満のままクリアを3面', 'Clear 3 stages with suspicion under 30% in one run'),
-  space: tx('3連鎖か ¥100,000 以上のものを割って、ネコを踊らせる', 'Make the cat dance (3x chain or a ¥100,000+ break)'), fish: tx('1回で金魚に3回タッチ', 'Tap the goldfish 3 times in one run'),
-  mouse: tx('1回でネズミを2匹退治', 'Bop 2 mice in one run'), boss: tx('ボス猫を追い払う', 'Chase off the boss cat'),
-  chick: tx('1回でニワトリにものを2回落とさせる', 'Get the chicken to knock things off twice in one run'), bath: tx('お風呂に落ちる', 'Fall into the bath'),
-  cloth: tx('テーブルクロスを引く', 'Yank the tablecloth'), rub: tx('1回で飼い主の足に合計5秒すりすり', 'Rub against the owner for 5 seconds total in one run'),
-  cuke: tx('きゅうりで飛び上がる', 'Jump at a cucumber'), lamp: tx('吊り照明にぶら下がって飛ぶ', 'Swing from the hanging lamp'),
-  ending: tx('3日目の夜を越える', 'Get through the third night'),
+  space: tx('3連鎖か ¥100,000 以上のものを割って、ネコを踊らせる', 'Make the cat dance (3x chain or a ¥100,000+ break)'),
   ghost: tx('怪しまれ度10%未満のまま1面クリア', 'Clear a stage with suspicion under 10%'), big5: tx('1回で ¥30,000 以上のものを5つ落とす', 'Knock off 5 items worth ¥30,000+ in one run'),
   guest: tx('お客さんの夜を怪しまれ度50%未満でクリア', 'Clear Guest Night with suspicion under 50%'), regular: tx('10回遊ぶ', 'Play 10 times'),
   million: tx('通算の被害額 ¥1,000,000', 'Reach ¥1,000,000 total damage'), cups: tx('通算でコップを30個割る', 'Break 30 cups in total'),
   night: tx('夜の面の被害額が通算 ¥100,000', 'Deal ¥100,000 total damage at night'), boxer: tx('通算でダンボールに10回隠れてやりすごす', 'Hide in the box from the owner 10 times in total'),
-  rooms: tx('11の部屋を全部まわる', 'Visit all 11 rooms'), wrecker: tx('大技（家具を崩す）を1回', 'Pull off a big one (collapse a piece of furniture)'), wrecker7: tx('7つの部屋全部で家具を崩す', 'Collapse the furniture in all 7 rooms'), endings: tx('5種類のエンディングを全部見る', 'See all 5 endings'), family: tx('ネコを6匹そろえる', 'Unlock all 6 cats'), days3: tx('3日続けて遊ぶ', 'Play 3 days in a row')
+  rooms: tx('11の部屋を全部まわる', 'Visit all 11 rooms'), wrecker7: tx('7つの部屋全部で家具を崩す', 'Collapse the furniture in all 7 rooms'), endings: tx('5種類のエンディングを全部見る', 'See all 5 endings'), family: tx('ネコを6匹そろえる', 'Unlock all 6 cats'), days3: tx('3日続けて遊ぶ', 'Play 3 days in a row')
 };
 let unlocked = new Set();
 try { unlocked = new Set(JSON.parse(store.get('nekoTitles', '[]'))); } catch (e) {}
@@ -1029,9 +994,8 @@ const DIARY = {
   5: () => run.ev.bone ? tx('ポチを起こしておいた。骨で買収されていた。', 'Kept the dog awake. He was bribed with a bone.') : tx('ポチを起こしておいた。吠えてばかりで、何も捕まえていない。', 'Kept the dog awake. All bark, nothing caught.'),
   6: () => tx('犯人は隣のボスに違いない。うちの子は、いい子。……いい子のはず。', "It must be the boss cat next door. Mine is a good cat. …Should be."),
   7: () => tx('……寝た。全部見てた。犬もカメラもドローンも、最初から無駄だった。もういい。好きにしなさい。', "…I fell asleep. I saw it all. The dog, the cams, the drone — pointless from the start. Fine. Do as you please."),
-  x: () => lt(dayOf(level) + '日目。もう数えるのをやめた。', 'Day ' + dayOf(level) + '. I stopped counting.')
 };
-const diaryOf = d => String((DIARY[d] || DIARY.x)());
+const diaryOf = d => DIARY[d] ? String(DIARY[d]()) : '';   // 4.46.0：8 日目以降はないので、決まり文句（x）は外した
 // 入室の独り言（第2週は 7 割でこちら）。子ども部屋のロボットの面は子どもの台詞
 const DAY_LINES = {
   4: [tx('ネコよけ機能つきの掃除機、買っちゃった', 'Bought a vacuum with an anti-cat mode'), tx('3日間、何も起きなかった。気のせいだった', 'Three days, nothing happened. It was my imagination'), tx('音楽聴きながら家事〜♪', 'Chores with music~♪'), tx('イヤホン最高', 'Earphones are the best')],
@@ -1226,7 +1190,6 @@ const ICO = {
   q: '<svg viewBox="0 0 24 24" fill="#b39a80"><path d="M12 3a6 6 0 016 6c0 2.4-1.4 3.6-2.6 4.6-1 .8-1.6 1.3-1.6 2.4v1h-3.6v-1.2c0-2.3 1.3-3.3 2.5-4.3 1-.8 1.5-1.3 1.5-2.5a2.2 2.2 0 00-4.4 0H6a6 6 0 016-6zm-1.8 16h3.6v3h-3.6z"/></svg>',
   coffee: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 8h13v6a5 5 0 01-5 5H9a5 5 0 01-5-5zm15 1h1a3 3 0 010 6h-1v-2h1a1 1 0 000-2h-1zM7 2h2v3H7zm4 0h2v3h-2zm-6 19h14v2H5z"/></svg>'
 };
-const accCardName = a => { const c = CARDS.find(x => x.id === a.card); return c ? String(c.name) : ''; };
 
 // ---------- 状態 ----------
 let state = 'title', level = 1, sus = 0, muted = store.get('nekoMute', '0') === '1';
@@ -1237,7 +1200,7 @@ let clearT0 = 2.4, dayT0 = 6, assist = 0;   // 4.36.0：札の長さ（2 回目�
 const fastPlay = () => (LIFE.plays || 0) >= 2;
 let timeLeft = 40, timeMax = 40, lastTick = 99, bowl = null, feeds = 0, pausedFrom = null, resumeT = 0;   // resumeT：ポーズから戻るときの 3・2・1 の残り
 let room = 'living', kb = null, snack = null, dayT = 0, introT = 0, newAccs = [];
-let tasks = [], chaseT = 0, chaseN = 0, susQ = 0, warn85 = false, hideT = 0, rideStage = 0, tapTarget = null, oneHand = store.get('nekoOneHand', '0') === '1';
+let tasks = [], chaseT = 0, chaseN = 0, susQ = 0, warn85 = false, hideT = 0, rideStage = 0, oneHand = store.get('nekoOneHand', '0') === '1';
 if (!catsOpen.has(CATS[selCat].id)) selCat = 2;
 let selAcc = store.get('nekoAcc', 'none');
 if (!ACCS.some(a => a.id === selAcc)) selAcc = 'none';
@@ -1257,9 +1220,6 @@ let SHELF_MID = (PL.shelf.x0 + PL.shelf.x1) / 2;   // ステージに落ちて�
 // 今日のランキング：日本時間の日付ごとのコレクションに、その日の自己ベストを送る
 const jstDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 let dailyKey = jstDay();
-const hashStr = t => { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
-// 決まった種から同じ並びを出す乱数（mulberry32）
-const seeded = a => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 // 猫ミーム風の演出（spaceT は旧・宇宙猫の名残で、いつも 0）
 let spaceT = 0;
 let hitStop = 0, zoomK = 0, zoomX = W / 2, zoomY = 300, rushShown = false;   // 手ごたえ：一瞬止める・少し寄る
@@ -1820,7 +1780,7 @@ function setupStageCore(L) {
   }
   const T = CATS[selCat];
   cat = cat || {};
-  Object.assign(cat, { ledge: null, hang: false, grabCd: 0, rubT: 0, sticky: false, onTrap: null, scareT: 0, creakCd: 0, danceT: 0, bathT: 0, bathOut: false, inBath: false, type: T, x: room === 'bath' ? 322 : 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: VOICES[0].txt, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0, scratch: null, scrHold: false, autoScr: null, happyT: 0, aimUp: false, scrT: 0, purrT: 0, hopT: 0, jabN: 0, lastPunch: -9 });
+  Object.assign(cat, { ledge: null, hang: false, grabCd: 0, rubT: 0, sticky: false, onTrap: null, scareT: 0, creakCd: 0, danceT: 0, bathT: 0, bathOut: false, inBath: false, type: T, x: room === 'bath' ? 322 : 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: VOICES[0].txt, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0, scratch: null, scrHold: false, happyT: 0, aimUp: false, scrT: 0, purrT: 0, hopT: 0, jabN: 0, lastPunch: -9 });
   { const f = failOf(); assist = f.l === L && f.n >= 3 && !(run && run.test) ? 5 : 0; }
   owner.mode = 'away'; owner.t = (day1(L) ? day1(L).away : rnd(2.5, 4.5)) + assist; owner.range = 0; owner.lureT = 0; owner.warned = false; owner.hint = null; owner.say = ''; owner.x = -60; owner.scareT = 0;
   sus = Math.min(sus, 25);
@@ -1850,7 +1810,7 @@ function setupStageCore(L) {
   tut.on = L === 1 && !tutDone; tut.broke = false;
   // 制限時間：もの1個につき7秒＋25秒
   // お題を3つ：部屋の仕掛けから1つ＋ほかから2つ（その面でできるものだけ）
-  tasks = []; chaseN = 0; susQ = 0; warn85 = false; chaseT = 0; hideT = 0; rideStage = 0; tapTarget = null;
+  tasks = []; chaseN = 0; susQ = 0; warn85 = false; chaseT = 0; hideT = 0; rideStage = 0;
   {
     // この面で初めて出た仕掛けを集める（一度光らせたら learned に入れて、次からは出さない）
     const add = (k, x, y) => { const seen = learned.has('see_' + k); if (!seen || !(run && run.ck && run.ck.level <= L && (run.clrL || []).includes(L))) spot.push({ k, x, y, rep: seen }); };   // 4.38.3：面の始まりには毎回出す（見たことがある仕掛けは短め）。同じ回でその面をクリアずみ（朝からつづけたとき）だけ出さない
@@ -2197,7 +2157,7 @@ function updCat(dt) {
   // チュール：床にいると吸い寄せられる。ボタン連打でがまんできる
   if (owner.mode === 'churu' && c.plat === PL.floor && c.eatT <= 0 && state === 'play' && !owner.churuDone) {
     churuRes = Math.max(0, churuRes - 0.8 * dt);
-    if (churuRes < 1) { dir = Math.sign(owner.x - c.x) || 0; tapTarget = null; c.churuPull = true; } else c.churuPull = false;
+    if (churuRes < 1) { dir = Math.sign(owner.x - c.x) || 0; c.churuPull = true; } else c.churuPull = false;
     if (Math.abs(c.x - owner.x) < 26) {
       c.eatT = 1.4; c.eatChuru = true; c.churuPull = false; owner.churuDone = true; owner.t = Math.min(owner.t, 1.4); run.churu++;
       const add = 6; timeLeft += add; sus = Math.max(0, sus - 20); sfx.eat(); say(lt('おいしいねえ', 'Yummy, right?'), 1.4);
@@ -2210,8 +2170,6 @@ function updCat(dt) {
     const cx = c.hidden ? BOX.x : (PL.tower.x0 + PL.tower.x1) / 2;
     if (Math.abs(c.x - cx) > 1 && Math.abs(c.vx) < 40) { c.x += (cx - c.x) * Math.min(1, dt * 12); c.vx = 0; }
   }
-  if (dir) { tapTarget = null; c.autoScr = null; }   // ボタン・キーで動かしたら、自動移動はやめる
-  else if (tapTarget && c.eatT <= 0 && c.stun <= 0) dir = autoNav(c, dt);   // ロボにぶつかって目を回している間は待つ
   const riding = c.plat === VACP;
   if (riding) {
     // お掃除ロボに乗っている間は、左右でロボの向きを変える
@@ -2242,7 +2200,7 @@ function updCat(dt) {
     if (waterZ && state === 'play' && c.vy > 0 && py <= waterZ.y && c.y >= waterZ.y && c.x > waterZ.x0 && c.x < waterZ.x1) { fallInBath(); return; }
     if (lamp && !c.hang && c.grabCd <= 0 && state === 'play') {
       const bx = lamp.ax + lamp.L * Math.sin(lamp.th), by = lamp.ay + lamp.L * Math.cos(lamp.th);
-      if (Math.hypot(c.x - bx, (c.y - 30) - by) < 24) { c.hang = true; lamp.om += c.vx / lamp.L * 0.7; c.vx = c.vy = 0; tapTarget = null; sfx.lamp(); learn('lamp'); return; }   // 吊り照明に飛びつく
+      if (Math.hypot(c.x - bx, (c.y - 30) - by) < 24) { c.hang = true; lamp.om += c.vx / lamp.L * 0.7; c.vx = c.vy = 0; sfx.lamp(); learn('lamp'); return; }   // 吊り照明に飛びつく
     }
     if (c.vy >= 0) {
       let best = null;
@@ -2269,7 +2227,7 @@ function updCat(dt) {
           const side = c.x <= p.x0 + 2 && c.x >= p.x0 - 12 ? 1 : c.x >= p.x1 - 2 && c.x <= p.x1 + 12 ? -1 : 0;
           if (!side) continue;
           if (traps.some(t => t.plat === p && t.type === 'tape' && Math.abs(t.x - (side > 0 ? p.x0 : p.x1)) < 30)) continue;   // テープの端はつかめない
-          c.ledge = { p, side, t: 0 }; c.vx = 0; c.vy = 0; c.plat = null; c.face = side; tapTarget = null; sfx.hide(); break;
+          c.ledge = { p, side, t: 0 }; c.vx = 0; c.vy = 0; c.plat = null; c.face = side; sfx.hide(); break;
         }
       }
     }
@@ -2283,15 +2241,15 @@ function updCat(dt) {
       if (kb.t >= 1) { kb.done = true; damage(50000, 'data', (kb.x0 + kb.x1) / 2, PL.table.y); taskHit('data'); }
     }
   }
-  // 落とす以外のいたずら：場所の上で止まってパンチを長押し（片手操作は autoScr）。歩くとやめる
+  // 落とす以外のいたずら：場所の上で止まってパンチを長押し。歩くとやめる
   c.scratch = null;
-  if (c.plat && !dir && c.stun <= 0 && c.eatT <= 0 && state === 'play' && (c.autoScr || (c.pDown && c.pHeld > 0.15))) {
+  if (c.plat && !dir && c.stun <= 0 && c.eatT <= 0 && state === 'play' && c.pDown && c.pHeld > 0.15) {
     const sp = spots.find(s => { const m = MISCHIEF[s.id]; return !s.done && PL[m.plat] === c.plat && c.x >= m.x[0] - 6 && c.x <= m.x[1] + 6; });
     if (sp && !itemInReach(c, 30)) {
       const m = MISCHIEF[sp.id]; c.scratch = sp; c.scrHold = true; c.vx = 0; sp.t += dt; c.scrT -= dt;
       if (c.scrT <= 0) { c.scrT = 0.17; sfx.scratch(); addPart({ k: 'paper', x: c.x + c.face * 18, y: c.y - rnd(10, 30), vx: rnd(-40, 40), vy: rnd(-80, -20), life: 2, gy: c.plat.y, c: sp.id === 'trash' ? '#8a8f6a' : sp.id === 'dig' ? '#6b4a2a' : 'rgba(255,255,255,.9)', s: rnd(2, 4), rot: rnd(0, 6), vr: rnd(-4, 4) }); }
       if (sp.t >= m.need) finishMischief(sp);
-    } else c.autoScr = null;
+    }
   }
   // 罠：アルミホイル（乗ると大きな音でびっくり）・両面テープ（足がくっついて遅くなる）
   const tr = c.plat ? traps.find(t => t.plat === c.plat && Math.abs(c.x - t.x) < t.w / 2 + 4) : null;
@@ -2303,7 +2261,7 @@ function updCat(dt) {
   c.onTrap = tr || (c.plat ? null : c.onTrap);
   // きゅうり：気づかずに近づくと、垂直に飛び上がる（高い所へのジャンプ台にもなる）
   if (cuke && c.plat === PL.floor && state === 'play' && cuke.cd <= 0 && Math.abs(c.x - cuke.x) < 22 && Math.abs(c.vx) > 20 && Math.sign(cuke.x - c.x) === c.face) {
-    cuke.cd = 2; c.vy = -880; c.vx = -c.face * 40; c.plat = null; c.scareT = 1; run.cuke++; tapTarget = null; sfx.cuke(); hearNoise(c.x, 0.3); shake = 0.15;
+    cuke.cd = 2; c.vy = -880; c.vx = -c.face * 40; c.plat = null; c.scareT = 1; run.cuke++; sfx.cuke(); hearNoise(c.x, 0.3); shake = 0.15;
     pops.push({ x: c.x, y: c.y - 70, text: '!!?', life: 1.2, col: '#3f8a3a', size: 26 });
   }
   if (cuke && cuke.cd > 0) cuke.cd -= dt;
@@ -2360,7 +2318,7 @@ function updCat(dt) {
   // パンチ
   if (c.punchReq != null) { c.punchReqT -= dt; if (c.punchCd <= 0 && c.stun <= 0) { const s = c.punchReq; c.punchReq = null; doPunch(s); } else if (c.punchReqT <= 0) c.punchReq = null; }   // 4.36.0：0.15 秒は待つ
 }
-// ---------- 自動移動（片手操作）----------
+// ---------- 足場の道さがし（ボス猫の移動に使う）----------
 // 足場をつないだ道を幅優先で探し、次の一手（登る／降りる）を返す
 // 登る：上の段がジャンプの高さ（v²/2g − 10px）以内で、横のすき間が 90px 以内。重なっていれば真上へ、離れていれば端から斜めに跳ぶ
 // 降りる：端から歩いて落ちる。落ちた先は、その位置の真下で一番高い段
@@ -2404,45 +2362,6 @@ function navStep(from, to, jumpMul) {
   let n = to, step = null;
   while (prev.get(n)) { step = prev.get(n).e; n = prev.get(n).from; }
   return step;
-}
-function navGoal(tg) {
-  // 目標：どの段の、どこに立つか（act：punch パンチ／spot いたずら／go 移動だけ）
-  if (tg.spot) { if (tg.spot.done) return null; const m = MISCHIEF[tg.spot.id]; return { plat: PL[m.plat], x: (m.x[0] + m.x[1]) / 2, act: 'spot' }; }
-  if (tg.item) {
-    const it = tg.item; if (!items.includes(it) || it.state !== 'rest' || !it.plat) return null;
-    const p = it.plat; let d = (it.x - p.x0 < p.x1 - it.x) ? -1 : 1, sx = it.x - d * 22;   // 近いほうの端へ押し出す
-    if (sx < Math.max(p.x0, 12) + 2 || sx > Math.min(p.x1, W - 12) - 2) { d = -d; sx = it.x - d * 22; }
-    return { plat: p, x: sx, act: 'punch', face: d };
-  }
-  return { plat: tg.plat, x: tg.x, act: 'go' };
-}
-function autoNav(c, dt) {
-  const tg = tapTarget, goal = navGoal(tg);
-  tg.time = (tg.time || 0) + dt;
-  if (!goal || tg.time > 12 || (tg.jumps || 0) > 8) { tapTarget = null; return 0; }   // 行けない・時間がかかりすぎるときはあきらめる
-  if (!c.plat) return tg.airX != null && Math.abs(tg.airX - c.x) > 3 ? Math.sign(tg.airX - c.x) : 0;   // 空中：着地点へ寄せる
-  if (c.plat === VACP) { tapTarget = null; return 0; }
-  if (c.plat === goal.plat) {
-    tg.airX = null;
-    if (Math.abs(goal.x - c.x) > 5) return Math.sign(goal.x - c.x);
-    if (goal.act === 'punch') { c.face = goal.face; c.punchReq = !!tg.strong; }
-    else if (goal.act === 'spot') c.autoScr = tg.spot;
-    tapTarget = null; return 0;
-  }
-  const st = navStep(c.plat, goal.plat, catStat('jump'));
-  if (!st) { tapTarget = null; return 0; }
-  if (st.kind === 'climb') {
-    if (Math.abs(st.sx - c.x) > 4) return Math.sign(st.sx - c.x);
-    c.jumpBuf = 0.12; tg.jumps = (tg.jumps || 0) + 1; tg.airX = st.ax;
-    return Math.abs(st.ax - c.x) > 3 ? Math.sign(st.ax - c.x) : 0;
-  }
-  tg.airX = st.ax; return st.dir;
-}
-function platAt(wx, wy) {
-  // タップした所のすぐ下にある段（なければ床）
-  let best = PL.floor;
-  for (const p of PLS) if (p !== VACP && wx >= p.x0 - 8 && wx <= p.x1 + 8 && p.y >= wy - 14 && p.y < best.y) best = p;
-  return best;
 }
 const SPOT_HINT = { cuke: tx('びっくりして跳ぶ', 'Scares you up'), lamp: tx('飛びつける', 'Grab it'), creak: tx('ギシッと鳴る', 'Creaks'), trap: tx('踏むと音がする', 'Noisy if stepped on'), cam: tx('映るとバレる', 'Camera sees you'), tv: tx('踏むとつく', 'Step to turn on'), cloth: tx('引っぱれる', 'Pull it'), mouse: tx('パンチで退治', 'Punch it'), chick: tx('おどかせる', 'Startle it'), tank: tx('上がってきた金魚にパンチ', 'Punch a goldfish near the top'), guest: tx('見ている', 'Watching'), bone: tx('パンチで投げると犬が夢中', 'Punch it: the dog chases it'), ledge: tx('届かなくても端をつかんで登れる', 'Grab the edge and climb'), vac: tx('ぶつかると目が回る。上に乗れる', 'Bumps you dizzy. You can ride it'), ball: tx('パンチで転がしてものに当てる', 'Punch it into things'), shelf: tx('端に乗ると、2個以上ある側が傾く', 'Stand on an end: 2+ things tip it'), door: tx('だれか入ってる…', 'Someone\'s inside…'), mis: tx('パンチ長押しでいたずら', 'Hold punch here'),
   foe_vacbot: tx('体当たりしてくる → パンチ3回', 'Rams you → punch 3 times'), foe_crow: tx('ものを盗む → パンチ2回', 'Steals things → punch 2 times'), foe_toybot: tx('ダーツを撃つ → 後ろからパンチ', 'Shoots darts → punch from behind'), foe_drone: tx('下にいるとピピピ → パンチ2回', 'Beeps if below → punch 2 times') };
@@ -2517,16 +2436,6 @@ function drawLeftItems() {
   });
   if (more) { g.textAlign = 'right'; g.fillStyle = '#8a6a4f'; g.fillText('+' + more, x1, y0 + 4 + n * lh - 5); }
 }
-function drawNavMark() {
-  // 自動移動の行き先に、肉球の目印を出す
-  if (!tapTarget || state !== 'play' || spaceT > 0) return;
-  const gl = navGoal(tapTarget); if (!gl) return;
-  const x = gl.act === 'punch' ? tapTarget.item.x : gl.x, y = gl.plat.y - 4, a = 0.5 + 0.3 * Math.sin(tAnim * 8);
-  g.save(); g.globalAlpha = a; g.fillStyle = '#ff8a3d';
-  g.beginPath(); g.ellipse(x, y - 4, 5, 4, 0, 0, TAU); g.fill();
-  [[-5, -10], [-1.8, -12.5], [1.8, -12.5], [5, -10]].forEach(([dx, dy]) => { g.beginPath(); g.arc(x + dx, y + dy, 1.8, 0, TAU); g.fill(); });
-  g.restore();
-}
 function doPunch(strong) {
   const c = cat, T = c.type, kaku = c.stare;
   c.punchT = 0.28; c.strong = strong; c.punchCd = strong ? 0.5 : 0.28; c.still = 0; c.stare = false;
@@ -2570,6 +2479,8 @@ function updItems(dt) {
       it.x += it.vx * dt;
       const f = 220 * dt;
       if (Math.abs(it.vx) <= f) { it.vx = 0; it.state = 'rest'; } else it.vx -= Math.sign(it.vx) * f;
+      // 4.46.0：段の端を越えたら、壁で跳ね返す前に落とす（カーテンレールの左端は壁から 6px しかなく、強く押すと壁で跳ね返ってレールに戻っていた）
+      { const p = it.plat; if (it.x < p.x0 || it.x > p.x1) { it.state = 'fall'; it.plat = null; it.y0 = p.y; it.y = p.y; it.vy = 0; it.vr = (it.vx >= 0 ? 1 : -1) * rnd(3, 6); continue; } }
       // 右の壁際（本棚の上）：ネコが反対側に回り込めるよう、壁から 26px 手前で跳ね返す（壁に張り付くと押せなくなるため）
       if (it.x < 8) { it.x = 8; it.vx = Math.abs(it.vx) * 0.4; } else if (it.x > W - 26) { it.x = W - 26; it.vx = -Math.abs(it.vx) * 0.4; }
       // 連鎖：すべっているものが同じ段のものに当たったら、勢いを分ける（反発係数 0.8 の1次元衝突）
@@ -2659,7 +2570,7 @@ function breakItem(it, plat) {
     if (n >= 2) happyHop();
     if (n >= 3) spaceCat();
     if (n >= 2) hitStop = Math.max(hitStop, 0.04 + 0.02 * Math.min(n, 5));   // 連鎖の数はボーナスの札に書く（大きな「n!」は 4.7.1 でやめた）
-    if (n >= 2) { const b = Math.round(d.yen * BONUS.chain); run.yen += b; run.skill += b; run.skT = (run.skT || 0) + b; run.maxChain = Math.max(run.maxChain, n); chainN = n; chainB += b; run.chainN = n; run.chainT = tAnim; sfx.combo(n); }
+    if (n >= 2) { const b = Math.round(d.yen * BONUS.chain); run.yen += b; run.skill += b; run.skC = (run.skC || 0) + b; run.maxChain = Math.max(run.maxChain, n); chainN = n; chainB += b; run.chainN = n; run.chainT = tAnim; sfx.combo(n); }
   }
   // 確信犯：目が合ってから落とされた飼い主の、精神的ダメージ（4.43.0：連鎖と確信犯も腕前のボーナスに数える。rules.md の表のとおり）
   if (d.yen >= 100000) spaceCat();
@@ -2673,7 +2584,7 @@ function breakItem(it, plat) {
   if (stageT < 20) taskHit('quick');
   if (it.t === 'alarm') taskHit('alarm');
   if (owner.mode === 'busy') taskHit('busy');
-  if (it.kaku) { const b = Math.round(d.yen * BONUS.kaku); run.yen += b; run.skill += b; run.skT = (run.skT || 0) + b; bon.push([lt('確信犯 +', 'Guilty +') + yen(b), '#1d8174']); }
+  if (it.kaku) { const b = Math.round(d.yen * BONUS.kaku); run.yen += b; run.skill += b; run.skK = (run.skK || 0) + b; bon.push([lt('確信犯 +', 'Guilty +') + yen(b), '#1d8174']); }
   // 腕前のボーナス（被害額に上乗せ）
   // ノーマーク：飼い主に動いているところを見られず、ネコも現行犯で見られていない落とし方が続くと、1個ごとに +10%（最大 +50%）
   if (!it.spotted && cat.mark <= 0) run.streak++; else run.streak = 0;
@@ -2747,7 +2658,7 @@ function damage(y, key, x, py, loud) {
 function finishMischief(sp) {
   learn('mis');
   const m = MISCHIEF[sp.id], x = (m.x[0] + m.x[1]) / 2, py = PL[m.plat].y;
-  sp.done = true; cat.autoScr = null; cat.happyT = 1.4; run.mis++; taskHit('mis');
+  sp.done = true; cat.happyT = 1.4; run.mis++; taskHit('mis');
   if (sp.id === 'cloth') clothPull();
   pops.push({ x, y: py - 74, text: m.n, life: 1.8, col: '#9b5fc0', size: 18 });
   if (sp.id === 'trash') for (let k = 0; k < 12; k++) addPart({ k: pick(['paper', 'shard']), x: x + rnd(-10, 10), y: py - rnd(10, 30), vx: rnd(-120, 120), vy: rnd(-220, -60), life: 30, gy: py, c: pick(['#ffffff', '#c9b39a', '#8a8f6a', '#ff9a1f']), s: rnd(3, 6), rot: rnd(0, 6), vr: rnd(-6, 6) });
@@ -2797,7 +2708,7 @@ function splashFx(x, n, y) {
 }
 // お風呂に落ちた：8秒へって、怪しまれ度が上がり、飼い主が駆けつける。しばらくぬれた足あと（証拠）が残る
 function fallInBath() {
-  const c = cat; c.bathT = 0.9; c.inBath = true; c.vx = 0; c.vy = 0; c.plat = null; c.stun = 0; c.wet = 14; tapTarget = null; c.autoScr = null;
+  const c = cat; c.bathT = 0.9; c.inBath = true; c.vx = 0; c.vy = 0; c.plat = null; c.stun = 0; c.wet = 14;
   run.bathFall++; run.touched = true; timeLeft = Math.max(1, timeLeft - 8); sus = Math.min(99, sus + 30);
   sfx.splash(); sfx.yowl(); shake = 0.3; buzz([60, 40, 60]);
   splashFx(c.x, 26, BATHW.y - 2);
@@ -3013,7 +2924,7 @@ function updRival(dt) {
       if (r.swipeT <= 0 && r.stun <= 0) {
         // ネコパンチの応酬：当たると目を回して、押し出される（段から落ちることも）
         r.swipeT = rnd(0.5, 0.8); r.punchT = 0.25; sfx.weak();
-        if (Math.abs(dx) < 40 && cat.stun <= 0) { cat.stun = 0.35; cat.vx = Math.sign(dx) * 360; tapTarget = null; shake = 0.12; buzz(25); fur(cat.x, cat.y - 20); hearNoise(cat.x, 0.25); pops.push({ x: cat.x, y: cat.y - 50, text: lt('バシッ', 'Whap!'), life: 0.8, col: '#e0362c', size: 15 }); }
+        if (Math.abs(dx) < 40 && cat.stun <= 0) { cat.stun = 0.35; cat.vx = Math.sign(dx) * 360; shake = 0.12; buzz(25); fur(cat.x, cat.y - 20); hearNoise(cat.x, 0.25); pops.push({ x: cat.x, y: cat.y - 50, text: lt('バシッ', 'Whap!'), life: 0.8, col: '#e0362c', size: 15 }); }
       }
     }
   }
@@ -3065,7 +2976,7 @@ function makeFoe(kind) {
 // 相手にやられた：しばらく動けず、押し出される。物音で飼い主がそちらを見る（見られていれば怪しまれる）
 function foeHitCat(dir, stunT, label) {
   const c = cat; if (c.stun > 0 || c.hidden || c.bathT > 0 || chaseT > 0 || state !== 'play') return false;
-  c.stun = stunT * (accFx().stun || 1); c.vx = dir * 320; tapTarget = null; c.autoScr = null; c.scratch = null; shake = Math.max(shake, 0.15); buzz(40); sfx.bump(); sfx.yowl();
+  c.stun = stunT * (accFx().stun || 1); c.vx = dir * 320; c.scratch = null; shake = Math.max(shake, 0.15); buzz(40); sfx.bump(); sfx.yowl();
   pops.push({ x: c.x, y: c.y - 52, text: label, life: 0.9, col: '#e0362c', size: 16 });
   fur(c.x, c.y - 20); hearNoise(c.x, 0.35); run.ev.foeHit = (run.ev.foeHit || 0) + 1; return true;
 }
@@ -3922,7 +3833,7 @@ function showEnding() {
   }
   if (run.test) {
     // テスト：記録に残さず、つづけるかタイトルへ
-    state = 'endmenu'; ov.hidden = false; endFx = 0;
+    state = 'endmenu'; ov.hidden = false;
     ov.innerHTML = `<div class="panel"><div class="big-logo" style="font-size:1.6rem">${lt('エンディング', 'THE END')}</div><p class="sub">${lt('（テスト）', '(Test)')}「${ENDINGS[run.endType || 'normal'].n}」 ${yen(run.yen)}</p>
       ${level < TRUE_DAY * NPH ? `<button class="btn go" id="enCont" type="button">${lt(dayName(level + 1) + 'へつづける', 'On to ' + dayName(level + 1))}</button>` : ''}
       <div class="row"><button class="btn w" id="enBack" type="button">${lt('タイトルへ', 'Title')}</button></div></div>`;
@@ -3930,7 +3841,7 @@ function showEnding() {
     $('enBack').addEventListener('click', () => { endBgmStop(); showTitle(); });
     return;
   }
-  state = 'endmenu'; ov.hidden = false; endFx = 0; parts = [];
+  state = 'endmenu'; ov.hidden = false; parts = [];
   // ここで一度記録する：ランキングへ送る（自己ベストなら）・称号・ごほうびのきせかえ。4日目へつづけても、この記録は残る
   const firstEnd = store.get('nekoEnded', '') !== '1'; store.set('nekoEnded', '1');
   const et = run.endType || 'normal', newEnd = !endingsSeen.has(et), tr = et === 'true', nd = tr ? TRUE_DAY : END_DAY;
@@ -3940,7 +3851,8 @@ function showEnding() {
   for (const t of TITLES) { if (t.tier == null) continue; if (run.yen >= t.tier && !unlocked.has(t.id)) { unlocked.add(t.id); gotTitles.push(t.name); } }
   cardCheckLife(); cardCheck(true);
   store.set('nekoTitles', JSON.stringify([...unlocked]));
-  run.stage = level; if (onlineOn() && myName && run.yen > 0) { run.sent = false; sendScore().then(() => { run.sent = false; }); }
+  run.stage = level; run.comment = String(ENDINGS[et].oops);   // 4.46.0：LINE のリンクの文章を作る前に決める（前は前回のひとことが入っていた）
+  if (onlineOn() && myName && run.yen > 0) { run.sent = false; sendScore().then(() => { run.sent = false; }); }
   sfx.combo(6); setTimeout(() => sfx.kaching(), 250); buzz([60, 40, 60, 40, 120]);
   const n = v => (v || 0).toLocaleString('ja-JP'), brokeN = Object.values(run.broke || {}).reduce((x, y) => x + y, 0);
   const row = (k, v) => `<span>${k}</span><span>${v}</span>`;
@@ -3951,6 +3863,7 @@ function showEnding() {
     <div class="cert">
       <p class="res-yen" style="margin:0">${lt(nd + '日間の被害額', nd + '-day damage')}<b>${yen(run.yen)}</b></p>
       <p class="best" style="margin:2px 0 8px">${lt('称号', 'Title')}「${titleOf(run.yen)}」</p>
+      ${run.skill > 0 ? `<p class="best" style="margin:-4px 0 4px;font-size:.84rem">${lt('うち腕前', 'Skill')} +${yen(run.skill)}</p><p class="best" style="font-size:.74rem;font-weight:500;margin:0 0 8px;line-height:1.6">${skillHtml(run)}</p>` : ''}
       <div class="stat-list">${row(lt('割ったもの', 'Things broken'), n(brokeN) + lt('個', ''))}${row(lt('最大の連鎖', 'Best chain'), n(run.maxChain))}${row(lt('お題の★', 'Task stars'), n(run.stars))}${row(lt('朝から続けた', 'Day restarts'), n(run.conts) + lt('回', ''))}</div>
     </div>
     <div class="badges">${newSiam ? `<span class="badge new" style="background:var(--org)">${lt('NEW ネコ シャム猫', 'NEW CAT Siamese')}</span>` : ''}${firstEnd ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「金メダル」', 'Reward: Gold medal accessory')}</span>` : ''}${firstTrue ? `<span class="badge new" style="background:var(--org)">${lt('ごほうび：きせかえ「星のバッジ」', 'Reward: Star badge accessory')}</span>` : ''}${gotTitles.map(t => `<span class="badge new">NEW ${t}</span>`).join('')}</div>
@@ -3963,7 +3876,7 @@ function showEnding() {
   $('enRes').addEventListener('click', () => { endBgmStop(); run.timeup = false; gameOver(); });
   run.stage = level; run.comment = String(ENDINGS[et].oops); $('bShare').addEventListener('click', doShare); $('bSave').addEventListener('click', saveCard); buildCard(); foldBadges();
 }
-let endFx = 0, endFall = null, endLastPop = -1, endPopTxt = '', endSnapped = false;
+let endFall = null, endLastPop = -1, endPopTxt = '', endSnapped = false;
 // ---------- お客さんと掛け合い ----------
 const BANTER = [
   ['guest', tx('このワインおいしいね', 'This wine is lovely'), 'owner', tx('でしょ？ 奮発したの', 'Right? I splurged')],
@@ -4206,7 +4119,7 @@ function updSus(dt) {
 function startChase() {
   const o = owner; chaseN++; run.chases = (run.chases || 0) + 1; chaseT = chaseN >= 2 ? 1.5 : 3; o.lureT = 0; o.up = false;
   if (o.mode === 'away') { o.x = cat.x < 200 ? 380 : -40; }
-  setMode('chase'); setPulse(null); tapTarget = null; o.face = Math.sign(cat.x - o.x) || 1; say(chaseN >= 2 ? lt('言ったでしょ!!', 'I TOLD you!!') : lt('待てーっ!!', 'Get back here!!'), 3); sfx.alert(); sfx.bark(); buzz([40, 30, 40]); shake = 0.3;
+  setMode('chase'); setPulse(null); o.face = Math.sign(cat.x - o.x) || 1; say(chaseN >= 2 ? lt('言ったでしょ!!', 'I TOLD you!!') : lt('待てーっ!!', 'Get back here!!'), 3); sfx.alert(); sfx.bark(); buzz([40, 30, 40]); shake = 0.3;
 }
 // 隠れ場所の高い所：本棚の上・カーテンレールの上（手が届かない）。吊り棚・エアコンの上は 4.8.6 から隠れ場所ではない（見つかる・追いかけっこで捕まる）
 const isHigh = () => !!cat.plat && (cat.plat === PL.book || cat.plat === PL.rail);
@@ -4236,7 +4149,7 @@ function evictHide(sx) {
   say(cat.hidden ? lt('…いた。出ておいで', '…Found you. Out you go') : lt('…そこにいたの。降りなさい', '…There you are. Get down'), 1.8); o.face = Math.sign(sx - o.x) || o.face;
   if (cat.hidden) { cat.x = clamp(BOX.x + side * 44, 20, W - 20); cat.vy = -260; cat.plat = null; }
   else { cat.vx = side * 240; cat.vy = -220; cat.plat = null; }
-  cat.hidden = false; cat.safe = false; cat.hideT = 0; cat.hideKey = null; cat.scareT = 0.4; tapTarget = null; sfx.meow(cat.type.voice, pickVoice());
+  cat.hidden = false; cat.safe = false; cat.hideT = 0; cat.hideKey = null; cat.scareT = 0.4; sfx.meow(cat.type.voice, pickVoice());
   pops.push({ x: sx, y: (cat.y || FLOOR) - 60, text: lt('追い出された!', 'Evicted!'), life: 1.3, col: '#c95f17', size: 18 });
 }
 function updChase(dt) {
@@ -4332,13 +4245,16 @@ function revive() {
   run.charm = 0; run.revive = false; run.timeup = false; run.revives = (run.revives || 0) + 1;
   state = 'play'; sus = 25; susQ = 0; susCd = 6; chaseT = 0; chaseN = 0; spaceT = 0; slowT = 0; shake = 0;
   owner.x = -60; owner.lureT = 0; owner.say = ''; owner.scareT = 0; owner.up = false; setMode('away', rnd(4, 6)); owner.warned = false;
-  cat.stun = 0; cat.mark = 0; cat.seen = false; tapTarget = null; timeLeft = Math.max(timeLeft, 10);
+  cat.stun = 0; cat.mark = 0; cat.seen = false; timeLeft = Math.max(timeLeft, 10);
   for (let k = 0; k < 24; k++) addPart({ k: 'drop', x: cat.x + rnd(-30, 30), y: cat.y - rnd(0, 60), vx: rnd(-80, 80), vy: rnd(-200, -60), life: 0.9, gy: cat.y, c: pick(['#ffc94a', '#ff5a5a', '#ffffff']), s: rnd(2, 4), rot: 0, vr: 0 });
   pops.push({ x: W / 2, y: 190, text: lt('お守りの力で、もう一度!', 'The charm saved you!'), life: 2, col: '#c0392b', size: 22 });
   sfx.clear(); buzz([30, 30, 30]); bgmStart();
 }
 // 4.38.2：腕前の 3 つの色（加算の札・クリア札・結果画面で同じ色にそろえる）
-const SK_COL = { q: '#e0362c', s: '#1d8174', t: '#9b5fc0' };
+const SK_COL = { q: '#e0362c', s: '#1d8174', c: '#2b6fb3', k: '#b8740a', t: '#9b5fc0' };
+// 4.46.0：腕前の内訳（手際・こっそり・連鎖・確信犯・技）。結果画面と完走の証明書で使う
+const skillRows = r => [[lt('手際', 'Speed'), r.skQ, SK_COL.q], [lt('こっそり', 'Sneaky'), r.skS, SK_COL.s], [lt('連鎖', 'Chain'), r.skC, SK_COL.c], [lt('確信犯', 'Guilty'), r.skK, SK_COL.k], [lt('技', 'Tricks'), r.skT, SK_COL.t]].filter(([, v]) => v > 0);
+const skillHtml = r => skillRows(r).map(([k, v, c]) => `<span style="color:${c};font-weight:800;white-space:nowrap">${k} +${yen(Math.round(v))}</span>`).join('　');
 // 4.37.0：クリアの演出。紙ふぶきが上から降り、ネコはぴょんぴょん跳ねる。札の星は 1 つずつ鳴って出る
 let clearStars = 0;
 function clearFx() {
@@ -4503,9 +4419,9 @@ function gameOver() {
     else if (run.ck && run.ck.level > 1 && run.caughtOver) { const ck = run.ck, r0 = run; run = unpackRun(ck.pk); run.ck = null; carryT = 0; saveGame(ck.level, true); run = r0; }   // 見つかった：その日の朝から（つづきに数える）
     else clearSave();
   }
-  if (run.test) { run.stage = level; run.comment = commentOf(); newRec = false; rankNow = 0; newTitles = []; newAccs = []; worldNow = null; showOver(); return; }   // テスト：記録・ランキング・称号に残さない
+  if (run.test) { run.stage = level; run.comment = commentOf(); newRec = false; rankNow = 0; newTitles = []; newAccs = []; showOver(); return; }   // テスト：記録・ランキング・称号に残さない
   addLife();
-  run.stage = level; run.comment = commentOf();
+  run.stage = level; run.comment = finDays() ? String(ENDINGS[run.endType || 'normal'].oops) : commentOf();   // 4.46.0：エンディングで終えたら、締めの画面と同じオチのひとこと
   newRec = run.yen > bestYen;
   if (newRec) { bestYen = run.yen; store.set('nekoBestYen', String(bestYen)); }
   // ランキング：被害額の多い順に10件。同じ額なら先に出したほうが上
@@ -4523,7 +4439,6 @@ function gameOver() {
   cardCheckLife();
   newAccs = ACCS.filter(a => a.card && newCards.some(n => String(n) === String(CARDS.find(x => x.id === a.card).name))).map(a => a.name);
   store.set('nekoTitles', JSON.stringify([...unlocked]));
-  worldNow = null;
   showOver();
   if (onlineOn() && myName) postAndRefresh();
 }
@@ -6318,7 +6233,6 @@ function draw() {
   drawGuestTop();
   drawParts();
   drawHints();
-  drawNavMark();
   drawSpot();
   drawTut();
   // 足音の予告
@@ -6496,7 +6410,7 @@ function update(dt) {
   } else if (state === 'epilogue') {
     epiT += dt; if (epiT > 8 && !endShown) { endShown = true; showEnding(); }
   } else if (state === 'endmenu') {
-    endFx += dt; if (Math.random() < dt * 30) addPart({ k: 'paper', x: rnd(0, W), y: -OY - 10, vx: rnd(-30, 30), vy: rnd(40, 90), life: 6, gy: BOT + 20, c: pick(['#ff5a5a', '#ffc94a', '#2fb3a3', '#2b8fd9', '#9b7fc0', '#ff8a3d']), s: rnd(3, 6), rot: rnd(0, 6), vr: rnd(-6, 6) }); updParts(dt);
+    if (Math.random() < dt * 30) addPart({ k: 'paper', x: rnd(0, W), y: -OY - 10, vx: rnd(-30, 30), vy: rnd(40, 90), life: 6, gy: BOT + 20, c: pick(['#ff5a5a', '#ffc94a', '#2fb3a3', '#2b8fd9', '#9b7fc0', '#ff8a3d']), s: rnd(3, 6), rot: rnd(0, 6), vr: rnd(-6, 6) }); updParts(dt);
   } else if (state === 'dayend') {
     dayT -= dt; if (dayT <= 0) { setupStage(level + 1); state = 'play'; }
   } else if (state === 'caught') {
@@ -6710,7 +6624,6 @@ if (!myUid) { myUid = Math.random().toString(36).slice(2, 10) + Date.now().toStr
 const authUid = store.get('nekoAuthUid', '');   // v2.4.1 で一時的に使った匿名ログインの ID（その記録にも色を付ける）
 const isMe = uid => !!uid && (uid === myUid || uid === authUid);
 // みんなのランキングに送った自己ベスト（この端末）。これを超えたときだけ送る
-let worldCache = null, worldAt = 0, worldNow = null, worldBest = 0;   // worldNow：今回の記録の「みんな」での順位（null は未送信、0 は圏外）
 // ニックネームの確認：1〜10文字、制御文字なし、よくない言葉を含まない（かんたんな確認だけ）
 const NG = ['死ね', 'しね', 'ころす', '殺す', 'ちんこ', 'まんこ', 'うんこ', 'fuck', 'shit', 'sex', 'http', 'www.'];
 function cleanName(t) {
@@ -6748,7 +6661,6 @@ async function fetchWorld(force, coll) {
   // 上限を超える記録（明らかな不正）は表示しない
   const seen = new Set(), list = rows.filter(r => r.y <= capY(Math.max(1, r.s)) && r.s <= TRUE_DAY * DAY_LEN && !seen.has(r.uid) && seen.add(r.uid)).slice(0, 50);
   worldCaches[coll] = { list, at: Date.now() };
-  if (coll === 'scores') worldCache = list;
   return list;
 }
 async function sendOne(coll, bestKey) {
@@ -6780,7 +6692,6 @@ async function sendScore() {
   }
   run.res = out;
 }
-let skipBest = 0;
 const NM_PH = () => lt('ニックネーム（10文字まで）', 'Nickname (up to 10 chars)');
 const NM_ERR = () => lt('1〜10文字で、使えない言葉を含まない名前にしてください', 'Use 1–10 characters without banned words');
 function onlineBox() {
@@ -7196,7 +7107,15 @@ function retryStage() {
   if (LIFE) { LIFE.conts = (LIFE.conts || 0) + 1; store.set('nekoLife', JSON.stringify(LIFE)); }   // 4.43.0：通算の「続けた回数」にも数える（朝から続けるのと同じ）
 }
 const canPostEnd = () => !!(run && run.ended && !run.caughtOver && run.stage % NPH === 0 && run.stage >= END_DAY * NPH && run.stage < TRUE_DAY * NPH);   // エンディングで終わった → 次の日からつづけられる
+// 4.46.0：エンディングまで遊び切った回（3 日目か 7 日目の夜を越えて、そこで終えた）なら、その日数。シェアの画像と文章を「完走版」にする
+const finDays = () => (run && run.ended && !run.caughtOver && run.stage % NPH === 0) ? (run.trueEnded && run.stage >= TRUE_DAY * NPH ? TRUE_DAY : run.stage === END_DAY * NPH ? END_DAY : 0) : 0;
 function shareText() {
+  const fd = finDays();
+  if (fd) {
+    const en = ENDINGS[run.endType || 'normal'], sk = run.skill > 0 ? lt(`（うち腕前 ${yen(run.skill)}）`, ` (skill ${yen(run.skill)})`) : '';
+    return lt(`${fd === TRUE_DAY ? '全部やりきった！' : 'いたずら完走！'}（${fd}日間）\n被害額 ${yen(run.yen)}${sk}\nENDING「${en.n}」／称号「${titleOf(run.yen)}」\n飼い主「${run.comment}」\n#MischievousCat #こっそりネコ`,
+      `${fd === TRUE_DAY ? 'I did it all!' : 'Mischief complete!'} (${fd} days)\nDamage: ${yen(run.yen)}${sk}\nENDING: ${en.n} / Title: ${titleOf(run.yen)}\nOwner: "${run.comment}"\n#MischievousCat #こっそりネコ`);
+  }
   return lt(`本日の被害額 ${yen(run.yen)}\nステージ${run.stage}（${dayName(run.stage)}・${phaseOf(run.stage).name}）／★${run.stars}／称号「${titleOf(run.yen)}」\n飼い主「${run.comment}」\n#MischievousCat #こっそりネコ`,
     `Today's damage: ${yen(run.yen)}\nStage ${run.stage} (${dayName(run.stage)} · ${phaseOf(run.stage).name}) / ★${run.stars} / Title: ${titleOf(run.yen)}\nOwner: "${run.comment}"\n#MischievousCat #こっそりネコ`);
 }
@@ -7239,9 +7158,9 @@ async function showOver() {
   const lineUrl = 'https://line.me/R/share?text=' + encodeURIComponent(shareText() + '\n' + SITE);
   ov.hidden = false;
   ov.innerHTML = `<div class="panel">
-    <p class="res-yen">${lt('本日の被害額', "Today's damage")}<b>${yen(run.yen)}</b></p>
+    <p class="res-yen">${finDays() ? lt(finDays() + '日間の被害額', finDays() + '-day damage') : lt('本日の被害額', "Today's damage")}<b>${yen(run.yen)}</b></p>
     <p class="best" style="font-size:.9rem;font-weight:500;margin-top:2px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.12em;fill:#e0a52e"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.8 1.6 7L12 17.4 5.8 21l1.6-7L2 9.3l7.1-.7z"/></svg> ${run.stars}${run.skill > 0 ? lt(`　・　腕前 +${yen(run.skill)}`, ` · Skill +${yen(run.skill)}`) : ''}</p>
-    ${run.skill > 0 ? `<p class="best" style="font-size:.76rem;font-weight:500;margin:-4px 0 4px;color:var(--ink2)">${[[lt('手際', 'Speed'), run.skQ, SK_COL.q], [lt('こっそり', 'Sneaky'), run.skS, SK_COL.s], [lt('技', 'Tricks'), run.skT, SK_COL.t]].filter(([, v]) => v > 0).map(([k, v, c]) => `<span style="color:${c};font-weight:800">${k} +${yen(Math.round(v))}</span>`).join('　')}</p>` : ''}
+    ${run.skill > 0 ? `<p class="best" style="font-size:.76rem;font-weight:500;margin:-4px 0 4px;color:var(--ink2);line-height:1.6">${skillHtml(run)}</p>` : ''}
     ${newRec ? `<p class="best" style="color:var(--red-d)">${lt('ベスト更新!', 'New best!')}</p>${(LIFE.plays || 0) >= 3 ? coffeeHtml(true) : ''}` : ''}
     ${canPostEnd() ? `<div class="row"><button class="btn go" id="bNext" type="button">${lt(dayName(run.stage + 1) + 'からつづける', 'Continue to ' + dayName(run.stage + 1))}</button></div>` : ''}
     ${canCont() ? `<div class="row"><button class="btn go" id="bCont" type="button">${lt(dayName(run.ck.level) + 'の朝からつづける', 'Continue from ' + dayName(run.ck.level) + ' morning')}<small>${lt('被害額は朝の時点に戻る・続けた回数はランキングに載る', 'Damage goes back to that morning · restarts are shown in the ranking')}</small></button></div>` : ''}
@@ -7334,7 +7253,8 @@ async function makeCard() {
   else { c.fillStyle = '#f6d7a8'; c.fillRect(-190, -248, 380, 380); drawCat(c, 0, 90, { type: T, face: 1, scale: 4, t: 0.6, pose: 'smug', acc: selAcc }); }
   c.fillStyle = 'rgba(255,220,120,.75)'; c.save(); c.rotate(0.05); c.fillRect(-60, -286, 120, 34); c.restore();
   c.fillStyle = '#4a2f1d'; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
-  const cap = lt('犯行現場　', 'Crime scene · ') + dayName(run.stage) + lt('・', ' · ') + phaseOf(run.stage).name;
+  const fd = finDays();   // 4.46.0：完走版（エンディングの名前・日数の被害額・腕前）
+  const cap = fd ? 'ENDING「' + ENDINGS[run.endType || 'normal'].n + '」' : lt('犯行現場　', 'Crime scene · ') + dayName(run.stage) + lt('・', ' · ') + phaseOf(run.stage).name;
   let cs = 30; c.font = `800 ${cs}px ${FONT}`; while (c.measureText(cap).width > 380 && cs > 18) { cs--; c.font = `800 ${cs}px ${FONT}`; }
   c.fillText(cap, 0, 196);
   c.restore();
@@ -7342,15 +7262,26 @@ async function makeCard() {
   const X = 540, RW = 630, stroke = (t, x, y, size, fill, sw) => { c.font = `800 ${size}px ${FONT}`; c.lineJoin = 'round'; c.lineWidth = sw || 10; c.strokeStyle = '#7a3510'; c.strokeText(t, x, y); c.fillStyle = fill; c.fillText(t, x, y); };
   c.textAlign = 'left'; c.textBaseline = 'alphabetic';
   stroke(lt('こっそりネコ', 'Mischievous Cat'), X, 78, 52, '#fff', 11);
-  let ts = 25; const tag = lt('ネコになって、飼い主にバレずに部屋を荒らすゲーム', 'Be the cat. Wreck the room. Don’t get caught.');
-  c.font = `800 ${ts}px ${FONT}`; while (c.measureText(tag).width > RW && ts > 16) { ts--; c.font = `800 ${ts}px ${FONT}`; }
-  c.fillStyle = '#5a2a0c'; c.fillText(tag, X + 2, 120);
-  stroke(lt('本日の被害額', "Today's damage"), X, 192, 30, '#ffe9a8', 8);
+  if (fd) {
+    // 完走の札（黄色の帯）
+    const hd = fd === TRUE_DAY ? lt(`全部やりきった！ ${fd}日間 完走`, `I did it all! ${fd} days complete`) : lt(`いたずら完走！ ${fd}日間`, `Mischief complete! ${fd} days`);
+    let hs = 30; c.font = `800 ${hs}px ${FONT}`; while (c.measureText(hd).width > RW - 40 && hs > 18) { hs--; c.font = `800 ${hs}px ${FONT}`; }
+    const hw = c.measureText(hd).width + 40; c.fillStyle = '#ffd24a'; rr(c, X, 92, hw, 44, 22); c.fill(); c.fillStyle = '#4a2f1d'; c.fillText(hd, X + 20, 92 + 22 + hs * 0.36);
+  } else {
+    let ts = 25; const tag = lt('ネコになって、飼い主にバレずに部屋を荒らすゲーム', 'Be the cat. Wreck the room. Don’t get caught.');
+    c.font = `800 ${ts}px ${FONT}`; while (c.measureText(tag).width > RW && ts > 16) { ts--; c.font = `800 ${ts}px ${FONT}`; }
+    c.fillStyle = '#5a2a0c'; c.fillText(tag, X + 2, 120);
+  }
+  stroke(fd ? lt(fd + '日間の被害額', fd + '-day damage') : lt('本日の被害額', "Today's damage"), X, 192, 30, '#ffe9a8', 8);
   const ys = yen(run.yen); let fs = 104; c.font = `800 ${fs}px ${FONT}`;
   while (c.measureText(ys).width > RW && fs > 50) { fs -= 4; c.font = `800 ${fs}px ${FONT}`; }
   stroke(ys, X, 200 + fs * 0.88, fs, '#fff', 14);
   const tt = titleOf(run.yen); c.font = `800 30px ${FONT}`; const tw = c.measureText(tt).width + 44, ty = 318;
   c.fillStyle = '#4a2f1d'; rr(c, X, ty, tw, 52, 26); c.fill(); c.fillStyle = '#ffc94a'; c.fillText(tt, X + 22, ty + 36);
+  if (fd && run.skill > 0) {   // 称号の右に「うち腕前」
+    const st = lt('うち腕前 ', 'Skill ') + yen(run.skill); let ss = 28; c.font = `800 ${ss}px ${FONT}`; while (c.measureText(st).width > RW - tw - 20 && ss > 16) { ss--; c.font = `800 ${ss}px ${FONT}`; }
+    c.fillStyle = '#5a2a0c'; c.fillText(st, X + tw + 16, ty + 36);
+  }
   // 飼い主のひとこと
   const q = lt('「' + run.comment + '」', '“' + run.comment + '”'), bx = X, by = 400, bw = 620, bh = 104;
   c.fillStyle = '#fff'; rr(c, bx, by, bw, bh, 24); c.fill();
@@ -7399,7 +7330,7 @@ hold('bJ', () => { if (menuKey('J')) return; jumpPress(); }, () => {});
 hold('bP', () => { if (menuKey('P')) return; punchDown(); }, punchUp);
 hold('bM', () => { if (titleMeow()) return; if (menuKey('M')) return; if (state === 'play') meowPress(); }, () => { meowRelease(); });
 // スティック操作（旧「かたて操作」）：ゲーム画面に浮かぶスティックで遊ぶ（ボタンは隠す）
-function setOneHand(on) { oneHand = on; tapTarget = null; if (cat) cat.autoScr = null; store.set('nekoOneHand', on ? '1' : '0'); try { document.body.classList.toggle('onehand', on); } catch (e) {} fit(); }
+function setOneHand(on) { oneHand = on; store.set('nekoOneHand', on ? '1' : '0'); try { document.body.classList.toggle('onehand', on); } catch (e) {} fit(); }
 try { document.body.classList.toggle('onehand', oneHand); } catch (e) {}
 // PC のマウス：左クリックでパンチ（押しっぱなしで強パンチ・爪とぎ）、右クリックで鳴く（ゲーム画面の上だけ。スティック操作のときは使わない）
 cv.addEventListener('mousedown', e => {
@@ -7431,7 +7362,7 @@ cv.addEventListener('pointerdown', e => {
   e.preventDefault(); audio();
   if (stick) return;   // 2本目の指は使わない
   try { cv.setPointerCapture(e.pointerId); } catch (x) {}
-  tapTarget = null; cat.autoScr = null;
+ 
   stick = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, ay: e.clientY, t: 0, moved: false, jumped: false, pressed: false };
 });
 cv.addEventListener('pointermove', e => {
