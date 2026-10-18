@@ -362,7 +362,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.12', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.48.13', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1018,6 +1018,9 @@ const CARD_ORDER = [
   // 通算・やりこみ
   't_regular', 't_days3', 't_million', 't_cups', 't_night', 't_boxer', 't_rooms', 't_family', 't_endings'
 ];
+// 被害額の称号・エンディングを差し込む場所（そのカードのすぐあと。'' はいちばん前）。目安は通しで遊んだときに届くころ
+const CARD_AFTER = { t1: '', t2: 'dog', t3: 't_wrecker7', end_perfect: 't3', end_wrecker: 'end_perfect', end_good: 'end_wrecker', end_normal: 'end_good',
+  t4: 'lastnight', end_true: 't4', t5: 't_fast' };
 { const rk = id => { const i = CARD_ORDER.indexOf(id); return i < 0 ? 999 : i; }; CARDS.sort((a, b) => rk(a.id) - rk(b.id)); }   // 並びにないカードは最後（sort は安定）
 let cardsGot = new Set(), cardPics = {}, newCards = [], cardCd = 0;
 try { cardsGot = new Set(JSON.parse(store.get('nekoCards', '[]'))); } catch (e) {}
@@ -7267,9 +7270,11 @@ function bindPager(i, n, go) {
 // いたずらカード図鑑：1ページ6枚（低い画面は4枚）。取ったカードは写真つき、まだのカードは取り方だけ
 function showCards(page) {
   // 一覧：いたずらカード → 被害額の称号 → エンディング（同じ札の形で続けて並べる）
-  const extra = TITLES.filter(t => t.tier != null).map(t => ({ kind: 'title', ok: unlocked.has(t.id), name: t.name, desc: TDESC[t.id] ? String(TDESC[t.id]) : '' }))
-    .concat(Object.entries(ENDINGS).map(([k, E]) => ({ kind: 'ending', ok: endingsSeen.has(k), name: 'ENDING ' + E.n, desc: E.how })));
-  const ALL = CARDS.concat(extra);
+  const extra = TITLES.filter(t => t.tier != null).map(t => ({ kind: 'title', key: t.id, ok: unlocked.has(t.id), name: t.name, desc: TDESC[t.id] ? String(TDESC[t.id]) : '' }))
+    .concat(Object.entries(ENDINGS).map(([k, E]) => ({ kind: 'ending', key: 'end_' + k, ok: endingsSeen.has(k), name: 'ENDING ' + E.n, desc: E.how })));
+  // 4.48.13：被害額の称号とエンディングも、届くころのカードのあとに差し込む（CARD_AFTER）。前は全部いちばん最後だった
+  const ALL = CARDS.slice();
+  for (const e of extra) { const at = CARD_AFTER[e.key], i = at === '' ? -1 : ALL.findIndex(c => (c.id || c.key) === at); ALL.splice(at == null ? ALL.length : i + 1, 0, e); }
   const PER = ov.clientHeight && ov.clientHeight < 560 ? 4 : 6, n = Math.ceil(ALL.length / PER); cdPage = clamp(page == null ? cdPage : page, 0, n - 1);
   const list = ALL.slice(cdPage * PER, cdPage * PER + PER);
   ov.hidden = false;
