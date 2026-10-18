@@ -361,7 +361,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.46.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.46.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -5445,6 +5445,7 @@ function drawRival() {
   drawCat(g, r.x, r.y, { type: RIVAL, face: r.face, scale: 1, t: r.anim, move: moving, pose, air: !r.plat, acc: 'scarf', tail: fight ? 'puff' : r.mode === 'flee' ? 'low' : 'normal', ears: fight || r.mode === 'flee' ? 'back' : null, eyes: r.stun > 0 ? 'shock' : null });
   const ty = r.y - 58;
   if (fight) for (let i = 0; i < 3; i++) { g.fillStyle = i < r.hp ? '#ff5a5a' : 'rgba(0,0,0,.2)'; g.beginPath(); g.arc(r.x - 10 + i * 10, ty - 14, 3.5, 0, TAU); g.fill(); }
+  if (state !== 'play' && state !== 'clear' && state !== 'pause' && state !== 'caught') return;   // 4.46.2：名札は遊んでいる間だけ（エンディングの集合写真でボス猫にだけ名前が出ていた）
   g.font = `800 11px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.lineWidth = 3; g.strokeStyle = '#fff'; const nm = lt('ボス', 'BOSS');
   g.strokeText(nm, r.x, ty); g.fillStyle = '#5d7a9a'; g.fillText(nm, r.x, ty);
 }
