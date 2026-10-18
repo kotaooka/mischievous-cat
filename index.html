@@ -362,7 +362,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.48.14', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.49.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1297,6 +1297,7 @@ const ACCS = [
   // 4.26.1：きせかえは枚数ではなく、決まったカード（実績）で手に入る（card）。効き目は良い面だけ（ACC_FX）
   { id: 'none', name: tx('なし', 'None'), need: 0 }, { id: 'bell', name: tx('鈴の首輪', 'Bell collar'), need: 1, card: 'lure' }, { id: 'ribbon', name: tx('リボン', 'Ribbon'), need: 1, card: 'rub' },
   { id: 'scarf', name: tx('バンダナ', 'Bandana'), need: 1, card: 'boss' }, { id: 'hat', name: tx('パーティ帽', 'Party hat'), need: 1, card: 'festival' }, { id: 'glasses', name: tx('メガネ', 'Glasses'), need: 1, card: 'data' }, { id: 'crown', name: tx('王冠', 'Crown'), need: 1, card: 't_wrecker7' },
+  { id: 'camera', name: tx('トイカメラ', 'Toy camera'), need: 999, share: true },   // 4.49.0：シェア（または LINE で送る）を押すともらえる
   { id: 'medal', name: tx('金メダル', 'Gold medal'), need: 999, ending: true },   // エンディングを見るともらえる
   { id: 'star', name: tx('星のバッジ', 'Star badge'), need: 999, trueEnd: true },   // 7日目の夜を越えるともらえる
   { id: 'shades', name: tx('サングラス', 'Shades'), need: 999, secret: true }   // 隠しコマンド（タイトルで にゃー を10回）
@@ -1312,6 +1313,7 @@ const ACC_FX = {
   crown:   { yen: 1.1, note: tx('落としたものの被害額 +10%', 'Damage from knocked items +10%') },
   medal:   { skill: 1.25, note: tx('面クリアの腕前ボーナス +25%', 'Stage skill bonus +25%') },
   shades:  { stun: 0.5, note: tx('相手にやられたときのよろけが半分', 'Recover from enemy hits twice as fast') },
+  camera:  { photo: 2, note: tx('飼い主の「撮っとこ」が1面2回・シェア画像が手配書に', 'Owner snaps your pic twice a stage; share image becomes a WANTED poster') },
   star:    { carry: 5, note: tx('持ち越し時間の上限 8 → 13 秒', 'Carry-over cap 13s instead of 8') }
 };
 const accFx = () => ACC_FX[selAcc] || ACC_FX.none;
@@ -1322,10 +1324,11 @@ const accHow = (a, got) => {
   if (c) return got ? lt(`カード「${c.name}」（${c.desc}）`, `card "${c.name}" (${c.desc})`) : lt(`カード「${c.name}」（${c.desc}）で手に入る`, `earn the card "${c.name}" (${c.desc})`);
   if (a.ending) return got ? lt('エンディングを見た', 'saw an ending') : lt('エンディングを見ると手に入る', 'see an ending');
   if (a.trueEnd) return got ? lt('7日目の夜を越えた', 'got past the seventh night') : lt('7日目の夜を越えると手に入る', 'get past the seventh night');
+  if (a.share) return got ? lt('犯行現場写真をシェアした', 'shared a crime scene photo') : lt('結果画面の「シェア」か「LINEで送る」を押すと手に入る', 'press Share or Send on LINE on the results screen');
   if (a.secret) return got ? lt('タイトルで にゃー を10回', 'meow 10 times on the title screen') : lt('？？？', '???');
   return '';
 };
-const accOk = a => a.ending ? store.get('nekoEnded', '') === '1' : a.trueEnd ? store.get('nekoTrueEnd', '') === '1' : a.secret ? store.get('nekoShades', '') === '1' : a.card ? cardsGot.has(a.card) : true;   // 4.26.1：決まったカードで手に入る
+const accOk = a => a.ending ? store.get('nekoEnded', '') === '1' : a.trueEnd ? store.get('nekoTrueEnd', '') === '1' : a.secret ? store.get('nekoShades', '') === '1' : a.share ? store.get('nekoShared', '') === '1' : a.card ? cardsGot.has(a.card) : true;   // 4.26.1：決まったカードで手に入る
 // 小さなアイコン（OS の絵文字は端末で見た目が変わるので、インライン SVG）
 const ICO = {
   trophy: '<svg viewBox="0 0 24 24" fill="#e0a52e"><path d="M7 3h10v2h3v3a4 4 0 01-4 4h-.3A5 5 0 0113 15.9V18h3v2H8v-2h3v-2.1A5 5 0 018.3 12H8a4 4 0 01-4-4V5h3zm-1 4v1a2 2 0 002 2V7zm12 0h-2v3a2 2 0 002-2z"/></svg>',
@@ -4114,7 +4117,7 @@ function showEnding() {
     <p class="best" style="margin:6px 0 0;font-weight:500;font-size:.76rem;color:var(--ink2)">${lt('こっそりネコ　制作：', 'Mischievous Cat — created by ')}${AUTHOR}</p></div>`;
   if ($('enCont')) $('enCont').addEventListener('click', () => { endBgmStop(); ov.hidden = true; carryT = 0; setupStage(level + 1); state = 'play'; bgmStart(); });
   $('enRes').addEventListener('click', () => { endBgmStop(); run.timeup = false; gameOver(); });
-  run.stage = level; run.comment = String(ENDINGS[et].oops); $('bShare').addEventListener('click', doShare); $('bSave').addEventListener('click', saveCard); buildCard(); foldBadges();
+  run.stage = level; run.comment = String(ENDINGS[et].oops); $('bShare').addEventListener('click', doShare); $('bLine').addEventListener('click', gotShare); $('bSave').addEventListener('click', saveCard); buildCard(); foldBadges();
 }
 let endFall = null, endLastPop = -1, endPopTxt = '', endSnapped = false;
 // ---------- お客さんと掛け合い ----------
@@ -4343,8 +4346,8 @@ function updSus(dt) {
   // 飼い主が部屋の外にいるときは、100% になっても見つからない（戻ってくるまで 99% で待つ）。お客さん・カメラに見られているときは別
   if (sus >= 100 && !exSeen && (o.mode === 'away' || o.x < 6 || o.x > W - 6)) sus = 99;
   // ネタ：じっとくつろいでいると、飼い主がスマホで写真を撮る（1面に1回。怪しまれ度が少し下がる）
-  if (!gag.photo && !nap && state === 'play' && (o.mode === 'walk' || o.mode === 'look') && !cat.onFurn && !cat.hidden && cat.still > 3 && ownerSees(cat.x) && sus < 90) {
-    gag.photo = true; setMode('phone', 1.6); o.upIn = 9; o.face = Math.sign(cat.x - o.x) || o.face; say(lt('かわいい…撮っとこ', 'So cute… gotta get a pic'), 1.6); sus = Math.max(0, sus - 15); gag.flash = 0.25; sfx.rec();
+  if ((gag.photoN || 0) < (accFx().photo || 1) && !(gag.photoAt && tAnim - gag.photoAt < 8) && !nap && state === 'play' && (o.mode === 'walk' || o.mode === 'look') && !cat.onFurn && !cat.hidden && cat.still > 3 && ownerSees(cat.x) && sus < 90) {
+    gag.photo = true; gag.photoN = (gag.photoN || 0) + 1; gag.photoAt = tAnim; setMode('phone', 1.6); o.upIn = 9; o.face = Math.sign(cat.x - o.x) || o.face; say(lt('かわいい…撮っとこ', 'So cute… gotta get a pic'), 1.6); sus = Math.max(0, sus - 15); gag.flash = 0.25; sfx.rec();
   }
   // ネタ：大きいネコは箱からしっぽが出ている（見つかりはしない）
   if (!gag.tail && cat.hidden && cat.type.big && o.mode === 'search' && Math.abs(o.x - BOX.x) < 160) { gag.tail = true; say(lt('…しっぽ出てるよ', '…Your tail is showing'), 2); }
@@ -4942,6 +4945,12 @@ function drawAcc(c, id) {
     c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(26.5, -30.5, 1.4, 0.8, -0.6, 0, TAU); c.fill(); c.beginPath(); c.ellipse(18, -30.5, 1.4, 0.8, -0.6, 0, TAU); c.fill();
   } else if (id === 'glasses') {
     c.strokeStyle = '#1b1b22'; c.lineWidth = 1.3; c.beginPath(); c.arc(25, -29, 4, 0, TAU); c.moveTo(20.5, -29); c.arc(16.5, -29, 4, 0, TAU); c.moveTo(21, -29.5); c.lineTo(20.5, -29.5); c.stroke();
+  } else if (id === 'camera') {
+    // トイカメラ：赤いストラップで首から下げる。レンズとフラッシュ
+    c.strokeStyle = '#e0362c'; c.lineWidth = 1.8; c.beginPath(); c.moveTo(11, -25); c.lineTo(14, -14); c.moveTo(23, -25); c.lineTo(22, -14); c.stroke();
+    c.fillStyle = '#3a8fd0'; rr(c, 11, -15, 13, 9, 2); c.fill(); c.fillStyle = '#e8eef4'; c.fillRect(11, -15, 13, 2.2);
+    c.fillStyle = '#22252c'; c.beginPath(); c.arc(17.5, -10.2, 3.1, 0, TAU); c.fill(); c.fillStyle = '#7fc1f0'; c.beginPath(); c.arc(17, -10.8, 1.2, 0, TAU); c.fill();
+    c.fillStyle = '#fff3b0'; c.fillRect(20.6, -14.2, 2.2, 1.6);
   } else if (id === 'crown') {
     c.fillStyle = '#ffc94a'; c.strokeStyle = '#c98a00'; c.lineWidth = 1;
     c.beginPath(); c.moveTo(13, -38); c.lineTo(14, -47); c.lineTo(18, -42); c.lineTo(21, -49); c.lineTo(24, -42); c.lineTo(28, -47); c.lineTo(28, -37); c.closePath(); c.fill(); c.stroke();
@@ -7634,7 +7643,7 @@ async function showOver() {
   $('bChange').addEventListener('click', showTitle);
   $('bRk').addEventListener('click', () => showRank());
   bindOnline(); bindUp();
-  $('bShare').addEventListener('click', doShare);
+  $('bShare').addEventListener('click', doShare); $('bLine').addEventListener('click', gotShare);
   $('bSave').addEventListener('click', saveCard);
   $('card').addEventListener('click', () => showLb($('card').src));
   buildCard();
@@ -7658,7 +7667,13 @@ async function buildCard() {
     const im = $('card'); if (im) im.src = cardUrl;
   } catch (e) { /* 画像を作れない環境ではテキストだけ共有する */ }
 }
+// 4.49.0：シェア・LINE を押したら、きせかえ「トイカメラ」（投稿したかまでは分からないので、押したら渡す）
+function gotShare() {
+  if (store.get('nekoShared', '') === '1') return;
+  store.set('nekoShared', '1'); sfx.star(); toast(lt('きせかえ「トイカメラ」を手に入れた！（タイトルの「ネコとおしゃれ」で）', 'New accessory: Toy camera! (Cat & style on the title screen)'), 4200);
+}
 async function doShare() {
+  gotShare();
   const text = shareText();
   try {
     if (cardBlob && navigator.canShare) {
@@ -7687,6 +7702,28 @@ function saveCard() {
   const a = document.createElement('a'); a.href = cardUrl; a.download = 'mischievous-cat-' + Math.round(run.yen) + '.png';
   document.body.appendChild(a); a.click(); a.remove();
 }
+// 4.49.0：トイカメラをつけているときのシェア画像。ポラロイドの代わりに古い手配書（WANTED）
+function drawWanted(c, T) {
+  c.save(); c.translate(270, 318); c.rotate(-0.035);
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(-206, -272, 428, 560);
+  const pg = c.createLinearGradient(0, -280, 0, 280); pg.addColorStop(0, '#f4e2b8'); pg.addColorStop(1, '#e6c98e');
+  c.fillStyle = pg; c.fillRect(-214, -282, 428, 560);
+  c.strokeStyle = '#8a5a2a'; c.lineWidth = 3; c.strokeRect(-200, -268, 400, 532); c.lineWidth = 1; c.strokeRect(-193, -261, 386, 518);
+  c.fillStyle = '#8a5a2a'; [[-200, -268], [200, -268], [-200, 264], [200, 264]].forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 6, 0, TAU); c.fill(); });   // 画びょう
+  c.fillStyle = '#4a2410'; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  c.font = `800 74px ${FONT}`; c.fillText('WANTED', 0, -196);
+  c.font = `800 22px ${FONT}`; c.fillText(lt('この ネコ を 見かけたら ご連絡ください', 'HAVE YOU SEEN THIS CAT?'), 0, -164);
+  // 写真（セピア）
+  c.save(); c.beginPath(); c.rect(-150, -148, 300, 270); c.clip();
+  if (snap) { c.filter = 'sepia(.85) contrast(1.05)'; c.drawImage(snap, -150 - 15, -148 - 30, 330, 330); c.filter = 'none'; }
+  else { c.fillStyle = '#d9bf8f'; c.fillRect(-150, -148, 300, 270); drawCat(c, 0, 100, { type: T, face: 1, scale: 3.4, t: 0.6, pose: 'smug', acc: 'camera' }); }
+  c.restore();
+  c.strokeStyle = '#4a2410'; c.lineWidth = 3; c.strokeRect(-150, -148, 300, 270);
+  c.fillStyle = '#4a2410'; c.font = `800 34px ${FONT}`; c.fillText(String(T.name), 0, 166);
+  c.font = `800 22px ${FONT}`; c.fillText(lt('罪状：器物損壊（' + phaseOf(run.stage).name + 'の犯行）', 'Charge: wrecking the house'), 0, 200);
+  c.font = `800 30px ${FONT}`; c.fillStyle = '#a8261c'; c.fillText(lt('懸賞金 ', 'REWARD ') + yen(Math.round(run.yen / 10)), 0, 244);
+  c.restore();
+}
 async function makeCard() {
   try { await document.fonts.load(`800 40px "M PLUS Rounded 1c"`); } catch (e) {}
   const cn = document.createElement('canvas'); cn.width = 1200; cn.height = 630;
@@ -7700,6 +7737,10 @@ async function makeCard() {
     [[-15, -6], [-6, -15], [6, -15], [15, -6]].forEach(([dx, dy]) => { c.beginPath(); c.arc(x + dx, y + dy, 5, 0, TAU); c.fill(); });
   }
   // 犯行現場写真（ポラロイド）：ネコのまわりを大きく
+  const fd = finDays();   // 4.46.0：完走版（エンディングの名前・日数の被害額・腕前）
+  const wanted = selAcc === 'camera' && store.get('nekoShared', '') === '1';
+  if (wanted) drawWanted(c, T);
+  else {
   c.save(); c.translate(270, 322); c.rotate(-0.05);
   c.fillStyle = 'rgba(0,0,0,.22)'; c.fillRect(-202, -258, 420, 520);
   c.fillStyle = '#fff'; c.fillRect(-210, -268, 420, 520);
@@ -7707,11 +7748,11 @@ async function makeCard() {
   else { c.fillStyle = '#f6d7a8'; c.fillRect(-190, -248, 380, 380); drawCat(c, 0, 90, { type: T, face: 1, scale: 4, t: 0.6, pose: 'smug', acc: selAcc }); }
   c.fillStyle = 'rgba(255,220,120,.75)'; c.save(); c.rotate(0.05); c.fillRect(-60, -286, 120, 34); c.restore();
   c.fillStyle = '#4a2f1d'; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
-  const fd = finDays();   // 4.46.0：完走版（エンディングの名前・日数の被害額・腕前）
   const cap = fd ? 'ENDING「' + ENDINGS[run.endType || 'normal'].n + '」' : lt('犯行現場　', 'Crime scene · ') + dayName(run.stage) + lt('・', ' · ') + phaseOf(run.stage).name;
   let cs = 30; c.font = `800 ${cs}px ${FONT}`; while (c.measureText(cap).width > 380 && cs > 18) { cs--; c.font = `800 ${cs}px ${FONT}`; }
   c.fillText(cap, 0, 196);
   c.restore();
+  }
   // 文字：題名と「何のゲームか」の一文 → 被害額 → 称号 → 飼い主のひとこと → 遊べる場所
   const X = 540, RW = 630, stroke = (t, x, y, size, fill, sw) => { c.font = `800 ${size}px ${FONT}`; c.lineJoin = 'round'; c.lineWidth = sw || 10; c.strokeStyle = '#7a3510'; c.strokeText(t, x, y); c.fillStyle = fill; c.fillText(t, x, y); };
   c.textAlign = 'left'; c.textBaseline = 'alphabetic';
