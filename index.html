@@ -350,6 +350,7 @@
 (() => {
 'use strict';
 const cv = document.getElementById('c'), g = cv.getContext('2d');
+const SNEAK = 0.33;   // 4.51.0：忍び足の速さ（前の溜め歩き 0.55 より遅く）
 const W = 450, H = 540, FLOOR = 500, GRAV = 1400, JUMP = 580, SPEED = 150;
 // 描画の解像度：ゲーム座標 1 単位あたりの実ピクセル数。fit() で「表示の拡大率 × 端末のピクセル比」に合わせる
 // （PC の大きな画面で引き伸ばされてぼやけないように。重くなりすぎないよう 1〜3 に収める）
@@ -362,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.50.4', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.51.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -2291,6 +2292,8 @@ function updCat(dt) {
   if (c.eatT > 0 && c.eatChuru) { c.eatT -= dt; c.vx = 0; if (c.eatT <= 0) c.eatChuru = false; }
   else if (c.eatT > 0) { c.eatT -= dt; c.vx = 0; if (c.eatT <= 0) { const add = Math.round(10 * catStat('food')); timeLeft += add; run.fed++; pops.push({ x: c.x, y: c.y - 50, text: lt('+' + add + '秒', '+' + add + 's'), life: 1.4, col: '#1d8174', size: 20 }); bowl = null; if (owner.mode !== 'away' && ownerSees(c.x)) taskHit('eatSeen'); } }
   let dir = (c.stun > 0 || c.eatT > 0) ? 0 : (keys.R ? 1 : 0) - (keys.L ? 1 : 0);
+  // 4.51.0：忍び足（パンチを押したまま歩く）。歩いている間は必殺パンチが溜まらない（離すとふつうのパンチ）。家具の上で見られても止まっているのと同じ扱い、アルミホイルも静か
+  c.sneak = !!(c.pDown && c.pHeld > 0.12 && dir && c.plat && !c.scrHold); if (c.sneak) c.pHeld = Math.min(c.pHeld, 0.13);
   if (c.grabCd > 0) c.grabCd -= dt; if (c.scareT > 0) c.scareT -= dt; if (c.creakCd > 0) c.creakCd -= dt;
   if (c.ledge) {
     // 崖つかまり → よじ登り。ジャンプか逆向きで手を離す（落ちる）。両面テープの段ではずり落ちる
@@ -2337,7 +2340,7 @@ function updCat(dt) {
     if (dir) vac.dir = dir;
     c.vx = 0; c.x = vac.x; c.y = VACP.y; c.face = vac.dir; run.rideT += dt;
   } else {
-    const sp = SPEED * catStat('speed') * (c.pDown && c.pHeld > 0.12 ? 0.55 : 1) * (c.sticky ? 0.3 : 1) * (c.churuPull ? 0.7 : 1);
+    const sp = SPEED * catStat('speed') * (c.pDown && c.pHeld > 0.12 ? SNEAK : 1) * (c.sticky ? 0.3 : 1) * (c.churuPull ? 0.7 : 1);
     const onPud = !!c.plat && puddles.some(p => p.plat === c.plat && Math.abs(c.x - p.x) < p.w / 2);
     if (!c.plat) { if (!c.bathOut) c.vx += clamp(dir * sp * 1.15 - c.vx, -1400 * dt, 1400 * dt); }   // お風呂から飛び出す間は、向きを変えられない
     else if (onPud) { c.vx += dir * 300 * dt; c.vx *= Math.pow(0.4, dt); c.vx = clamp(c.vx, -sp * 1.4, sp * 1.4); c.wet = 6; }
@@ -2419,7 +2422,7 @@ function updCat(dt) {
   const tr = c.plat ? traps.find(t => t.plat === c.plat && Math.abs(c.x - t.x) < t.w / 2 + 4) : null;
   c.sticky = !!(tr && tr.type === 'tape');
   if (tr && tr !== c.onTrap && state === 'play') {
-    if (tr.type === 'foil') { sfx.foil(); hearNoise(c.x, c.type.quiet ? 0.3 : 0.7); c.vy = -300; c.plat = null; c.scareT = 0.5; tr.t = 0.6; pops.push({ x: c.x, y: c.y - 56, text: lt('カシャカシャ!', 'CRINKLE!'), life: 1, col: '#5d7a9a', size: 16 }); }
+    if (tr.type === 'foil') { sfx.foil(); hearNoise(c.x, c.type.quiet || c.sneak ? 0.3 : 0.7); c.vy = -300; c.plat = null; c.scareT = 0.5; tr.t = 0.6; pops.push({ x: c.x, y: c.y - 56, text: lt('カシャカシャ!', 'CRINKLE!'), life: 1, col: '#5d7a9a', size: 16 }); }
     else { sfx.tape(); pops.push({ x: c.x, y: c.y - 50, text: lt('ペタッ', 'Sticky!'), life: 1, col: '#c95f17', size: 15 }); }
   }
   c.onTrap = tr || (c.plat ? null : c.onTrap);
@@ -4318,7 +4321,7 @@ function updSus(dt) {
   if (seen) {
     if (cat.punchT > 0) { gain += rate * catStat('sus'); cat.mark = 0.4; }   // パンチの現行犯
     else if (cat.scratch) { gain += rate * 0.9 * catStat('sus'); cat.mark = 0.4; }   // 爪とぎ・ゴミ箱あさりの現行犯（床の上でも）
-    else if (cat.onFurn && !isHigh()) { gain += rate * (Math.abs(cat.vx) > 6 ? 0.35 : 0.2) * catStat('sus'); cat.mark = 0.4; }   // 乗ってはいけない所にいる（隠れ場所の高い所でじっとしているのは別）
+    else if (cat.onFurn && !isHigh()) { gain += rate * (Math.abs(cat.vx) > 6 && !cat.sneak ? 0.35 : 0.2) * catStat('sus'); cat.mark = 0.4; }   // 乗ってはいけない所にいる（隠れ場所の高い所でじっとしているのは別）
     if (cat.mark > 0) run.streak = 0;   // 現行犯で見られたら、ノーマークの連続は切れる
     if (cat.onFurn && !isHigh() && !cat.punchT && !(o.sayT > 0) && o.mode !== 'search' && Math.random() < dt * 0.6) say(pick(LINES.down), 1.5);
   }
@@ -6502,6 +6505,7 @@ function drawCatNow() {
   else if (chaseT > 0) { eyes = 'shock'; ears = 'back'; tail = 'puff'; }   // 追いかけっこ：毛を逆立てて逃げる
   else if (c.scratch) pose = 'scratch';
   else if (c.punchT > 0) pose = c.jabN >= 3 ? 'jab' : 'punch';
+  else if (c.sneak && play) { pose = 'hunt'; tail = 'low'; ears = 'back'; }   // 4.51.0：忍び足は身を低く
   else if (state === 'clear') { pose = 'walk'; eyes = 'sparkle'; tail = 'up'; }   // 4.37.0：クリアはきらきらの顔でぴょんぴょん
   else if (state === 'dayend' || c.plat === VACP) pose = 'smug';
   else if (c.stare) pose = 'stare';
@@ -6565,13 +6569,14 @@ function drawCatNow() {
     // いたずらの進み具合
     const r = clamp(c.scratch.t / MISCHIEF[c.scratch.id].need, 0, 1);
     g.strokeStyle = '#9b5fc0'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.arc(c.x, c.y - 20, 30, -Math.PI / 2, -Math.PI / 2 + r * TAU); g.stroke();
-  } else if (c.pDown && c.pHeld > 0.12 && play) {
+  } else if (c.pDown && c.pHeld > 0.12 && play && !c.sneak) {
     const r = clamp((c.pHeld - 0.12) / 0.23, 0, 1);
     g.strokeStyle = r >= 1 ? '#ff3b30' : '#ffb020'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.arc(c.x, c.y - 20, 30, -Math.PI / 2, -Math.PI / 2 + r * TAU); g.stroke();
     if (r >= 1) { g.font = `800 ${16 + Math.sin(tAnim * 20) * 2}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(lt('必殺ネコパンチ!', 'MEGA PUNCH!'), c.x, c.y - 62); g.fillStyle = '#ff3b30'; g.fillText(lt('必殺ネコパンチ!', 'MEGA PUNCH!'), c.x, c.y - 62); }   // 4.33.1：ためきった合図
   }
   g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
   const label = (t, x, y, col, size) => { g.font = `800 ${size}px ${FONT}`; g.lineWidth = 4; g.strokeStyle = '#fff'; g.strokeText(t, x, y); g.fillStyle = col; g.fillText(t, x, y); };
+  if (c.sneak && play) label(lt('そろり…', 'Sneak…'), c.x, c.y - 52, '#5d7a9a', 13);   // 4.51.0：忍び足
   if (c.eatT > 0) label(c.eatT > 0.45 ? lt('もぐもぐ', 'Munch') : lt('ゴロゴロ', 'Purr'), c.x, c.y - 52 - Math.abs(Math.sin(tAnim * 12)) * 3, '#c95f17', 14);
   else if (c.meowT > 0) label(c.meowTxt, c.x + c.face * 30, c.y - 52, '#1d8174', 15);
   else if (c.stare && state === 'play') label(lt('じーっ', 'Stare…'), c.x, c.y - 56, '#4a2f1d', 14);

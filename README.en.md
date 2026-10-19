@@ -48,6 +48,7 @@ Walking, jumping, meowing and eating are all "normal cat things", so you won't g
 | Walk | ＜ ＞ at the bottom | ← → / A D |
 | Jump | Jump | Space / ↑ / W |
 | Punch (hold for a mega punch) | Punch | Left click / Z |
+| Sneak (walk while holding punch) | Punch + ＜ ＞ | Hold Z + ← → |
 | Meow (hold for a long one, tap 3 times for "mew mew mew!") | Meow | Right click / X |
 | Pause | ⏸ top right | Esc / P |
 
@@ -59,6 +60,7 @@ Prefer playing without the buttons? Turn on **Touch stick** under **Settings**. 
 
 ## 💡 Tips
 
+- **Sneak up.** Walk while holding punch to creep low and slow. Being seen on furniture raises suspicion less, and foil traps are quieter. Release for a normal punch (charge a mega punch standing still)
 - **Strike between patrols.** Stomping footsteps mean the owner is coming back
 - **Distract with a meow.** The owner looks where the cat is facing. Get up to mischief on the other side
 - **Wait until the owner is busy.** While they're on the phone, cooking, reading or brushing their teeth, they barely notice anything
