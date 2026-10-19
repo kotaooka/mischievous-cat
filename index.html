@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.51.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.51.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -668,6 +668,8 @@ function applyLayout(L) {
   for (const id in MIS_X0) MISCHIEF[id].x = MIS_X0[id].slice();
   MISCHIEF.towel.x = MIS_BASE.towel.map(v => v + PL.shelf.x0 - 105);
   MISCHIEF.laundry.x = MIS_BASE.laundry.map(v => v + PL.hang.x0 - 148);
+  // 4.51.1：足場が短いレイアウトでは、はみ出した分だけ内側へ寄せる（屋根の上のレイアウト1で洗濯物が吊り棚の端から 6px 出ていた）
+  for (const [id, pk] of [['towel', 'shelf'], ['laundry', 'hang']]) { const m = MISCHIEF[id], p = PL[pk], w = m.x[1] - m.x[0]; if (m.x[1] > p.x1 - 2) m.x = [p.x1 - 2 - w, p.x1 - 2]; if (m.x[0] < p.x0 + 2) m.x[0] = p.x0 + 2; }
   if (rg && rg.mis) for (const id in rg.mis) MISCHIEF[id].x = rg.mis[id].slice();
 }
 // 4.47.0：吊り棚と、左右の同じくらいの高さの足場（カーテンレール・本棚・テレビの上など）とのすき間をはっきりさせる。
@@ -1922,11 +1924,11 @@ function setupStageCore(L) {
     tv = room === 'living' ? { on: 0, used: 0 } : null;
     if (tv && !items.some(o => o.t === 'remote')) {
       // すき間がなければ、テーブルかサイドテーブルの小物をリモコンに置きかえる
-      const jk = items.find(o => o.extra && (o.plat === PL.table || o.plat === PL.side));
+      const jk = items.find(o => o.extra && (o.plat === PL.table || o.plat === PL.side) && !items.some(q => q !== o && q.plat === o.plat && Math.abs(q.x - o.x) < (IT[q.t].w + IT.remote.w) / 2 + 1));   // 4.51.1：リモコンにしても隣と重ならない小物だけ
       if (jk) Object.assign(jk, { t: 'remote', extra: !!day1(level), scored: false });   // 4.43.0：1 日目（教科書の面）はリモコンを数に入れない（表の 3 個が 4 個になっていた）
       else for (let k = 0; k < 30; k++) {
         const s = pick(['side', 'table'].filter(q => avail.includes(q))), r = spotOf(s), x = rnd(r[0], r[1]);
-        if (!items.some(o => o.plat === PL[s] && Math.abs(o.x - x) < 18)) { items.push({ t: 'remote', x, y: PL[s].y, vx: 0, vy: 0, plat: PL[s], home: s, state: 'rest', rot: 0, vr: 0, y0: 0, chain: 0, kaku: false, water: false, extra: !!day1(level) }); break; }
+        if (!items.some(o => o.plat === PL[s] && Math.abs(o.x - x) < (IT[o.t].w + IT.remote.w) / 2 + 3)) { items.push({ t: 'remote', x, y: PL[s].y, vx: 0, vy: 0, plat: PL[s], home: s, state: 'rest', rot: 0, vr: 0, y0: 0, chain: 0, kaku: false, water: false, extra: !!day1(level) }); break; }
       }
     }
     Object.assign(shelfTilt, { a: 0, dir: 0, t: 0, cd: 2, wob: 0 }); churuRes = 0;
