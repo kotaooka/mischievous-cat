@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.51.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.51.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -695,6 +695,7 @@ function lampAvoid() {
     if (d >= 7) r.push([270, 330]);   // 「監視中」の札
     if (d >= 6 && room === 'study') r.push([176, 254]);   // 犯人ボード
   }
+  for (const cm of cams) if (!outdoor()) r.push([cm.mx - 16, cm.mx + 16]);   // 4.51.2：ペットカメラ（照明のコードがカメラを貫通しないように）
   return r;
 }
 function placeLamp() {
