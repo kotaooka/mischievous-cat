@@ -362,7 +362,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.50.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.50.4', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -3755,7 +3755,7 @@ function drawCredits() {
   if (run.endType === 'true') { nyanFly(e, 0.8, 4.6, -OY + VH * 0.2); nyanFly(e, CRED_LEN - 6.6, CRED_LEN - 1.6, -OY + VH * 0.8); }
   else drawCat(g, (W + 60 - (e * 70) % (W + 120)), FLOOR + 4, { type: cat.type, face: -1, scale: 1, t: tAnim, move: true, pose: 'walk', acc: selAcc, tail: 'up' });
   if (e < 0.6) { g.fillStyle = `rgba(20,14,40,${1 - e / 0.6})`; g.fillRect(0, -OY, W, VH); }
-  if (e > 1 && e < CRED_LEN - 1) { g.fillStyle = 'rgba(255,246,200,.5)'; g.font = `800 11px ${FONT}`; g.textAlign = 'right'; g.fillText(lt('タップで飛ばす', 'Tap to skip'), W - 10, -OY + 16); }
+  if (e > 1 && e < CRED_LEN - 1) drawSkipHint();
 }
 // 後日談（ほんとうのおしまいのあと）：8日目の朝。テーブルの上は空っぽで、ものは全部床に並べてある
 function drawEpilogue() {
@@ -3780,7 +3780,7 @@ function drawEpilogue() {
 function startEnding(isTrue) {
   if (isTrue) run.trueEnded = true; endSnapped = false; if (isTrue) trueCastSetup();
   run.endType = endingType(run); endFall = null; endLastPop = -1; endPopTxt = '';
-  run.ended = true; run.days = dayOf(level); state = 'ending'; endT = 0; endShown = false; endCup = { x: 252, y: 474, vy: 0, vx: 0, rot: 0, broke: false };
+  wakeOn(); run.ended = true; run.days = dayOf(level); state = 'ending'; endT = 0; endShown = false; endCup = { x: 252, y: 474, vy: 0, vx: 0, rot: 0, broke: false };
   bgmStop(); endBgmStart(false); setPulse(null); setMode('away', 99); owner.say = ''; parts = []; pops = []; spaceT = 0; room = 'living'; spots = []; lamp = null; tv = null; weather = 'sun';   // 4.23.2：始まりの効果音（dayend）はやめ、BGM だけにする
 }
 // ---------- ほんとうのおしまい（4.38.0）：7 日間のダイジェスト → 全員集合 → 記念写真のオチ ----------
@@ -4075,7 +4075,20 @@ function previewEnding(ix) {
   setupStage(DAY_LEN * END_DAY);
   startEnding(); run.endType = PREVIEW_ORDER[previewIx]; run.trueEnded = run.endType === 'true'; EB.alt = run.trueEnded; if (run.trueEnded) { trueCastSetup(); run.days = 7; }
 }
+// 4.50.4：スタッフロールとエピローグは2回タップで飛ばす（1回目で「もう一度タップで飛ばす」を明るく出す。1.5 秒以内に2回目）
+let skipArm = -9;
+const skipArmed = () => tAnim - skipArm < 1.5;
+function drawSkipHint() {
+  const on = skipArmed(); g.save(); g.fillStyle = on ? 'rgba(255,246,200,.95)' : 'rgba(255,246,200,.5)'; g.font = `800 ${on ? 14 : 11}px ${FONT}`; g.textAlign = 'right';
+  g.fillText(on ? lt('もう一度タップで飛ばす', 'Tap again to skip') : lt('2回タップで飛ばす', 'Double-tap to skip'), W - 10, -OY + 16); g.restore();
+}
+// 4.50.4：エンディング〜スタッフロールの間は画面を暗くしない（Screen Wake Lock。使えない端末では何もしない）
+let wakeLock = null, wakeWant = false;
+async function wakeOn() { wakeWant = true; try { if (!wakeLock && navigator.wakeLock && !document.hidden) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch (e) { wakeLock = null; } }
+function wakeOff() { wakeWant = false; try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && wakeWant) wakeOn(); });   // 裏に回ると外れるので、戻ったらかけ直す
 function showEnding() {
+  wakeOff();
   if (run.preview) {
     // 確認用の再生：締めの画面を出し、押したらタイトルへ（記録には残さない）
     state = 'endmenu'; ov.hidden = false;
@@ -6655,7 +6668,7 @@ function draw() {
   if (shake > 0 && !SET.calm) g.translate(rnd(-3, 3) * Math.min(1, shake * 4), rnd(-3, 3) * Math.min(1, shake * 4));
   if (zoomK > 0 && state === 'play' && !SET.calm) { const z = 1 + 0.045 * zoomK * zoomK; g.translate(zoomX, zoomY); g.scale(z, z); g.translate(-zoomX, -zoomY); }
   if (state === 'credits') { drawCredits(); g.restore(); return; }
-  if (state === 'epilogue') { drawEpilogue(); g.restore(); return; }
+  if (state === 'epilogue') { drawEpilogue(); if (epiT > 1 && epiT < 7.7) drawSkipHint(); g.restore(); return; }
   if (state === 'ending' || state === 'endmenu') { drawEnding(); if (state === 'endmenu') drawParts(); g.restore(); return; }
   drawRoom();
   drawFest();
@@ -6980,6 +6993,7 @@ const keysBox = () => `<div class="keys" aria-label="${lt('キー操作', 'Keybo
 // 初回（まだ1回も遊び終えていない）は、ネコ1匹と「あそぶ」だけの軽いタイトルにする。ネコ・きせかえ・きろくは1回遊ぶと出る
 const firstTime = () => !(LIFE.plays || 0) && !bestYen;
 function showTitle() {
+  wakeOff();
   endBgmStop(); state = 'title'; newRun(); ov.hidden = false; setPulse(null);
   if (firstTime()) {
     const T = CATS[selCat];
@@ -7818,8 +7832,8 @@ function skipInterlude() {
   if (state === 'clear' && clearT < clearT0 - 0.4) { clearT = 0; return true; }
   if (state === 'dayend' && dayT < dayT0 - 0.4) { dayT = 0; return true; }
   if (state === 'caught' && CAUGHT_DUR - caughtT > 1.4 && caughtT > 0.3) { caughtT = 0.3; return true; }   // 4.36.0：見つかった演出も、顔が出たあとは飛ばせる
-  if (state === 'credits' && credT > 1 && credT < CRED_LEN - 0.3) { credT = CRED_LEN - 0.3; return true; }
-  if (state === 'epilogue' && epiT > 1 && epiT < 7.7) { epiT = 7.7; return true; }
+  if (state === 'credits' && credT > 1 && credT < CRED_LEN - 0.3) { if (skipArmed()) { credT = CRED_LEN - 0.3; skipArm = -9; } else skipArm = tAnim; return true; }
+  if (state === 'epilogue' && epiT > 1 && epiT < 7.7) { if (skipArmed()) { epiT = 7.7; skipArm = -9; } else skipArm = tAnim; return true; }
   return false;
 }
 function churuMash() { if (owner.mode === 'churu' && cat && cat.churuPull) { churuRes = Math.min(1.4, churuRes + 0.24); } }
