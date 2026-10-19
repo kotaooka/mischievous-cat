@@ -362,7 +362,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.49.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.50.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -4517,6 +4517,7 @@ function checkClear() {
   if (stageMaxSus < 10 && sy > 0) run.ghost++; if (phaseOf(level).special === 'guest' && stageMaxSus < 50) run.guestClear = true;
   if (phaseOf(level).special) run.ev['night_' + phaseOf(level).special] = true;
   stageBonus = { quick, sneaky, perfect, close };
+  run.marks = run.marks || []; run.marks[level] = bigEv.done ? '💥' : perfect ? '🐾' : '🐈';   // 4.50.0：共有の絵文字（大技 > 完全犯罪 > クリア）
   try { const sn = takeSnap(); if (sn) { const c2 = document.createElement('canvas'); c2.width = c2.height = 160; c2.getContext('2d').drawImage(sn, 0, 0, 160, 160); run.album = (run.album || []).concat([{ im: c2, L: level, yen: Math.round(sy) }]).slice(-12); if (level % NPH === 0) run.nights = (run.nights || []).concat([{ im: c2, L: level }]).slice(-7); } } catch (e) {}
   if (run.yen >= 1000000) openCat('mike');
   if (stageMaxSus < 20 && sy > 0) openCat('kuro');
@@ -4657,6 +4658,7 @@ function commentOf() {
 }
 function gameOver() {
   state = 'over';
+  if (run.caughtOver) { run.marks = run.marks || []; run.marks[level] = run.cause === 'time' ? '⏰' : '👀'; }   // 4.50.0：見つかった・時間切れの面
   if (!run.test && !run.preview) {
     if (!run.caughtOver && run.ended && level % NPH === 0 && level < TRUE_DAY * NPH) { run.ck = null; saveGame(level + 1, false); }   // エンディングで終えた：次の日から（4.44.0：7 日目の夜を越えたらおしまい。8 日目はない）
     else if (run.ck && run.ck.level > 1 && run.caughtOver) { const ck = run.ck, r0 = run; run = unpackRun(ck.pk); run.ck = null; carryT = 0; saveGame(ck.level, true); run = r0; }   // 見つかった：その日の朝から（つづきに数える）
@@ -7572,15 +7574,24 @@ function retryStage() {
 const canPostEnd = () => !!(run && run.ended && !run.caughtOver && run.stage % NPH === 0 && run.stage >= END_DAY * NPH && run.stage < TRUE_DAY * NPH);   // エンディングで終わった → 次の日からつづけられる
 // 4.46.0：エンディングまで遊び切った回（3 日目か 7 日目の夜を越えて、そこで終えた）なら、その日数。シェアの画像と文章を「完走版」にする
 const finDays = () => (run && run.ended && !run.caughtOver && run.stage % NPH === 0) ? (run.trueEnded && run.stage >= TRUE_DAY * NPH ? TRUE_DAY : run.stage === END_DAY * NPH ? END_DAY : 0) : 0;
+// 4.50.0：共有の文章は Wordle 方式。#番号は公開日（2026-10-18）からの日数＝その日の配置。1日（4面）を1行の絵文字で
+// 🐾 完全犯罪（怪しまれ度30%未満）・🐈 クリア・💥 大技・👀 見つかった・⏰ 時間切れ
+const DAY_NO = () => Math.floor((Date.parse(jstDay()) - Date.parse('2026-10-18')) / 864e5) + 1;
+function shareGrid() {
+  const m = run.marks || [], rows = [];
+  for (let d = 0; d * NPH + 1 < m.length; d++) { const r = m.slice(d * NPH + 1, d * NPH + NPH + 1).filter(Boolean).join(''); if (r) rows.push(r); }
+  return rows.join('\n');
+}
 function shareText() {
-  const fd = finDays();
+  const fd = finDays(), g = shareGrid(), k = run.conts || 0;
+  const kj = k ? `（つづき${k}回）` : '', ke = k ? ` (${k} continue${k > 1 ? 's' : ''})` : '';
   if (fd) {
-    const en = ENDINGS[run.endType || 'normal'], sk = run.skill > 0 ? lt(`（うち腕前 ${yen(run.skill)}）`, ` (skill ${yen(run.skill)})`) : '';
-    return lt(`${fd === TRUE_DAY ? '全部やりきった！' : 'いたずら完走！'}（${fd}日間）\n被害額 ${yen(run.yen)}${sk}\nENDING「${en.n}」／称号「${titleOf(run.yen)}」\n飼い主「${run.comment}」\n#MischievousCat #こっそりネコ`,
-      `${fd === TRUE_DAY ? 'I did it all!' : 'Mischief complete!'} (${fd} days)\nDamage: ${yen(run.yen)}${sk}\nENDING: ${en.n} / Title: ${titleOf(run.yen)}\nOwner: "${run.comment}"\n#MischievousCat #こっそりネコ`);
+    const en = ENDINGS[run.endType || 'normal'];
+    return lt(`こっそりネコ #${DAY_NO()}　${fd === TRUE_DAY ? '全部やりきった！' : 'いたずら完走！'}\n${fd}日間の被害額 ${yen(run.yen)}${kj}\nENDING「${en.n}」\n${g}\n#こっそりネコ`,
+      `Mischievous Cat #${DAY_NO()} — ${fd === TRUE_DAY ? 'I did it all!' : 'Mischief complete!'}\n${fd}-day damage ${yen(run.yen)}${ke}\nENDING: ${en.n}\n${g}\n#MischievousCat`);
   }
-  return lt(`本日の被害額 ${yen(run.yen)}\nステージ${run.stage}（${dayName(run.stage)}・${phaseOf(run.stage).name}）／★${run.stars}／称号「${titleOf(run.yen)}」\n飼い主「${run.comment}」\n#MischievousCat #こっそりネコ`,
-    `Today's damage: ${yen(run.yen)}\nStage ${run.stage} (${dayName(run.stage)} · ${phaseOf(run.stage).name}) / ★${run.stars} / Title: ${titleOf(run.yen)}\nOwner: "${run.comment}"\n#MischievousCat #こっそりネコ`);
+  return lt(`こっそりネコ #${DAY_NO()}\n${dayName(run.stage)}・${phaseOf(run.stage).name}まで　${yen(run.yen)}${kj}\n${g}\n#こっそりネコ`,
+    `Mischievous Cat #${DAY_NO()}\nReached ${dayName(run.stage)} · ${phaseOf(run.stage).name} — ${yen(run.yen)}${ke}\n${g}\n#MischievousCat`);
 }
 // 次の目標：結果画面に1〜2行。近い順に「ベスト更新まで」「次の被害額の称号まで」、集めもの（きせかえ・カード）
 function nextGoal() {

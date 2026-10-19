@@ -146,6 +146,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 - **Big ones**: each room has one way to bring a whole piece of furniture down (bookshelf avalanche, fridge avalanche…). Everything on top falls and the owner freezes for a moment. The Cards tab tells you how
 - **Mischief cards**: 72 cards (some per run, some lifetime), each collected with a photo of the moment you first pulled it off. The Cards tab also shows how to get the ones you are missing
 - **This device**: your own top 10
+- **Share text**: "Mischievous Cat #N" (N is the day's layout) plus one emoji row per in-game day: 🐾 perfect crime, 🐈 clear, 💥 big one, 👀 caught, ⏰ time up. Same number, same rooms, so you can compare with friends
 - **Toy camera**: press Share or Send on LINE on the results screen to get the Toy camera accessory. While wearing it, your share image becomes a WANTED poster
 - **Accessories**: unlocked by specific cards ("Meow Decoy" for the bell collar, "Boss Beaten" for the bandana, and so on — the locked pill shows the card). Each gives a small bonus (punch +15%, jump +10%…); switching one on the title screen updates the stat pips. How you earned it stays listed under its bonus
 - **Titles**: the title on the result screen is decided by one run's damage (five ranks)
