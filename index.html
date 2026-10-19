@@ -362,7 +362,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.50.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.50.1', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -7583,15 +7583,17 @@ function shareGrid() {
   return rows.join('\n');
 }
 function shareText() {
+  // 4.50.1：Wordle 方式（#番号・絵文字の行）に、前の文章の称号・腕前・飼い主のひとことを足して両立させた
   const fd = finDays(), g = shareGrid(), k = run.conts || 0;
   const kj = k ? `（つづき${k}回）` : '', ke = k ? ` (${k} continue${k > 1 ? 's' : ''})` : '';
+  const tag = '#こっそりネコ #MischievousCat', tagE = '#MischievousCat #こっそりネコ';
   if (fd) {
-    const en = ENDINGS[run.endType || 'normal'];
-    return lt(`こっそりネコ #${DAY_NO()}　${fd === TRUE_DAY ? '全部やりきった！' : 'いたずら完走！'}\n${fd}日間の被害額 ${yen(run.yen)}${kj}\nENDING「${en.n}」\n${g}\n#こっそりネコ`,
-      `Mischievous Cat #${DAY_NO()} — ${fd === TRUE_DAY ? 'I did it all!' : 'Mischief complete!'}\n${fd}-day damage ${yen(run.yen)}${ke}\nENDING: ${en.n}\n${g}\n#MischievousCat`);
+    const en = ENDINGS[run.endType || 'normal'], sk = run.skill > 0 ? lt(`（うち腕前 ${yen(run.skill)}）`, ` (skill ${yen(run.skill)})`) : '';
+    return lt(`こっそりネコ #${DAY_NO()}　${fd === TRUE_DAY ? '全部やりきった！' : 'いたずら完走！'}\n${fd}日間の被害額 ${yen(run.yen)}${sk}\nENDING「${en.n}」／称号「${titleOf(run.yen)}」${kj}\n${g}\n飼い主「${run.comment}」\n${tag}`,
+      `Mischievous Cat #${DAY_NO()} — ${fd === TRUE_DAY ? 'I did it all!' : 'Mischief complete!'}\n${fd}-day damage ${yen(run.yen)}${sk}\nENDING: ${en.n} / Title: ${titleOf(run.yen)}${ke}\n${g}\nOwner: "${run.comment}"\n${tagE}`);
   }
-  return lt(`こっそりネコ #${DAY_NO()}\n${dayName(run.stage)}・${phaseOf(run.stage).name}まで　${yen(run.yen)}${kj}\n${g}\n#こっそりネコ`,
-    `Mischievous Cat #${DAY_NO()}\nReached ${dayName(run.stage)} · ${phaseOf(run.stage).name} — ${yen(run.yen)}${ke}\n${g}\n#MischievousCat`);
+  return lt(`こっそりネコ #${DAY_NO()}\n${dayName(run.stage)}・${phaseOf(run.stage).name}まで　${yen(run.yen)}\n称号「${titleOf(run.yen)}」${kj}\n${g}\n飼い主「${run.comment}」\n${tag}`,
+    `Mischievous Cat #${DAY_NO()}\nReached ${dayName(run.stage)} · ${phaseOf(run.stage).name} — ${yen(run.yen)}\nTitle: ${titleOf(run.yen)}${ke}\n${g}\nOwner: "${run.comment}"\n${tagE}`);
 }
 // 次の目標：結果画面に1〜2行。近い順に「ベスト更新まで」「次の被害額の称号まで」、集めもの（きせかえ・カード）
 function nextGoal() {
