@@ -362,7 +362,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.50.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.50.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -506,10 +506,10 @@ function bigCount(x) {
 function bigTrigger() {
   const B = BIG[room]; if (!B || bigEv.done) return;
   bigEv.done = true; bigEv.anim = 1.2; bigEv.wob = 0;
-  run.bigs = run.bigs || []; run.bigs.push(room); run.ev['big_' + room] = 1; openCat('maine');
+  run.bigs = run.bigs || []; run.bigs.push(room); run.ev['big_' + room] = 1; if (!run.test) openCat('maine');
   // 上に載っていたものを全部落とす（ひとつの連鎖として数える）
   const id = ++chainSeq;
-  for (const it of items) if ((it.plat === PL.book || (B.fall && room === 'kids' && it.plat === PL.ex1)) && it.state !== 'fall') { it.state = 'fall'; it.plat = null; it.y0 = PL.book.y; it.y = PL.book.y - 2; it.vy = -rnd(60, 160); it.vx = -rnd(40, 130); it.vr = rnd(-8, 8); it.chain = id; it.strong = true; }
+  for (const it of items) if ((it.plat === PL.book || (B.fall && room === 'kids' && it.plat === PL.ex1)) && it.state !== 'fall') { const py = it.plat ? it.plat.y : PL.book.y; it.state = 'fall'; it.plat = null; it.y0 = py; it.y = py - 2; it.vy = -rnd(60, 160); it.vx = -rnd(40, 130); it.vr = rnd(-8, 8); it.chain = id; it.strong = true; }
   if (B.fall && cat.plat === PL.book) { cat.plat = null; cat.vy = -200; cat.vx = -120; }
   if (snack && !snack.got) snack.got = true;
   // 足場：崩れる家具（本棚・二段ベッド）は上の足場がなくなり、低い足場（がれき／下の段）に乗れる。立ったままの家具は上の足場もそのまま
@@ -1343,7 +1343,7 @@ let state = 'title', level = 1, sus = 0, muted = store.get('nekoMute', '0') === 
 let selCat = clamp((+store.get('nekoCat', 2)) | 0, 0, CATS.length - 1), bestYen = +store.get('nekoBestYen', 0) || 0;
 let tutDone = store.get('nekoTut', '0') === '1';
 let stageT = 0, clearT = 0, caughtT = 0, shake = 0, tAnim = 0, susCd = 0, chainSeq = 0;
-let clearT0 = 2.4, dayT0 = 6, assist = 0;   // 4.36.0：札の長さ（2 回目以降のプレイは短い）、お助け（同じ面で 3 回見つかったら留守 +5 秒）
+let clearT0 = 2.4, dayT0 = 6, assist = 0;   // 4.36.0：札の長さ（2 回目以降のプレイは短い）、お助け（同じ面で 3 回見つかったら、面の始まりの留守 +5 秒、そのあとの留守 +2 秒）
 const fastPlay = () => (LIFE.plays || 0) >= 2;
 // 制限時間（4.48.0）：1 日目（操作を覚える面）は 25 秒＋1 個 7 秒のまま。2 日目からは 18 秒＋1 個 5 秒（8 個で 58 秒）。
 // クリアすると残り時間の 3 割（最大 8 秒、星のバッジは 13 秒）を次の面へ持ち越す。前は 25＋7 秒と半分（最大 20 秒）で、慣れると毎面 100 秒前後から始まり、手際の差もつきにくかった
@@ -1488,14 +1488,15 @@ const VOICE_LONG = { txt: tx('にゃ〜〜〜ん', 'Meeeooow~'), dur: 1.5, pts: 
 const VOICE_TRIPLE = { txt: tx('にゃにゃにゃ!', 'Mew mew mew!'), dur: 0.16, rep: 3, pts: [[0, 0.95], [0.4, 1.4], [1, 1.1]], vow: [[0, 'N'], [0.35, 'A'], [1, 'A']] };
 // 隠しコマンド：タイトル画面で にゃー（ボタンか X）を 6 秒以内に 10 回。飼い主が「にゃー」と返し、きせかえ「サングラス」が出る
 let titleTaps = [];
+const onTitle = () => state === 'title' && !ov.hidden && !!ov.querySelector('.first-cat');   // 4.50.3：設定・記録・おしゃれも state は 'title' なので、タイトル画面そのものかを見る
 function titleMeow() {
-  if (state !== 'title' || ov.hidden) return false;
+  if (!onTitle()) return false;
   const now = performance.now(); titleTaps = titleTaps.filter(t => now - t < 6000); titleTaps.push(now);
   audio(); sfx.meow(CATS[selCat].voice, pickVoice());
   if (titleTaps.length >= 10) {
     titleTaps = [];
     setTimeout(() => { sfx.meow(0.62, VOICES[0]); toast(lt('飼い主「にゃー」', 'Owner: "Meow"'), 2600); }, 700);
-    if (store.get('nekoShades', '') !== '1') { store.set('nekoShades', '1'); setTimeout(() => { toast(lt('きせかえ「サングラス」', 'New accessory: Shades'), 3600); if (state === 'title') showTitle(); }, 2600); }
+    if (store.get('nekoShades', '') !== '1') { store.set('nekoShades', '1'); setTimeout(() => { toast(lt('きせかえ「サングラス」', 'New accessory: Shades'), 3600); if (onTitle()) showTitle(); }, 2600); }
   }
   return true;
 }
@@ -1799,14 +1800,16 @@ const day1 = L => (run && run.test) || L > 3 ? null : DAY1[L] || null;
 function setupStageCore(L) {
   level = L; stageT = 0; chains = {};
   applyLayout(L);
-  if (run) { run.stageDrops = []; if (!run.rooms.includes(room)) run.rooms.push(room); }
+  if (run) run.stageDrops = [];
   // その日の朝（各日の1面目）の状態を覚えておく（見つかったら、ここから続けられる）
   if (run && (L - 1) % DAY_LEN === 0) run.ck = { level: L, pk: packRun(run) };
   if (run && !run.test && dayOf(L) === 1 && L > 1) run.sk = { level: L, pk: packRun(run) }; else if (run) run.sk = null;   // 4.36.0：1 日目は「この面からやりなおす」ができる
   saveGame(L);   // 自動セーブ（4.27.0）：面の始まりの状態を残す
   items = []; puddles = []; prints = []; parts = []; pops = []; coins = [];
   // 置き場所：面が進むと高い所が増える（壁の棚 → 本棚・吊り棚 → カーテンレール → エアコン）
-  const ph = phaseOf(L); room = ph.room; introT = fastPlay() ? 1.3 : 2;
+  const ph = phaseOf(L); room = ph.room;
+  if (run) { run.rooms = run.rooms || []; if (!run.rooms.includes(room)) run.rooms.push(room); }   // 4.50.3：部屋を切り替えてから数える（前は1面遅れ）
+  introT = fastPlay() ? 1.3 : 2;
   let avail = room === 'kids' ? ['table'] : ['side', 'table']; if (L >= 2) avail.push('shelf'); if (L >= 3) avail.push('book', 'hang'); if (L >= 4) avail.push('rail'); if (L >= 5) avail.push('ac');
   avail = onList(avail).filter(plOn);   // 4.47.0：部屋にない足場は外し、足す足場（ex）は同じものが置ける足場が使えるときに使う
   // 部屋ごとの足場：お風呂場のテーブルは浴槽（ふたの所だけ乗れる）。子ども部屋のサイドテーブルの上は水槽
@@ -1910,7 +1913,7 @@ function setupStageCore(L) {
     else if (ph.rule === 'twocam') cams = [{ mx: 90, period: 8, ph: 0, w: 70, cx: 0, rec: 0 }, { mx: 360, period: 10, ph: 2.2, w: 70, cx: 0, rec: 0 }];
     else if (normal && d >= 3) cams = [{ mx: 60, period: 7.5, ph: 1, w: 70, cx: 0, rec: 0 }];
     cuke = d >= 2 && normal && !wetRoom() && Math.random() < 0.4 ? { x: 0, cd: 0 } : null;   // 1 日目は出ない（d >= 2）
-    if (cuke) { for (let k = 0; k < 20; k++) { cuke.x = rnd(40, W - 60); if (Math.abs(cuke.x - BOX.x) > 50 && Math.abs(cuke.x - 255) > 40 && (!mouse || Math.abs(cuke.x - mouse.hole) > 30)) break; } }
+    if (cuke) { for (let k = 0; k < 20; k++) { cuke.x = rnd(40, W - 60); if (Math.abs(cuke.x - BOX.x) > 50 && Math.abs(cuke.x - 255) > 40 && Math.abs(cuke.x - ((roomGeo(room) && roomGeo(room).hole) || 112)) > 30) break; } }   // 4.50.3：前は前の面の mouse を見ていて、乱数の消費がずれていた
     creaks = [];
     if (d >= 2 && ph.tod >= 2 && !outdoor() && room !== 'bath') { const nc = 1 + (Math.random() < 0.5 ? 1 : 0); for (let k = 0; k < nc; k++) { const x = rnd(30, W - 70); if (!creaks.some(q => Math.abs(q.x - x) < 60)) creaks.push({ x, w: 38, t: 0 }); } }
     // 吊り照明：吊り棚とカーテンレールの間の天井から吊るす（4.8.5。どの角度に揺れても、台の上に立ったネコには当たらない。吊り棚・レールからジャンプで届く）
@@ -1935,7 +1938,7 @@ function setupStageCore(L) {
   }
   const T = CATS[selCat];
   cat = cat || {};
-  Object.assign(cat, { ledge: null, hang: false, grabCd: 0, rubT: 0, sticky: false, onTrap: null, scareT: 0, creakCd: 0, danceT: 0, bathT: 0, bathOut: false, inBath: false, type: T, x: room === 'bath' ? 322 : 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: VOICES[0].txt, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0, scratch: null, scrHold: false, happyT: 0, aimUp: false, scrT: 0, purrT: 0, hopT: 0, jabN: 0, lastPunch: -9 });
+  Object.assign(cat, { eatChuru: false, ledge: null, hang: false, grabCd: 0, rubT: 0, sticky: false, onTrap: null, scareT: 0, creakCd: 0, danceT: 0, bathT: 0, bathOut: false, inBath: false, type: T, x: room === 'bath' ? 322 : 255, y: FLOOR, vx: 0, vy: 0, face: 1, plat: PL.floor, coyote: 0, jumpBuf: 0, pDown: false, pHeld: 0, punchT: 0, strong: false, punchCd: 0, punchReq: null, meowT: 0, meowCd: 0, stun: 0, eatT: 0, meowTxt: VOICES[0].txt, wet: 0, printT: 0, hidden: false, safe: false, acting: false, anim: 0, still: 0, stare: false, sq: 0, seen: false, onFurn: false, mark: 0, scratch: null, scrHold: false, happyT: 0, aimUp: false, scrT: 0, purrT: 0, hopT: 0, jabN: 0, lastPunch: -9 });
   { const f = failOf(); assist = f.l === L && f.n >= 3 && !(run && run.test) ? 5 : 0; }
   owner.mode = 'away'; owner.t = (day1(L) ? day1(L).away : rnd(1.5, 2.5)) + assist;   // 4.48.7：留守 2.5〜4.5 → 1.5〜2.5 秒
   owner.range = 0; owner.lureT = 0; owner.warned = false; owner.hint = null; owner.say = ''; owner.x = -60; owner.scareT = 0;
@@ -1963,6 +1966,7 @@ function setupStageCore(L) {
   if (ph.special === 'dognight') { dog = { x: 300, alertT: 0, cd: 0, barkT: 0, keep: true, roam: true, dir: -1, t: 2, chewT: 0, target: null }; bones = [{ x: 150, vx: 0 }, { x: 330, vx: 0 }].map(b => (Math.abs(b.x - BOX.x) < 40 ? Object.assign(b, { x: b.x - 50 }) : b)); }
   if (ph.special === 'lastnight') { nap = { asleep: true, t: 6, cyc: 0, sayT: 0 }; owner.x = 62; owner.face = 1; owner.up = false; setMode('nap', 99); }
   pruneGimmicks(L, ph);
+  Math.random = seedRng(jstDay() + '#' + L + '#t');   // 4.50.3：間引きは端末ごとの履歴で変わるので、お題などは乱数を引き直して全員同じにする（setupStage の finally で元に戻る）
   tut.on = L === 1 && !tutDone; tut.broke = false;
   // 制限時間：もの1個につき7秒＋25秒
   // お題を3つ：部屋の仕掛けから1つ＋ほかから2つ（その面でできるものだけ）
@@ -2104,7 +2108,7 @@ function arrive() {
   const s = owner.cur; if (!s) { nextStop(); return; }
   if (s.kind === 'feed') { setMode('feed', 1.1); return; }
   if (s.kind === 'tv') { if (tv && tv.on > 0) { owner.face = Math.sign(308 - owner.x) || 1; setMode('tv', tv.on); say(tvSay(), 1.6); } else nextStop(); return; }
-  if (s.kind === 'churu') { run.churuStage = level; owner.face = Math.sign(cat.x - owner.x) || owner.face; setMode('churu', 4.5); churuRes = 0; say(pick(LINES.churu), 2); sfx.churu(); return; }
+  if (s.kind === 'churu') { owner.churuDone = false; run.churuStage = level; owner.face = Math.sign(cat.x - owner.x) || owner.face; setMode('churu', 4.5); churuRes = 0; say(pick(LINES.churu), 2); sfx.churu(); return; }
   if (s.kind === 'tidy') {
     if (!items.includes(s.item) || s.item.plat !== PL.floor || s.item.state !== 'rest') { nextStop(); return; }
     owner.face = Math.sign(s.item.x - owner.x) || owner.face; setMode('tidy', 1.5); say(pick(LINES.tidy), 1.4); return;
@@ -2123,7 +2127,7 @@ function arrive() {
 }
 function startSearch() {
   susCd = 14;
-  if (owner.mode === 'away') { owner.x = -40; owner.face = 1; owner.spd = walkSpeed(level); }
+  if (owner.mode === 'away') { owner.x = -40; owner.face = 1; owner.spd = walkSpeed(level) * WT().spd * (phaseOf(level).night ? 0.9 : 1); }   // 4.50.3：enter() と同じ速さ（見張り役・夜）
   owner.lureT = 0; owner.up = false; setMode('search', 6);   // 4.19.0：7 → 6 秒
   owner.gx = clamp(cat.x + rnd(-80, 80), 30, 330); owner.searchRetarget = 1.2;
   say(pick(LINES.search), 2.2); sfx.alert();
@@ -2306,7 +2310,7 @@ function updCat(dt) {
     lamp.om += dir * 1.1 * dt; c.x = bx; c.y = by + 42; c.vx = 0; c.vy = 0; c.plat = null; if (dir) c.face = dir;
     c.onFurn = true; c.acting = true; c.still = 0; c.stare = false; c.hidden = false; c.safe = false;
     if (c.jumpBuf > 0) {
-      const v = lamp.om * lamp.L; c.vx = clamp(v * Math.cos(lamp.th), -520, 520); c.vy = -v * Math.sin(lamp.th) - 430; c.hang = false; run.lamp++; c.grabCd = 0.5; c.jumpBuf = 0; c.bathOut = true; run.lamp++; sfx.jump();
+      const v = lamp.om * lamp.L; c.vx = clamp(v * Math.cos(lamp.th), -520, 520); c.vy = -v * Math.sin(lamp.th) - 430; c.hang = false; run.lamp++; c.grabCd = 0.5; c.jumpBuf = 0; c.bathOut = true; sfx.jump();
       pops.push({ x: c.x, y: c.y - 60, text: lt('ビューン!', 'Wheee!'), life: 1, col: '#9b5fc0', size: 16 });
     }
     return;
@@ -2392,7 +2396,7 @@ function updCat(dt) {
       }
     }
   }
-  if (bowl && !c.eatT && c.plat === PL.floor && Math.abs(c.x - bowl.x) < 16) { c.eatT = 0.9; c.vx = 0; sfx.eat(); }
+  if (bowl && c.eatT <= 0 && c.plat === PL.floor && Math.abs(c.x - bowl.x) < 16) { c.eatT = 0.9; c.vx = 0; sfx.eat(); }
   // 書斎：キーボードの上を歩くと、作業中のデータが消える
   if (kb) {
     if (kb.typing > 0) kb.typing -= dt;
@@ -2637,6 +2641,8 @@ function doPunch(strong) {
 function updItems(dt) {
   for (let i = items.length - 1; i >= 0; i--) {
     const it = items[i];
+    // 4.50.3：止まったものは、押された・当たったという印を消す（あとで別に落としたとき、技・確信犯・連鎖のボーナスが付いていた）
+    if (it.state === 'rest' && (it.chain || it.kaku || it.byBall || it.byChick || it.byCloth || it.launched || it.byRival)) { it.chain = 0; it.kaku = it.byBall = it.byChick = it.byCloth = it.launched = it.byRival = false; }
     if (it.state === 'slide') {
       it.x += it.vx * dt;
       const f = 220 * dt;
@@ -2687,7 +2693,7 @@ function landJunk(it, plat) {
   if (plat === PL.floor && !it.scored) {
     it.scored = true; run.touched = true; run.yen += d.yen; run.mess = (run.mess || 0) + 1;
     coinFly(it.x, plat.y - 14, d.yen);
-    if (!it.spotted && cat.mark <= 0) { run.streak++; run.maxStreak = Math.max(run.maxStreak, run.streak); }
+    if (!it.spotted && cat.mark <= 0) { run.streak++; run.maxStreak = Math.max(run.maxStreak, run.streak); } else run.streak = 0;
     hearNoise(it.x, d.noise);
   }
 }
@@ -2748,7 +2754,7 @@ function breakItem(it, plat) {
   if (owner.mode === 'busy') taskHit('busy');
   if (it.kaku) { const b = Math.round(d.yen * BONUS.kaku); run.yen += b; run.skill += b; run.skK = (run.skK || 0) + b; bon.push([lt('確信犯 +', 'Guilty +') + yen(b), '#1d8174']); }
   // 腕前のボーナス（被害額に上乗せ）
-  // ノーマーク：飼い主に動いているところを見られず、ネコも現行犯で見られていない落とし方が続くと、1個ごとに +10%（最大 +50%）
+  // ノーマーク：飼い主に動いているところを見られず、ネコも現行犯で見られていない落とし方が続くと、1個ごとに +15%（最大 6 段で +90%。BONUS.streak）
   if (!it.spotted && cat.mark <= 0) run.streak++; else run.streak = 0;
   run.maxStreak = Math.max(run.maxStreak, run.streak);
   for (const sid of ['streak', 'streak2']) { const sk = tasks.find(k => k.id === sid && !k.done); if (sk) { if (run.streak === 0) sk.n = 0; else { sk.n = Math.min(run.streak, sk.need) - 1; taskHit(sid); } } }
@@ -3074,7 +3080,7 @@ function updRival(dt) {
     else if (!r.plat) dir = r.airX != null && Math.abs(r.airX - r.x) > 3 ? Math.sign(r.airX - r.x) : 0;
     else { const d = aiNav(r, { plat: PL.floor, x: 12 }); if (d != null) dir = d; else { const p = r.plat; dir = r.x < (p.x0 + p.x1) / 2 ? -1 : 1; if (dir < 0 && p.x0 - 4 <= 13) dir = 1; else if (dir > 0 && p.x1 + 4 >= W - 13) dir = -1; } }
     bodyStep(r, r.stun > 0 ? 0 : dir, 190, dt);
-    if (r.plat === PL.floor && r.x <= 14) { if (r.back > 0) { r.back--; r.mode = 'wait'; r.t = r.ally || r.bossday ? rnd(5, 8) : rnd(14, 20); } else r.mode = 'gone'; }   // 味方のボス・ボス猫の日は早めに戻る
+    if (r.plat === PL.floor && r.x <= 14) { if (r.back > 0) { r.back--; r.mode = 'wait'; r.t = r.ally || r.bossday ? rnd(5, 8) : rnd(8, 12); } else r.mode = 'gone'; }   // 味方のボス・ボス猫の日は早めに戻る。4.50.3：ふだんの戻りも 14〜20 → 8〜12 秒
     return;
   }
   const same = !!cat.plat && r.plat === cat.plat && !cat.hidden && cat.plat !== VACP && cat.bathT <= 0, dx = cat.x - r.x;
@@ -3114,8 +3120,14 @@ function updRival(dt) {
   bodyStep(r, dir, r.plat ? 115 : 150, dt);   // 歩きはネコより少し遅い。跳ぶときはネコと同じ
   // 飼い主に見つかると、叱られて逃げる（ネコのせいにはならない）
   const o = owner;
-  if (r.mode === 'roam' && (r.plat !== PL.floor || r.punchT > 0) && ['walk', 'warn', 'look', 'up', 'search'].includes(o.mode) && ownerSees(r.x)) scoldRival();
+  // 4.50.3：すぐには叱らない。見られている間だけ「ボスの怪しまれ」がたまり（BOSS_SEE 秒で叱る）、見られていないと減る。たまり始めに「ん？」
+  const seen = r.mode === 'roam' && (r.plat !== PL.floor || r.punchT > 0) && ['walk', 'warn', 'look', 'up', 'search'].includes(o.mode) && ownerSees(r.x);
+  if (seen) {
+    if (!r.seen) pops.push({ x: r.x, y: r.y - 64, text: '？', life: 0.9, col: '#c95f17', size: 22 });
+    r.seen = (r.seen || 0) + dt; if (r.seen >= BOSS_SEE) { r.seen = 0; scoldRival(); }
+  } else if (r.seen) r.seen = Math.max(0, r.seen - dt * 0.6);
 }
+const BOSS_SEE = 1.6;   // ボス猫が見られ続けて叱られるまでの秒数（前は見られた瞬間）
 // ---------- 第2週（4〜7日目）：攻撃してくる相手（foe）と、新しい特別な夜 ----------
 // foe：昼の1面に出る相手。ぶつかると「よろけ」（しばらく動けない＋物音）。ネコパンチで倒すと +5秒と、壊れた相手の被害額（カラスは盗んだ光りものを落とす）
 // vacbot 暴走ロボ掃除機（床を突進。体力3。パンチ3回（必殺ネコパンチなら2回）で裏返り、暴走して台のものを落としてくれる）
@@ -3272,7 +3284,7 @@ function punchFoe(strong, reach) {
   const F = foe, c = cat; if (!F || F.dead) return;
   const n = strong ? 2 : 1;
   if (F.kind === 'vacbot' && c.plat === PL.floor) {
-    const dx = (F.x - c.x) * c.face; if (dx > -6 && dx < reach + 20) { hurtFoe(n, F.x, FLOOR - 10); if (!F.dead) { F.vx = c.face * (strong ? 320 : 200); F.stun = strong ? 3 : 2; F.mode = 'rest'; F.t = F.stun + 0.5; F.cd = 2; F.dizzy = F.stun + 0.5; } }   // 4.39.1：パンチで 2〜3 秒止まる（目を回す）
+    const dx = (F.x - c.x) * c.face; if (dx > -6 && dx < reach + 20) { hurtFoe(n, F.x, FLOOR - 10); if (!F.dead) { F.vx = c.face * (strong ? 320 : 200); F.stun = strong ? 3 : 2; F.mode = 'rest'; F.t = 0.5; F.cd = 2; F.dizzy = F.stun + 0.5; } }   // 4.39.1：パンチで 2〜3 秒止まる（目を回す）。4.50.3：休みの時間はよろけが終わってから数えるので、F.t は 0.5（前はよろけ＋よろけ＋0.5 で 4.5〜6.5 秒止まっていた）
   } else if (F.kind === 'crow') {
     for (const b of F.birds) {
       if (b.dead || b.mode !== 'land' || b.plat !== c.plat) continue;
@@ -3282,7 +3294,7 @@ function punchFoe(strong, reach) {
         // 倒した：逃げていきながら、盗んでいた光りものを落とす（落ちて割れればネコの手柄）
         b.dead = true; b.vx = c.face * 220; b.vy = -280; b.plat = null; run.ev.crows = (run.ev.crows || 0) + 1; happyHop(); sfx.cluck();
         const t = pick(['wine', 'glamp', 'frame', 'watch']);
-        items.push({ t, x: clamp(b.x, 20, W - 20), y: b.y - 16, vx: rnd(-30, 30), vy: -120, plat: null, home: 'shelf', state: 'fall', rot: 0, vr: 4, y0: b.y - 80, chain: 0, kaku: false, water: false });
+        items.push({ t, x: clamp(b.x, 20, W - 20), y: b.y - 16, vx: rnd(-30, 30), vy: -120, plat: null, home: 'shelf', state: 'fall', rot: 0, vr: 4, y0: b.y - 80, chain: 0, kaku: false, water: false, extra: true });
         pops.push({ x: b.x, y: b.y - 48, text: lt('カラス退治! 何か落とした', 'Crow bopped! It dropped something'), life: 1.4, col: '#1d8174', size: 15 });
       }
     }
@@ -4358,7 +4370,7 @@ function updSus(dt) {
   if (sus >= 100 && level === 1 && day1(level) && !run.warn1) { run.warn1 = true; sus = 60; susQ = 0; susCd = 4; say(lt('次やったら追いかけるからね!', 'Next time I chase you!'), 2.2); sfx.alert(); shake = Math.max(shake, 0.2); buzz([40, 30, 40]); pops.push({ x: W / 2, y: 190, text: lt('いまのは見のがし!', 'Let off… this once!'), life: 1.8, col: '#e0362c', size: 20 }); return; }   // 4.41.0：1 日目 1 面目は 1 回だけ警告
   if (sus >= 100) { sus = 100; susQ = 0; if (chaseN < 2) startChase(); else caught(); }
 }
-// 見つかったら、1ステージに1回だけ追いかけっこ。3秒以内にダンボールかタワーへ逃げ込めば助かる
+// 見つかったら追いかけっこ（1ステージに2回まで。1回目は3秒、2回目は1.5秒）。時間内にダンボールかタワーへ逃げ込めば助かる
 function startChase() {
   const o = owner; chaseN++; run.chases = (run.chases || 0) + 1; chaseT = chaseN >= 2 ? 1.5 : 3; o.lureT = 0; o.up = false;
   if (o.mode === 'away') { o.x = cat.x < 200 ? 380 : -40; }
@@ -4399,7 +4411,8 @@ function updChase(dt) {
   const o = owner; chaseT -= dt;
   const high = isHigh();
   if (cat.hidden || cat.safe || high) {
-    chaseT = 0; sus = chaseN >= 2 ? 80 : 60; susQ = 0; susCd = 6; run.escapes++; setMode('leave'); say(pick(chaseN >= 2 ? LINES.chaseEnd2 : LINES.chaseEnd), 2.4);   // 逃げ切ったら必ず言う。2 回目は 80% までしか下がらない sfx.clear();
+    chaseT = 0; sus = chaseN >= 2 ? 80 : 60; susQ = 0; susCd = 6; run.escapes++; setMode('leave'); say(pick(chaseN >= 2 ? LINES.chaseEnd2 : LINES.chaseEnd), 2.4);   // 逃げ切ったら必ず言う。2 回目は 80% までしか下がらない
+    sfx.clear();
     pops.push({ x: cat.x, y: cat.y - 60, text: lt('セーフ!', 'Safe!'), life: 1.6, col: '#1d8174', size: 26 }); return;
   }
   // 4.27.1：追いかけっこの 3 秒は丸ごと猶予。飼い主は追って走るが、近づいただけでは捕まえない（前は 26px で即アウトで、1 秒も持たないことが多かった）。3 秒たった時点で隠れていなければアウト
@@ -4486,7 +4499,7 @@ function drawCause(t) {
 // お守りで復活：お守りを使い、飼い主はいったん部屋を出る。怪しまれ度は下がり、追いかけっこもまた使える
 function revive() {
   run.charm = 0; run.revive = false; run.timeup = false; run.revives = (run.revives || 0) + 1;
-  state = 'play'; sus = 25; susQ = 0; susCd = 6; chaseT = 0; chaseN = 0; spaceT = 0; shake = 0;
+  state = 'play'; sus = 25; susQ = 0; susCd = 6; chaseT = 0; chaseN = 0; spaceT = 0; shake = 0; warn85 = false; toiletDoor = 0; toiletPeek = 0;   // 4.50.3：扉と警告も戻す
   owner.x = -60; owner.lureT = 0; owner.say = ''; owner.scareT = 0; owner.up = false; setMode('away', rnd(4, 6)); owner.warned = false;
   cat.stun = 0; cat.mark = 0; cat.seen = false; timeLeft = Math.max(timeLeft, 10);
   for (let k = 0; k < 24; k++) addPart({ k: 'drop', x: cat.x + rnd(-30, 30), y: cat.y - rnd(0, 60), vx: rnd(-80, 80), vy: rnd(-200, -60), life: 0.9, gy: cat.y, c: pick(['#ffc94a', '#ff5a5a', '#ffffff']), s: rnd(2, 4), rot: 0, vr: 0 });
@@ -5349,7 +5362,6 @@ function r2Tall() {
     g.fillStyle = '#dfeef5'; rr(g, x0 + 12, wallTop + 12, w - 24, top - wallTop - 24, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.6)'; for (let y = wallTop + 18; y < top - 18; y += 7) g.fillRect(x0 + 16, y, w - 32, 2);   // すりガラス
     g.fillStyle = '#9fb3c0'; g.fillRect(x0, top - 6, w, 6);
     const dw = 70, dx = x0 + 10, inside = toiletIn() || toiletDoor > 0, peek = toiletPeek > 0;
-    if (peek) toiletPeek -= 1 / 60;
     if (inside || peek) { g.fillStyle = '#e6f2f6'; g.fillRect(dx, top, dw, FLOOR - top); g.fillStyle = '#fff'; rr(g, dx + 14, FLOOR - 50, 42, 40, 8); g.fill(); }   // 中（便器）
     g.save(); g.translate(dx, top);
     const open = toiletDoor > 0 ? Math.min(1, toiletDoor) : peek ? Math.min(1, (1.8 - toiletPeek) * 6, toiletPeek * 3) : 0;
@@ -6835,7 +6847,7 @@ function update(dt) {
   if (lightT > 0) lightT -= dt; else if (weather === 'storm' && (state === 'play' || state === 'clear') && Math.random() < dt * 0.09) { lightT = 0.22; lightX = rnd(0.15, 0.85); sfx.thunder(); }   // 4.37.0：かみなり
   if (lever) lever.tilt += ((cat && cat.plat === LEVP ? 0.6 : 0) - lever.tilt) * Math.min(1, dt * 6);   // 板の傾き：乗っている間は外の端が下がる
   if (state === 'play') {
-    stageT += dt; run.time = (run.time || 0) + dt; if (introT > 0) introT -= dt; if (saveT > 0) saveT -= dt;
+    stageT += dt; run.time = (run.time || 0) + dt; if (introT > 0) introT -= dt; if (toiletPeek > 0) toiletPeek -= dt; if (saveT > 0) saveT -= dt;
     cardCd -= dt; if (cardCd <= 0) { cardCd = 0.5; cardCheck(); }
     if (tripleCd > 0) tripleCd -= dt; if (meowDownAt && !meowLongDone && performance.now() - meowDownAt > 450) meowLong();
     if (bigEv.anim > 0) bigEv.anim -= dt; if (bigEv.wob > 0) bigEv.wob -= dt;
@@ -6946,7 +6958,7 @@ function applyLang() {
 }
 // ---------- ホーム画面に追加の案内（3回遊んだあと、閉じるまでタイトルに出す）----------
 let instEvt = null;
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); instEvt = e; if (state === 'title' && !ov.hidden && !ov.querySelector('.a2hs')) showTitle(); });
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); instEvt = e; if (onTitle() && !ov.querySelector('.a2hs')) showTitle(); });
 window.addEventListener('appinstalled', () => { store.set('nekoA2hs', '1'); instEvt = null; });
 const isStandalone = () => { try { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch (e) { return false; } };
 function a2hsBox() {
@@ -7137,7 +7149,7 @@ async function sendOne(coll, bestKey) {
   const res = await fetch(`${FS()}/${coll}?key=${encodeURIComponent(ONLINE.apiKey)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   store.set(bestKey, String(Math.round(run.yen)));
-  list = await fetchWorld(true, coll);
+  try { list = await fetchWorld(true, coll); } catch (e) { return { now: 0 }; }   // 4.50.3：送れたあと一覧が読めなくても、送信は成功
   const i = list.findIndex(r => isMe(r.uid) && r.y === Math.round(run.yen));
   return { now: i >= 0 ? i + 1 : 0 };
 }
@@ -7191,10 +7203,11 @@ function postAndRefresh() {
   const upd = () => { const box = ov.querySelector('.online'); if (box && state === 'over') { box.outerHTML = onlineBox(); bindOnline(); bindUp(); } };
   upd(); p.then(upd, upd);
 }
+let curRkTab = '';
 function showRank(tab) {
   // ランキング：みんな（Firestore）／この端末（上位10件）
   const back = recBack();
-  dailyKey = jstDay(); tab = tab || (onlineOn() ? 'world' : 'local');
+  dailyKey = jstDay(); tab = tab || (onlineOn() ? 'world' : 'local'); curRkTab = tab;
   const coll = tab === 'daily' ? dailyColl() : 'scores';
   ov.hidden = false;
   const cname = id => (CATS.find(c => c.id === id) || CATS[2]).name;
@@ -7229,8 +7242,9 @@ function showRank(tab) {
   if (tab === 'local') return;
   const sv = $('nmSave'), inp = $('nmIn2');
   ['keydown', 'keyup'].forEach(ev => inp.addEventListener(ev, e => e.stopPropagation()));
+  const myTab = tab;
   const showList = force => fetchWorld(force, coll).then(list => {
-    const el = $('wList'); if (!el) return;
+    const el = $('wList'); if (!el || curRkTab !== myTab) return;   // 4.50.3：別のタブに切り替えたあとに届いた分は捨てる
     el.innerHTML = list && list.length ? podium(list, r => isMe(r.uid), r => esc(r.name)) + rest(list, world) : `<p class="best">${lt('まだ記録がありません', 'No records yet')}</p>`; drawPodium();
   }, err => { const el = $('wList'), code = String(err && err.message || '').replace('HTTP ', ''); if (el) el.innerHTML = `<p class="best">${code === '403' ? lt('読み込めませんでした（403：Firestore のルールが未設定）', "Couldn't load (403: Firestore rules not set)") : lt('読み込めませんでした。通信を確認してください', "Couldn't load. Check your connection")}</p>`; });
   sv.addEventListener('click', () => {
@@ -7407,6 +7421,7 @@ function pollPad() {
   if (!gp) { if (padPrev.on) { keys.L = keys.R = false; padPrev = {}; } return; }
   const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed), ax = gp.axes[0] || 0;
   const cur = { L: b(14) || ax < -0.4, R: b(15) || ax > 0.4, J: b(0) || b(12), P: b(2) || b(1) || b(7), M: b(3), S: b(9), on: true };
+  if (state !== 'play' && state !== 'clear' && (padPrev.L || padPrev.R)) { keys.L = keys.R = false; cur.L = cur.R = false; }   // 4.50.3
   if (state === 'play' || state === 'clear') {
     if (cur.L !== !!padPrev.L) keys.L = cur.L;
     if (cur.R !== !!padPrev.R) keys.R = cur.R;
@@ -7442,6 +7457,7 @@ function packRun(r) {
 }
 function unpackRun(pk) {
   const r = JSON.parse(JSON.stringify(pk.run));
+  r.lastDropT = -9; r.chainT = -9;   // 4.50.3：tAnim はページを開くたびに 0 から。持ち越すと連携・連鎖の判定がずれる
   const up = al => (al || []).map(a => { const im = new Image(); im.src = a.d; return { L: a.L, yen: a.yen, im, d: a.d }; });
   r.album = up(pk.album); r.nights = up(pk.nights);
   r.ck = null; return r;
@@ -7521,7 +7537,7 @@ function navOk() {
 }
 function navBack() {
   // もどる：サブ画面の「もどる」、ポーズなら「つづける」
-  const b = ov.querySelector('#rkBack, #zkBack, #sBack, #lfBack, #pResume'); if (b) { audio(); b.click(); }
+  const b = ov.querySelector('#rkBack, #cdBack, #csBack, #tsBack, #sBack, #lfBack, #pResume'); if (b) { audio(); b.click(); }
 }
 function menuKey(k) {
   // 画面下のボタン：← 前へ、→ 次へ、パンチ・ジャンプ 決定（つまみでは パンチ ＋10、ジャンプ −10）、にゃー もどる
@@ -7554,12 +7570,12 @@ function showPause() {
     ${keysBox()}
 </div>`;
   $('pResume').addEventListener('click', resumeGame);
-  $('pRetry').addEventListener('click', () => { audio(); startGame(); });
+  { let armed = 0; $('pRetry').addEventListener('click', () => { audio(); if (loadSave() && performance.now() - armed > 2000) { armed = performance.now(); toast(lt('もう一度押すと、つづきを消して1日目から始めます', 'Press again to delete the save and restart from Day 1'), 2200); return; } startGame(); }); }   // 4.50.3：1回でセーブが消えていた
   $('pTop').addEventListener('click', showTitle);
   $('pRk').addEventListener('click', () => showRank());
   $('pSet').addEventListener('click', () => showSettings(showPause));
 }
-let cardBlob = null, cardUrl = null, cardFor = null, cardLang = null;
+let cardBlob = null, cardUrl = null, cardFor = null, cardLang = null, cardSig = '';
 const canCont = () => !!(run && run.caughtOver && run.ck && run.ck.level > 1);
 const canRetry = () => !!(run && run.caughtOver && run.sk && run.sk.level === run.where && dayOf(run.where) === 1);   // 4.36.0：1 日目の 2〜4 面目で見つかった → この面から
 function retryStage() {
@@ -7658,8 +7674,9 @@ function showLb(src, nm, ds) {
 }
 // シェア用の画像を作る（結果画面・完走画面）。同じ回・同じ言語なら作り直さない
 async function buildCard() {
-  if (cardFor === run && cardLang === lang && cardUrl) { const im = $('card'); if (im) im.src = cardUrl; return; }
-  cardBlob = null; cardFor = run; cardLang = lang;
+  const sig = [Math.round(run.yen), run.stage, finDays(), run.endType || '', selAcc, String(run.comment)].join('|');   // 4.50.3：エンディングのあと続けたときも作り直す
+  if (cardFor === run && cardLang === lang && cardSig === sig && cardUrl) { const im = $('card'); if (im) im.src = cardUrl; return; }
+  cardBlob = null; cardFor = run; cardLang = lang; cardSig = sig;
   try {
     const cn = await makeCard();
     cardBlob = await new Promise(r => cn.toBlob(r, 'image/png'));
@@ -7913,7 +7930,7 @@ window.addEventListener('keydown', e => {
   if (menuActive() && !(e.target && e.target.tagName === 'INPUT' && e.target.type !== 'range')) {
     const dir = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D' }[k];
     if (dir) { e.preventDefault(); const cur = navOn ? navCur() : null; if (cur && cur.type === 'range' && (dir === 'L' || dir === 'R')) navRange(cur, dir === 'L' ? -5 : 5); else navMove(dir); return; }
-    if (k === 'Enter' || k === ' ') { if (navOn) { e.preventDefault(); navOk(); return; } if (k === 'Enter' && defaultBtn()) { e.preventDefault(); audio(); defaultBtn().click(); return; } }
+    if (k === 'Enter' || k === ' ') { if (navOn) { e.preventDefault(); navOk(); return; } if (k === 'Enter' && defaultBtn() && !(document.activeElement && ov.contains(document.activeElement) && document.activeElement.matches('button, a, input, select'))) { e.preventDefault(); audio(); defaultBtn().click(); return; } }
     if (k === 'Escape' || k === 'Backspace') { if (state !== 'pause') { e.preventDefault(); navBack(); return; } }
   }
   if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.L = true;
