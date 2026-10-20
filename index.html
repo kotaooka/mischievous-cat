@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.51.7', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.51.8', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -2666,7 +2666,8 @@ function updItems(dt) {
       // 4.46.0：段の端を越えたら、壁で跳ね返す前に落とす（カーテンレールの左端は壁から 6px しかなく、強く押すと壁で跳ね返ってレールに戻っていた）
       { const p = it.plat; if (it.x < p.x0 || it.x > p.x1) { it.state = 'fall'; it.plat = null; it.y0 = p.y; it.y = p.y; it.vy = 0; it.vr = (it.vx >= 0 ? 1 : -1) * rnd(3, 6); continue; } }
       // 右の壁際（本棚の上）：ネコが反対側に回り込めるよう、壁から 26px 手前で跳ね返す（壁に張り付くと押せなくなるため）
-      if (it.x < 8) { it.x = 8; it.vx = Math.abs(it.vx) * 0.4; } else if (it.x > W - 26) { it.x = W - 26; it.vx = -Math.abs(it.vx) * 0.4; }
+      // 4.51.8：跳ね返すのは壁まで届く段（本棚の上・バンの屋根）だけ。エアコンの右端（壁の手前）では落とす（前は跳ね返って、左端まで押し戻すしかなかった）
+      if (it.x < 8) { it.x = 8; it.vx = Math.abs(it.vx) * 0.4; } else if (it.x > W - 26 && it.plat.x1 > W - 6) { it.x = W - 26; it.vx = -Math.abs(it.vx) * 0.4; }
       // 連鎖：すべっているものが同じ段のものに当たったら、勢いを分ける（反発係数 0.8 の1次元衝突）
       for (const o of items) {
         if (o === it || o.plat !== it.plat || o.state === 'fall') continue;

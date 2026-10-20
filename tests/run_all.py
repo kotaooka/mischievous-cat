@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness
 from playwright.sync_api import sync_playwright
 
-SUITES = ['test_smoke', 'test_collect', 'test_flows', 'test_saves', 'test_ranking', 'test_daily', 'test_english']
+SUITES = ['test_smoke', 'test_collect', 'test_flows', 'test_saves', 'test_ranking', 'test_daily', 'test_english', 'test_touch']
 
 def main():
     only = sys.argv[1:]
