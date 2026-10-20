@@ -46,7 +46,7 @@ Walking, jumping, meowing and eating are all "normal cat things", so you won't g
 | Action | Phone | PC |
 |---|---|---|
 | Walk | ＜ ＞ at the bottom | ← → / A D |
-| Jump | Jump | Space / ↑ / W |
+| Jump (hold longer to jump higher) | Jump | Space / ↑ / W |
 | Punch (hold for a mega punch) | Punch | Left click / Z |
 | Sneak (walk while holding punch) | Punch + ＜ ＞ | Hold Z + ← → |
 | Meow (hold for a long one, tap 3 times for "mew mew mew!") | Meow | Right click / X |

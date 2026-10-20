@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.51.9', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.52.0', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -2301,6 +2301,8 @@ function updCat(dt) {
   if (c.punchT > 0) c.punchT -= dt; if (c.punchCd > 0) c.punchCd -= dt; if (c.meowT > 0) c.meowT -= dt; if (c.meowCd > 0) c.meowCd -= dt;
   if (c.jumpBuf > 0) c.jumpBuf -= dt; if (c.coyote > 0) c.coyote -= dt;
   if (c.pDown) c.pHeld += dt;
+  // 4.52.0：ジャンプの高さの調整（ベッドで跳ねるときは除く）。上がっている間に、押すのをやめていたら一度だけ減速
+  if (c.jumpCut) { c.jumpT += dt; if (c.plat || c.ledge || c.hang || c.vy >= 0) c.jumpCut = false; else if (!jumpHeld && c.jumpT >= JUMP_MIN) { const h = c.jumpY0 - c.y, need = Math.sqrt(2 * GRAV * Math.max(0, JUMP_LOW - h)); c.vy = -Math.min(-c.vy, Math.max(-c.vy * JUMP_CUT, need)); c.jumpCut = false; } }
   if (c.stun > 0) c.stun -= dt;
   if (c.eatT > 0 && c.eatChuru) { c.eatT -= dt; c.vx = 0; if (c.eatT <= 0) c.eatChuru = false; }
   else if (c.eatT > 0) { c.eatT -= dt; c.vx = 0; if (c.eatT <= 0) { const add = Math.round(10 * catStat('food')); timeLeft += add; run.fed++; pops.push({ x: c.x, y: c.y - 50, text: lt('+' + add + '秒', '+' + add + 's'), life: 1.4, col: '#1d8174', size: 20 }); bowl = null; if (owner.mode !== 'away' && ownerSees(c.x)) taskHit('eatSeen'); } }
@@ -2367,7 +2369,7 @@ function updCat(dt) {
   if (c.jumpBuf > 0 && (c.plat || c.coyote > 0) && c.stun <= 0) {
     const soft = c.plat && c.plat.soft;
     if (room === 'kids' && c.plat === PL.book) bigCount(c.x);
-    c.vy = -JUMP * catStat('jump') * (soft ? 1.25 : 1) * (c.sticky ? 0.75 : 1); c.plat = null; c.coyote = 0; c.jumpBuf = 0; c.sq = 0.28; if (!soft && c.y >= FLOOR - 1) dust(c.x, c.y, 2, 0); if (soft) sfx.boing(); else sfx.jump();
+    c.vy = -JUMP * catStat('jump') * (soft ? 1.25 : 1) * (c.sticky ? 0.75 : 1); c.jumpCut = !soft; c.jumpT = 0; c.jumpY0 = c.y; c.plat = null; c.coyote = 0; c.jumpBuf = 0; c.sq = 0.28; if (!soft && c.y >= FLOOR - 1) dust(c.x, c.y, 2, 0); if (soft) sfx.boing(); else sfx.jump();
   }
   if (c.plat && !riding) {
     if (c.x < c.plat.x0 - 4 || c.x > c.plat.x1 + 4) { c.plat = null; c.vy = 0; c.coyote = 0.12; }
@@ -7465,7 +7467,7 @@ function pollPad() {
   if (state === 'play' || state === 'clear') {
     if (cur.L !== !!padPrev.L) keys.L = cur.L;
     if (cur.R !== !!padPrev.R) keys.R = cur.R;
-    if (cur.J && !padPrev.J) jumpPress();
+    if (cur.J && !padPrev.J) jumpPress(); else if (!cur.J && padPrev.J) jumpRelease();
     if (cur.P && !padPrev.P) { audio(); punchDown(); } else if (!cur.P && padPrev.P) punchUp();
     if (cur.M && !padPrev.M) meowPress(); else if (!cur.M && padPrev.M) meowRelease();
   }
@@ -7863,7 +7865,11 @@ function skipInterlude() {
   return false;
 }
 function churuMash() { if (owner.mode === 'churu' && cat && cat.churuPull) { churuRes = Math.min(1.4, churuRes + 0.24); } }
-function jumpPress() { if (skipInterlude()) return; churuMash(); if (state === 'play' || state === 'clear') cat.jumpBuf = 0.15; }
+// 4.52.0：押している長さでジャンプの高さが変わる。跳んでから JUMP_MIN 秒より前に離していたら、そこで上向きの速さを JUMP_CUT 倍に（軽いタップでも 1 段上には届く高さ）
+const JUMP_MIN = 0.14, JUMP_CUT = 0.5, JUMP_LOW = 86;   // JUMP_LOW：短く押しても、跳んだ所からこの高さ（px）までは上がる（段差は 75px 以内なので、1 段上には必ず届く）
+let jumpHeld = false;
+function jumpPress() { jumpHeld = true; if (skipInterlude()) return; churuMash(); if (state === 'play' || state === 'clear') cat.jumpBuf = 0.15; }
+function jumpRelease() { jumpHeld = false; }
 function punchDown() { if (skipInterlude()) return; churuMash(); if (state !== 'play' || cat.pDown) return; cat.pDown = true; cat.pHeld = 0; }
 function punchUp() {
   if (!cat.pDown) return; cat.pDown = false;
@@ -7879,7 +7885,7 @@ function hold(id, on, off) {
 }
 hold('bL', () => { if (menuKey('L')) return; keys.L = true; }, () => { keys.L = false; });
 hold('bR', () => { if (menuKey('R')) return; keys.R = true; }, () => { keys.R = false; });
-hold('bJ', () => { if (menuKey('J')) return; jumpPress(); }, () => {});
+hold('bJ', () => { if (menuKey('J')) return; jumpPress(); }, () => jumpRelease());
 hold('bP', () => { if (menuKey('P')) return; punchDown(); }, punchUp);
 hold('bM', () => { if (titleMeow()) return; if (menuKey('M')) return; if (state === 'play') meowPress(); }, () => { meowRelease(); });
 // スティック操作（旧「かたて操作」）：ゲーム画面に浮かぶスティックで遊ぶ（ボタンは隠す）
@@ -7989,9 +7995,10 @@ window.addEventListener('keyup', e => {
   else if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.R = false;
   else if (k === 'z' || k === 'Z') punchUp();
   else if (k === 'x' || k === 'X') meowRelease();
+  else if (k === 'ArrowUp' || k === 'w' || k === 'W' || k === ' ') jumpRelease();
 });
 // 別のアプリやタブに切り替えたら、自動でポーズする
-window.addEventListener('blur', () => { keys.L = keys.R = false; punchUp(); pauseGame(); });
+window.addEventListener('blur', () => { keys.L = keys.R = false; punchUp(); jumpRelease(); pauseGame(); });
 // 画面が隠れている間は音も止める（ポーズ中の小さなBGMも鳴らさない）
 let acWasOn = false;
 document.addEventListener('visibilitychange', () => {
