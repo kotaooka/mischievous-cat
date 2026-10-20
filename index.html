@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.51.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.51.4', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1028,6 +1028,8 @@ const CARD_AFTER = { t1: '', t2: 'dog', t3: 't_wrecker7', end_perfect: 't3', end
 { const rk = id => { const i = CARD_ORDER.indexOf(id); return i < 0 ? 999 : i; }; CARDS.sort((a, b) => rk(a.id) - rk(b.id)); }   // 並びにないカードは最後（sort は安定）
 let cardsGot = new Set(), cardPics = {}, newCards = [], cardCd = 0;
 try { cardsGot = new Set(JSON.parse(store.get('nekoCards', '[]'))); } catch (e) {}
+// 4.51.4：ほんとうのおしまいを見た人は最後の夜を越えているので、取れていなかった「おやすみなさい」を渡す
+if (store.get('nekoTrueEnd', '') === '1' && !cardsGot.has('lastnight')) { cardsGot.add('lastnight'); store.set('nekoCards', JSON.stringify([...cardsGot])); }
 // 一度だけ：これまでに取った称号をカードへ引き継ぐ（同じ内容のカードがあるものはそれに、統合したものは t_ のカードに）
 try {
   if (store.get('nekoMerged', '') !== '1') {
@@ -1051,8 +1053,9 @@ try { cardPics = JSON.parse(store.get('nekoCardPics', '{}')) || {}; } catch (e) 
 function cardShot() {
   try { const sn = takeSnap(); if (!sn) return null; const c = document.createElement('canvas'); c.width = c.height = 256; c.getContext('2d').drawImage(sn, 0, 0, 256, 256); return c.toDataURL('image/jpeg', 0.72); } catch (e) { return null; }   // 4.42.2：128 → 256px（拡大表示でぼやけないように。1 枚 15KB ほど）
 }
-function cardCheck() {
-  if (state !== 'play' || !run || run.preview || run.test) return;
+function cardCheck(force) {
+  // 4.51.4：force は面クリア・締めの画面から。前は引数を見ておらず、遊んでいないと調べなかったので「最後の夜を越える」などが取れなかった
+  if ((state !== 'play' && !force) || !run || run.preview || run.test) return;
   for (const cd of CARDS) {
     if (cardsGot.has(cd.id) || !cd.test) continue;
     let ok = false; try { ok = !!cd.test(run); } catch (e) {}
@@ -4550,6 +4553,7 @@ function checkClear() {
   run.yen += quick + sneaky; run.skill += quick + sneaky; run.skQ = (run.skQ || 0) + quick; run.skS = (run.skS || 0) + sneaky; if (perfect) run.perfect++;
   if (stageMaxSus < 10 && sy > 0) run.ghost++; if (phaseOf(level).special === 'guest' && stageMaxSus < 50) run.guestClear = true;
   if (phaseOf(level).special) run.ev['night_' + phaseOf(level).special] = true;
+  cardCheck(true);   // 4.51.4：夜を越えたカードはここで（最後の夜のあとは遊ぶ面がない）
   stageBonus = { quick, sneaky, perfect, close };
   try { const sn = takeSnap(); if (sn) { const c2 = document.createElement('canvas'); c2.width = c2.height = 160; c2.getContext('2d').drawImage(sn, 0, 0, 160, 160); run.album = (run.album || []).concat([{ im: c2, L: level, yen: Math.round(sy) }]).slice(-12); if (level % NPH === 0) run.nights = (run.nights || []).concat([{ im: c2, L: level }]).slice(-7); } } catch (e) {}
   if (run.yen >= 1000000) openCat('mike');
@@ -4713,7 +4717,7 @@ function gameOver() {
     if (t.tier == null) continue;   // 4.26.0：行動・通算の称号はカードになった
     if (run.yen >= t.tier && !unlocked.has(t.id)) { unlocked.add(t.id); newTitles.push(t.name); }
   }
-  cardCheckLife();
+  cardCheckLife(); cardCheck(true);
   newAccs = ACCS.filter(a => a.card && newCards.some(n => String(n) === String(CARDS.find(x => x.id === a.card).name))).map(a => a.name);
   store.set('nekoTitles', JSON.stringify([...unlocked]));
   showOver();
