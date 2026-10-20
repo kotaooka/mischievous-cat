@@ -207,7 +207,7 @@
   .pager-nav { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
   .pager-nav .btn { flex: none; width: 52px; padding: 8px 0; }
   .pager-nav .btn[disabled] { opacity: .35; }
-  .pg-dots { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: .8rem; color: var(--ink2); }
+  .pg-dots { flex: 1; min-width: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: .8rem; color: var(--ink2); }
   .pg-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
   .pg-dots i.on { background: var(--org); }
   .pg-dots b { margin-left: 6px; font-weight: 800; }
@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.51.4', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.51.6', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -1400,7 +1400,8 @@ const owner = { scareT: 0, x: -60, face: 1, mode: 'away', t: 3, range: 0, rate: 
 // ---------- 音（すべてその場で合成する）----------
 let ac = null, master = null, nbuf = null, sfxG = null;
 // 設定：BGM・効果音の音量（0〜100）、振動、ボタン配置の左右反転
-const SET = { bgm: +store.get('nekoBgmVol', 70), se: +store.get('nekoSeVol', 90), vib: store.get('nekoVib', '1') === '1', swap: store.get('nekoSwap', '0') === '1',
+const vol = (k, d) => { const v = +store.get(k, d); return Number.isFinite(v) ? clamp(v, 0, 100) : d; };   // 4.51.5：壊れた値で音が止まらないように
+const SET = { bgm: vol('nekoBgmVol', 70), se: vol('nekoSeVol', 90), vib: store.get('nekoVib', '1') === '1', swap: store.get('nekoSwap', '0') === '1',
   // 演出ひかえめ：画面の揺れ・ズーム・点滅を止める。未設定なら端末の「視差効果を減らす」に合わせる
   calm: store.get('nekoCalm', '') ? store.get('nekoCalm', '') === '1' : !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) };
 function applySettings() {
@@ -2028,8 +2029,10 @@ function pruneGimmicks(L, ph) {
   const used = [];
   const pick2 = (G, cap) => {
     const here = Object.keys(G).filter(k => G[k].on());
-    const score = k => (learned.has('see_' + k) ? 0 : 2) + (lastGims.includes(k) ? 0 : 1) + Math.random() * 0.9;
-    const keep = here.sort((a, b) => score(b) - score(a)).slice(0, cap);
+    // 4.51.6：前は見たことがあるか（learned）・前の面に出たか（lastGims）で選んでいて、同じ日の同じ面でも人によって仕掛けとお題が変わっていた。今は日付と面の乱数だけ。
+    // 乱数は1つずつ先に引く（並べかえの中で引くと、ブラウザによって引く回数が変わる）
+    const sc = {}; for (const k of here) sc[k] = Math.random();
+    const keep = here.slice().sort((a, b) => sc[b] - sc[a]).slice(0, cap);
     for (const k of here) if (!keep.includes(k)) G[k].off();
     used.push(...keep);
   };
@@ -2037,7 +2040,7 @@ function pruneGimmicks(L, ph) {
   lastGims = used;
 }
 function newRun() {
-  run = { yen: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '', touched: false, stars: 0, escapes: 0,
+  run = { rid: Math.random().toString(36).slice(2) + Date.now().toString(36), yen: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '', touched: false, stars: 0, escapes: 0,
     mis: 0, launch: 0, ballHits: 0, top: false, streak: 0, maxStreak: 0, perfect: 0, skill: 0, space: 0, huh: false, huhStep: 0, fish: 0, mice: 0, boss: 0, chick: 0, bathFall: 0, scare: 0, cloth: 0, rubT: 0, cuke: 0, lamp: 0, churu: 0, tv: 0, ended: false,
     ev: {}, stageDrops: [], chainN: 0, chainT: -9, todYen: [0, 0, 0, 0], ghost: 0, bigN: 0, rooms: [], guestClear: false };   // ev：お題の有無にかかわらず数えるできごと（カード・称号用）。stageDrops：この面で落としたものの値段
   sus = 0; snap = null; carryT = 0; newCats = []; newCards = []; dayEndNext = false; setupStage(1);
@@ -3718,14 +3721,16 @@ function creditLines() {
   L.push(['gap']);
   // 飼い主の日記：3日目は 1〜3 日目、ほんとうのおしまいは 7 日ぶん
   L.push(['h', lt('飼い主の日記', "OWNER'S DIARY")]);
-  for (let d = 1; d <= nd; d++) { const t = diaryOf(d), parts = []; let cur = ''; for (const ch of t) { if (cur.length >= 17 && /[。、！？!? ]/.test(cur[cur.length - 1]) || cur.length >= 21) { parts.push(cur); cur = ''; } cur += ch; } if (cur) parts.push(cur); parts.forEach((pt, i) => L.push(['d', (i === 0 ? d + lt('日目：', ': ') : '') + pt])); }
+  for (let d = 1; d <= nd; d++) { const t = diaryOf(d), parts = []; let cur = '';
+    if (lang === 'en') { for (const w of String(t).split(' ')) { if (cur && (cur + ' ' + w).length > 30) { parts.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w; } }   // 4.51.5：英語は単語の途中で切らない
+    else for (const ch of t) { if (cur.length >= 17 && /[。、！？!? ]/.test(cur[cur.length - 1]) || cur.length >= 21) { parts.push(cur); cur = ''; } cur += ch; } if (cur) parts.push(cur); parts.forEach((pt, i) => L.push(['d', (i === 0 ? d + lt('日目：', ': ') : '') + pt])); }
   L.push(['gap']);
   L.push(['h', lt('被害者のみなさん', 'THE VICTIMS')]);
   const bro = Object.entries(r.broke || {}).filter(([k]) => IT[k]).sort((a, b) => b[1] - a[1]).slice(0, 7);
   bro.forEach(([k, n]) => L.push(['t', IT[k].n + ' ×' + n])); if (!bro.length) L.push(['t', lt('（なし。本当に？）', '(none. really?)')]);
   if ((r.bigs || []).length) { L.push(['gap']); L.push(['h', lt('大技', 'BIG ONES')]); r.bigs.forEach(k => L.push(['t', BIG[k].n])); }
   { const fs = Object.keys(FOES).filter(k => r.ev && r.ev['foe_' + k]); if (fs.length) { L.push(['gap']); L.push(['h', lt('たおした相手', 'DEFEATED')]); fs.forEach(k => L.push(['t', FOES[k].n])); } }
-  L.push(['gap']); L.push(['h', lt(nd + '日間の被害額', nd + '-DAY DAMAGE')]); L.push(['big2', yen(r.yen)]); L.push(['t', lt('称号', 'Title') + '「' + titleOf(r.yen) + '」']);
+  L.push(['gap']); L.push(['h', lt(nd + '日間の被害額', nd + '-DAY DAMAGE')]); L.push(['big2', yen(r.yen)]); L.push(['t', lt('称号「' + titleOf(r.yen) + '」', 'Title: ' + titleOf(r.yen))]);
   L.push(['gap']); L.push(['t', tr ? lt('飼い主は、全部知っていた', 'The owner knew all along') : lt('そして、4日目へ……', 'And so, on to Day 4……')]); L.push(['gap']);
   L.push(['sub', tr ? lt('遊んでくれて、ありがとう', 'Thank you for playing') : lt('飼い主は、まだ気づいていない。……たぶん', 'The owner still has no idea. …Probably')]);
   // 4.48.1：制作者の名前はいちばん最後（画面の真ん中で止まる）
@@ -4138,10 +4143,10 @@ function showEnding() {
   ov.innerHTML = `<div class="panel end-panel">
     <div class="big-logo" style="font-size:1.7rem">${tr ? lt('全部やりきった！', 'You Did It All!') : lt('いたずら完走！', 'Mischief Complete!')}</div>
     <p class="sub">${tr ? lt('7日間、飼い主は全部知っていた', 'Seven days. The owner knew all along.') : lt(END_DAY + '日間、だれにも止められなかった', END_DAY + ' days. Nobody could stop you.')}</p>
-    <p class="best" style="margin:0 0 6px">ENDING「${ENDINGS[et].n}」 <small style="font-weight:500">${endingsSeen.size} / ${Object.keys(ENDINGS).length}${newEnd ? ' NEW' : ''}</small></p>
+    <p class="best" style="margin:0 0 6px">${lt('ENDING「' + ENDINGS[et].n + '」', 'ENDING: ' + ENDINGS[et].n)} <small style="font-weight:500">${endingsSeen.size} / ${Object.keys(ENDINGS).length}${newEnd ? ' NEW' : ''}</small></p>
     <div class="cert">
       <p class="res-yen" style="margin:0">${lt(nd + '日間の被害額', nd + '-day damage')}<b>${yen(run.yen)}</b></p>
-      <p class="best" style="margin:2px 0 8px">${lt('称号', 'Title')}「${titleOf(run.yen)}」</p>
+      <p class="best" style="margin:2px 0 8px">${lt('称号「' + titleOf(run.yen) + '」', 'Title: ' + titleOf(run.yen))}</p>
       ${run.skill > 0 ? `<p class="best" style="margin:-4px 0 4px;font-size:.84rem">${lt('うち腕前', 'Skill')} +${yen(run.skill)}</p><p class="best" style="font-size:.74rem;font-weight:500;margin:0 0 8px;line-height:1.6">${skillHtml(run)}</p>` : ''}
       <div class="stat-list">${row(lt('割ったもの', 'Things broken'), n(brokeN) + lt('個', ''))}${row(lt('最大の連鎖', 'Best chain'), n(run.maxChain))}${row(lt('お題の★', 'Task stars'), n(run.stars))}${row(lt('朝から続けた', 'Day restarts'), n(run.conts) + lt('回', ''))}</div>
     </div>
@@ -7005,7 +7010,7 @@ function bindA2hs() {
 const keysBox = () => `<div class="keys" aria-label="${lt('キー操作', 'Keyboard')}">
     <span><kbd>←</kbd><kbd>→</kbd>${lt('うごく', 'Move')}</span><span><kbd>↑</kbd>${lt('ジャンプ', 'Jump')}</span><span><kbd>Z</kbd>${lt('パンチ（長押しで必殺ネコパンチ）', 'Punch (hold = mega punch)')}</span><span><kbd>X</kbd>${lt('にゃー', 'Meow')}</span><span><kbd>P</kbd>${lt('ポーズ', 'Pause')}</span></div>`;
 // 初回（まだ1回も遊び終えていない）は、ネコ1匹と「あそぶ」だけの軽いタイトルにする。ネコ・きせかえ・きろくは1回遊ぶと出る
-const firstTime = () => !(LIFE.plays || 0) && !bestYen;
+const firstTime = () => !(LIFE.plays || 0) && !bestYen && !loadSave();   // 4.51.5：1回目の途中でやめた人にも「つづきから」を出す（前は最初の画面になり、あそぶでセーブが消えていた）
 function showTitle() {
   wakeOff();
   endBgmStop(); state = 'title'; newRun(); ov.hidden = false; setPulse(null);
@@ -7036,7 +7041,7 @@ function showTitle() {
   { const cn = ov.querySelector('.first-cat canvas'); titleCatStart(cn, catLook(selCat), selAcc);
     cn.addEventListener('click', () => { audio(); bgmStart(); sfx.meow(T.voice, pickVoice()); titleCat.happy = 1.2; }); }
   // はじめから：セーブがあるときは、2 秒以内にもう一度押したときだけ（消えるので）
-  { let armed = 0; $('goBtn').addEventListener('click', () => { audio(); if (sv && performance.now() - armed > 2000) { armed = performance.now(); toast(lt('もう一度押すと、つづきを消して始めます', 'Press again to delete the save and start over'), 2200); return; } startGame(); }); }
+  { let armed = -1e9; $('goBtn').addEventListener('click', () => { audio(); if (sv && performance.now() - armed > 2000) { armed = performance.now(); toast(lt('もう一度押すと、つづきを消して始めます', 'Press again to delete the save and start over'), 2200); return; } startGame(); }); }
   if ($('resBtn')) $('resBtn').addEventListener('click', () => { audio(); resumeSave(); });
   $('catBtn').addEventListener('click', () => { audio(); showCatShop(); });
   bindA2hs();
@@ -7210,7 +7215,7 @@ function onlineBox() {
     if (!run.cele) { run.cele = true; sfx.clear(); buzz([30, 30, 30, 30, 80]); for (let i = 0; i < 40; i++) addPart({ k: 'paper', x: rnd(0, W), y: -OY - rnd(0, 60), vx: rnd(-40, 40), vy: rnd(60, 160), life: 5, gy: BOT + 20, c: pick(['#ff5a5a', '#ffc94a', '#2fb3a3', '#2b8fd9', '#9b7fc0', '#ff8a3d']), s: rnd(4, 7), rot: rnd(0, 6), vr: rnd(-6, 6) }); }
     return `<div class="online up" id="wUp" role="button" style="cursor:pointer"><p class="best rank-in" id="wMsg">${ICO.trophy ? `<span class="ic" style="width:1.4em;height:1.4em;display:inline-block;vertical-align:-.35em">${ICO.trophy}</span>` : ''}${lt('ランキング自己ベスト更新！', 'New ranking best!')}${top ? `<span class="rank-in-big">${lt(top + '位にランクイン!', 'Ranked #' + top + '!')}</span>` : ''}<span style="font-size:.76rem;font-weight:500">${ups.join(lt('・', ' · '))}</span></p></div>`;
   }
-  if (errs.length) { const c = R[errs[0]].code; return `<div class="online err"><p class="best" style="font-size:.78rem;font-weight:500">${lt('ランキングに送れませんでした', "Couldn't send to the ranking")}${c ? `（${esc(c)}）` : ''}</p></div>`; }
+  if (errs.length) { const c = R[errs[0]].code; return `<div class="online err"><p class="best" style="font-size:.78rem;font-weight:500">${lt('ランキングに送れませんでした', "Couldn't send to the ranking")}${c ? lt(`（${esc(c)}）`, ` (${esc(c)})`) : ''}</p></div>`; }
   return empty;
 }
 function bindUp() { const u = $('wUp'); if (u) u.addEventListener('click', () => showRank('world')); }   // 4.38.0：ランクインの札をタップ → ランキング
@@ -7308,7 +7313,7 @@ const recBack = () => state === 'over' ? showOver : state === 'pause' ? showPaus
 let lfPage = 0, cdPage = 0;
 const pagedH = () => Math.max(380, Math.min(640, (ov.clientHeight || 600) - 28));   // ページ送りの画面の高さ（どのページでも同じ。ボタンの位置が動かない）
 function pagerNav(i, n) {
-  return `<div class="pager-nav"><button type="button" class="btn w pg-prev" ${i <= 0 ? 'disabled' : ''} aria-label="${lt('前のページ', 'Previous page')}">◀</button><span class="pg-dots">${Array.from({ length: n }, (_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}<b>${i + 1} / ${n}</b></span><button type="button" class="btn w pg-next" ${i >= n - 1 ? 'disabled' : ''} aria-label="${lt('次のページ', 'Next page')}">▶</button></div>`;
+  return `<div class="pager-nav"><button type="button" class="btn w pg-prev" ${i <= 0 ? 'disabled' : ''} aria-label="${lt('前のページ', 'Previous page')}">◀</button><span class="pg-dots">${n > 10 ? '' : Array.from({ length: n }, (_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}<b>${i + 1} / ${n}</b></span><button type="button" class="btn w pg-next" ${i >= n - 1 ? 'disabled' : ''} aria-label="${lt('次のページ', 'Next page')}">▶</button></div>`;
 }
 function bindPager(i, n, go) {
   const pv = ov.querySelector('.pg-prev'), nx = ov.querySelector('.pg-next');
@@ -7379,7 +7384,7 @@ function showSettings(back) {
 function dayLeft(L) { return DAY_LEN - ((L - 1) % DAY_LEN); }   // その日の残りの面数（今の面をふくむ）
 function stageLabel(L) {
   const ph = phaseOf(L), extra = ph.special ? String(ph.spTitle) : ph.foe ? String(FOES[ph.foe].n) : ph.rule ? String(RULE_NAME[ph.rule]) : '';
-  return `${L}　${dayName(L)}・${ph.name}　${ph.roomName}${extra ? '（' + extra + '）' : ''}`;
+  return lt(`${L}　${dayName(L)}・${ph.name}　${ph.roomName}${extra ? '（' + extra + '）' : ''}`, `${L} ${dayName(L)} · ${ph.name} · ${ph.roomName}${extra ? ' (' + extra + ')' : ''}`);
 }
 function showTestMenu(back) {
   ov.hidden = false;
@@ -7402,14 +7407,19 @@ function showTestMenu(back) {
 // ---------- 通算記録 ----------
 const CAUSE_N = { owner: tx('飼い主', 'Owner'), kid: tx('子ども', 'Kid'), grandma: tx('おばあちゃん', 'Grandma'), dad: tx('お父さん', 'Dad'), guest: tx('お客さん', 'Guest'), cam: tx('ペットカメラ', 'Pet camera'), time: tx('時間切れ', 'Time up') };
 let LIFE = {};
-try { LIFE = JSON.parse(store.get('nekoLife', '{}')) || {}; } catch (e) { LIFE = {}; }
+try { LIFE = JSON.parse(store.get('nekoLife', '{}')); } catch (e) { LIFE = {}; }
+if (!LIFE || typeof LIFE !== 'object' || Array.isArray(LIFE)) LIFE = {};   // 4.51.5：壊れた値でゲームオーバーが止まらないように
 function addLife() {
-  const L = LIFE, r = run, inc = (k, v) => { L[k] = (L[k] || 0) + (v || 0); };
-  inc('plays', 1); inc('yen', Math.round(r.yen)); inc('sec', Math.round(r.time || 0)); inc('mice', r.mice); inc('boss', r.boss); inc('fish', r.fish); inc('bath', r.bathFall); inc('cloth', r.cloth);
+  // 4.51.5：朝からつづけると run が朝の状態に戻るので、同じ回（rid）の分は「前に数えた所から増えた分」だけ足す（前は通算の被害額などが二重に数えられていた）
+  const L = LIFE, r = run; r.rid = r.rid || Math.random().toString(36).slice(2);
+  if (!L.cnt || L.cnt.rid !== r.rid) L.cnt = { rid: r.rid, v: {} };
+  const inc = (k, v) => { const ck = L.cnt.v, d = Math.max(0, (v || 0) - (ck[k] || 0)); ck[k] = Math.max(ck[k] || 0, v || 0); L[k] = (L[k] || 0) + d; };
+  const once = (k, v) => { L[k] = (L[k] || 0) + (v || 0); };
+  once('plays', 1); inc('yen', Math.round(r.yen)); inc('sec', Math.round(r.time || 0)); inc('mice', r.mice); inc('boss', r.boss); inc('fish', r.fish); inc('bath', r.bathFall); inc('cloth', r.cloth);
   if (r.caughtOver && r.cause) { L.cause = L.cause || {}; L.cause[r.cause] = (L.cause[r.cause] || 0) + 1; L.where = L.where || {}; L.where[r.where] = (L.where[r.where] || 0) + 1; }
-  inc('cuke', r.cuke); inc('mis', r.mis); inc('mess', r.mess); inc('revive', r.revives); inc('stars', r.stars); inc(r.timeup ? 'timeups' : 'caught', 1); if (r.ended) inc('endings', 1);
+  inc('cuke', r.cuke); inc('mis', r.mis); inc('mess', r.mess); inc('revive', r.revives); inc('stars', r.stars); once(r.timeup ? 'timeups' : 'caught', 1); inc('endings', r.ended ? (r.trueEnded ? 2 : 1) : 0);   // 同じ回で見たエンディングは1回ずつ（3日目と、ほんとうのおしまい）
   L.maxDay = Math.max(L.maxDay || 0, dayOf(level)); L.maxStage = Math.max(L.maxStage || 0, level); L.maxChain = Math.max(L.maxChain || 0, r.maxChain || 0); L.best = Math.max(L.best || 0, Math.round(r.yen));
-  L.broke = L.broke || {}; for (const [k, v] of Object.entries(r.broke)) if (IT[k]) L.broke[k] = (L.broke[k] || 0) + v;
+  L.broke = L.broke || {}; for (const [k, v] of Object.entries(r.broke)) if (IT[k]) { const ck = L.cnt.v, key = 'b_' + k, d = Math.max(0, v - (ck[key] || 0)); ck[key] = Math.max(ck[key] || 0, v); L.broke[k] = (L.broke[k] || 0) + d; }
   // 行動の称号用：夜の被害額、ダンボールでやりすごした回数、行った部屋、何日続けて遊んだか
   inc('nightYen', Math.round(r.todYen[3] || 0)); inc('hides', (r.ev && r.ev.hide) || 0);
   L.rooms = L.rooms || {}; (r.rooms || []).forEach(k => { L.rooms[k] = 1; });
@@ -7498,7 +7508,7 @@ function saveGame(L, cont) {
   } catch (e) {}
 }
 function clearSave() { store.set('nekoSave', ''); }
-function loadSave() { try { const sv = JSON.parse(store.get('nekoSave', '') || 'null'); return sv && sv.v === 1 && sv.level > 1 && sv.level <= TRUE_DAY * DAY_LEN && sv.pk ? sv : null; } catch (e) { return null; } }   // 4.44.0：8 日目以降のセーブ（前の版）は使わない
+function loadSave() { try { const sv = JSON.parse(store.get('nekoSave', '') || 'null'); return sv && sv.v === 1 && sv.level > 1 && sv.level <= TRUE_DAY * DAY_LEN && sv.pk && sv.pk.run && typeof sv.pk.run === 'object' ? sv : null; } catch (e) { return null; } }   // 4.44.0：8 日目以降のセーブ（前の版）は使わない
 function resumeSave() {
   const sv = loadSave(); if (!sv) { startGame(); return; }
   if (sv.cat != null && CATS[sv.cat] && catsOpen.has(CATS[sv.cat].id)) { selCat = sv.cat; store.set('nekoCat', String(selCat)); }
@@ -7598,7 +7608,7 @@ function showPause() {
     ${keysBox()}
 </div>`;
   $('pResume').addEventListener('click', resumeGame);
-  { let armed = 0; $('pRetry').addEventListener('click', () => { audio(); if (loadSave() && performance.now() - armed > 2000) { armed = performance.now(); toast(lt('もう一度押すと、つづきを消して1日目から始めます', 'Press again to delete the save and restart from Day 1'), 2200); return; } startGame(); }); }   // 4.50.3：1回でセーブが消えていた
+  { let armed = -1e9; $('pRetry').addEventListener('click', () => { audio(); if (loadSave() && performance.now() - armed > 2000) { armed = performance.now(); toast(lt('もう一度押すと、つづきを消して1日目から始めます', 'Press again to delete the save and restart from Day 1'), 2200); return; } startGame(); }); }   // 4.50.3：1回でセーブが消えていた
   $('pTop').addEventListener('click', showTitle);
   $('pRk').addEventListener('click', () => showRank());
   $('pSet').addEventListener('click', () => showSettings(showPause));
@@ -7794,7 +7804,7 @@ async function makeCard() {
   else { c.fillStyle = '#f6d7a8'; c.fillRect(-190, -248, 380, 380); drawCat(c, 0, 90, { type: T, face: 1, scale: 4, t: 0.6, pose: 'smug', acc: selAcc }); }
   c.fillStyle = 'rgba(255,220,120,.75)'; c.save(); c.rotate(0.05); c.fillRect(-60, -286, 120, 34); c.restore();
   c.fillStyle = '#4a2f1d'; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
-  const cap = fd ? 'ENDING「' + ENDINGS[run.endType || 'normal'].n + '」' : lt('犯行現場　', 'Crime scene · ') + dayName(run.stage) + lt('・', ' · ') + phaseOf(run.stage).name;
+  const cap = fd ? lt('ENDING「' + ENDINGS[run.endType || 'normal'].n + '」', 'ENDING: ' + ENDINGS[run.endType || 'normal'].n) : lt('犯行現場　', 'Crime scene · ') + dayName(run.stage) + lt('・', ' · ') + phaseOf(run.stage).name;
   let cs = 30; c.font = `800 ${cs}px ${FONT}`; while (c.measureText(cap).width > 380 && cs > 18) { cs--; c.font = `800 ${cs}px ${FONT}`; }
   c.fillText(cap, 0, 196);
   c.restore();
