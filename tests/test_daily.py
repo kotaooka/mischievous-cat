@@ -143,6 +143,21 @@ def run(b):
         for L in LS:
             compare(by_date[k]['まっさらな端末'][L], by_date[k]['遊び慣れた端末'][L], f'(b)まっさら↔(b)遊び慣れた {day}', L)
 
+    # ---- 夜中の 0 時をまたいだ回（4.51.7）：途中の面も、始めた日の配置のまま ----
+    for k in DATES[:2]:
+        g = harness.Game(b)
+        g.T(SIG); g.T(f'__shift({k})')
+        g.T("(()=>{ newRun(); state='play'; ov.hidden=true; })()")
+        same = {L: g.T(f"(()=>{{ state='play'; carryT=0; setupStage({L}); return __sig(0); }})()") for L in (2, 5, 9)}
+        g.T("(()=>{ newRun(); state='play'; ov.hidden=true; })()"); g.T(f'__shift({k + 1})')   # 1面目のあとで日付が変わった
+        for L in (2, 5, 9):
+            x = g.T(f"(()=>{{ state='play'; carryT=0; setupStage({L}); return __sig(0); }})()")
+            # 天気は面ごとに引くので比べる。仕掛けの有無も同じはず
+            r.check(x['items'] == same[L]['items'] and x['tasks'] == same[L]['tasks'] and x['layoutIx'] == same[L]['layoutIx'] and x['gims'] == same[L]['gims'],
+                    f'0時をまたいだ回の L={L}：始めた日の配置のまま')
+        r.check(g.T('run.day') != g.T('jstDay()'), '0時をまたいだ回：run.day は始めた日')
+        g.close()
+
     # ---- 日付が違えば、たいてい配置も違う ----
     ks = list(by_date)
     for i in range(len(ks)):

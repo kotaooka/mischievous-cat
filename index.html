@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.51.6', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.51.7', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -646,7 +646,9 @@ const AC0 = [262, 338];
 const MIS_BASE = { towel: [125, 175], laundry: [165, 235] };
 let layoutIx = 0;
 // 面ごとの配置：1面目は0番、あとは前の面と違う配置を、日替わりの乱数で選ぶ（同じ日・同じ面ならだれでも同じ。朝からつづけても同じ）
-function layoutFor(L) { let k = 0; for (let i = 2; i <= L; i++) { const n = dayOf(i) >= 4 ? LAYOUTS.length : 3; k = (k + 1 + ((seedRng(jstDay() + '#lay' + i)() * (n - 1)) | 0)) % n; } return k; }   // 4.39.0：4 日目からは 6 通り（それまでは 3 通り）
+// 4.51.7：その回を始めた日（日本時間）。夜中の0時をまたいでも、配置と今日のランキングはこの日のまま
+const runDay = () => (run && run.day) || jstDay();
+function layoutFor(L) { let k = 0; for (let i = 2; i <= L; i++) { const n = dayOf(i) >= 4 ? LAYOUTS.length : 3; k = (k + 1 + ((seedRng(runDay() + '#lay' + i)() * (n - 1)) | 0)) % n; } return k; }   // 4.39.0：4 日目からは 6 通り（それまでは 3 通り）
 function applyLayout(L) {
   layoutIx = layoutFor(L);
   const rm = phaseOf(L).room, rg = roomGeo(rm), RL = ROOM_LAYS[rm], lo = RL ? { shelf: RL[layoutIx][0], hang: RL[layoutIx][1], ac: RL[layoutIx][2] } : LAYOUTS[layoutIx];
@@ -1795,7 +1797,7 @@ function breakSound(it) { const d = IT[it.t]; ({ glass: sfx.glass, cera: sfx.cer
 // 日替わりの乱数（mulberry32）。種は日本時間の日付と面の数。同じ日・同じ面なら、だれでも同じ配置・同じもの・同じ天気になる
 function seedRng(str) { let h = 1779033703 ^ str.length; for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); } let a = h >>> 0; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function setupStage(L) {
-  const R0 = Math.random; Math.random = seedRng(jstDay() + '#' + L);
+  const R0 = Math.random; Math.random = seedRng(runDay() + '#' + L);
   try { setupStageCore(L); } finally { Math.random = R0; }
 }
 // 4.41.0：1 日目の 3 面は教科書（起承転結）。面ごとに「新しいこと」を 1〜2 つに絞り、ものとお題と仕掛けを固定する
@@ -1974,7 +1976,7 @@ function setupStageCore(L) {
   if (ph.special === 'dognight') { dog = { x: 300, alertT: 0, cd: 0, barkT: 0, keep: true, roam: true, dir: -1, t: 2, chewT: 0, target: null }; bones = [{ x: 150, vx: 0 }, { x: 330, vx: 0 }].map(b => (Math.abs(b.x - BOX.x) < 40 ? Object.assign(b, { x: b.x - 50 }) : b)); }
   if (ph.special === 'lastnight') { nap = { asleep: true, t: 6, cyc: 0, sayT: 0 }; owner.x = 62; owner.face = 1; owner.up = false; setMode('nap', 99); }
   pruneGimmicks(L, ph);
-  Math.random = seedRng(jstDay() + '#' + L + '#t');   // 4.50.3：間引きは端末ごとの履歴で変わるので、お題などは乱数を引き直して全員同じにする（setupStage の finally で元に戻る）
+  Math.random = seedRng(runDay() + '#' + L + '#t');   // 4.50.3：間引きは端末ごとの履歴で変わるので、お題などは乱数を引き直して全員同じにする（setupStage の finally で元に戻る）
   tut.on = L === 1 && !tutDone; tut.broke = false;
   // 制限時間：もの1個につき7秒＋25秒
   // お題を3つ：部屋の仕掛けから1つ＋ほかから2つ（その面でできるものだけ）
@@ -2040,7 +2042,7 @@ function pruneGimmicks(L, ph) {
   lastGims = used;
 }
 function newRun() {
-  run = { rid: Math.random().toString(36).slice(2) + Date.now().toString(36), yen: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '', touched: false, stars: 0, escapes: 0,
+  run = { day: jstDay(), rid: Math.random().toString(36).slice(2) + Date.now().toString(36), yen: 0, stage: 1, broke: {}, prints: 0, water: 0, idle: false, comment: '', react: '', kakushin: 0, rideT: 0, maxChain: 0, barks: 0, bookBroke: 0, fast: false, fed: 0, timeup: false, days: 0, lastBroke: '', touched: false, stars: 0, escapes: 0,
     mis: 0, launch: 0, ballHits: 0, top: false, streak: 0, maxStreak: 0, perfect: 0, skill: 0, space: 0, huh: false, huhStep: 0, fish: 0, mice: 0, boss: 0, chick: 0, bathFall: 0, scare: 0, cloth: 0, rubT: 0, cuke: 0, lamp: 0, churu: 0, tv: 0, ended: false,
     ev: {}, stageDrops: [], chainN: 0, chainT: -9, todYen: [0, 0, 0, 0], ghost: 0, bigN: 0, rooms: [], guestClear: false };   // ev：お題の有無にかかわらず数えるできごと（カード・称号用）。stageDrops：この面で落としたものの値段
   sus = 0; snap = null; carryT = 0; newCats = []; newCards = []; dayEndNext = false; setupStage(1);
@@ -4713,7 +4715,7 @@ function gameOver() {
   // ランキング：被害額の多い順に10件。同じ額なら先に出したほうが上
   rankNow = 0;
   if (run.yen > 0) {
-    const rec = { y: Math.round(run.yen), s: level, st: run.stars, c: CATS[selCat].id, sk: Math.round(run.skill), k: run.conts || 0, d: jstDay() };   // 4.43.0：日付は日本時間（今日のランキングと同じ）
+    const rec = { y: Math.round(run.yen), s: level, st: run.stars, c: CATS[selCat].id, sk: Math.round(run.skill), k: run.conts || 0, d: runDay() };   // 4.43.0：日付は日本時間（今日のランキングと同じ）
     let i = ranking.findIndex(r => r.y < rec.y); if (i < 0) i = ranking.length;
     if (i < 10) { ranking.splice(i, 0, rec); ranking = ranking.slice(0, 10); rankNow = i + 1; store.set('nekoRank', JSON.stringify(ranking)); }
   }
@@ -7190,9 +7192,9 @@ async function sendScore() {
   // 今回の記録を「総合」と「今日」の両方に送る（それぞれ自己ベストを更新したときだけ。そのときの名前で載る）
   // 記録は追加だけで、書き換え・削除はしない（firestore.rules）。同じ人の記録は、一覧で一番よいものだけ表示する
   if (!onlineOn() || !myName || !run || run.sent || run.test || run.yen <= 0) return;   // テストの回は送らない
-  run.sent = true; dailyKey = jstDay(); const out = {};
+  run.sent = true; dailyKey = runDay(); const out = {};   // 4.51.7：その回を始めた日の「今日のランキング」へ（0時をまたいでも翌日に載らない）
   // 4.43.0：前の日の「今日の自己ベスト」は使わないので消す（毎日 1 つずつ増え続けていた）
-  try { for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k && k.startsWith('nekoDailyBest-') && k !== 'nekoDailyBest-' + dailyKey) localStorage.removeItem(k); } } catch (e) {}
+  try { for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k && k.startsWith('nekoDailyBest-') && k !== 'nekoDailyBest-' + dailyKey && k !== 'nekoDailyBest-' + jstDay()) localStorage.removeItem(k); } } catch (e) {}
   for (const [k, coll, bk] of [['world', 'scores', 'nekoWorldBest'], ['today', dailyColl(), 'nekoDailyBest-' + dailyKey]]) {
     try { out[k] = await sendOne(coll, bk); } catch (e) { out[k] = { err: true, code: String(e && e.message || '').replace('HTTP ', '') }; }
   }
@@ -7495,7 +7497,7 @@ function packRun(r) {
 }
 function unpackRun(pk) {
   const r = JSON.parse(JSON.stringify(pk.run));
-  r.lastDropT = -9; r.chainT = -9;   // 4.50.3：tAnim はページを開くたびに 0 から。持ち越すと連携・連鎖の判定がずれる
+  r.lastDropT = -9; r.chainT = -9; r.day = r.day || jstDay();   // 4.51.7：前の版のセーブには日付がないので、開いた日にする   // 4.50.3：tAnim はページを開くたびに 0 から。持ち越すと連携・連鎖の判定がずれる
   const up = al => (al || []).map(a => { const im = new Image(); im.src = a.d; return { L: a.L, yen: a.yen, im, d: a.d }; });
   r.album = up(pk.album); r.nights = up(pk.nights);
   r.ck = null; return r;

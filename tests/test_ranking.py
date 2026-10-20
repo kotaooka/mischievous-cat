@@ -368,7 +368,7 @@ def run(b):
         info.append(f'cleanName は UTF-16 の 10 単位で切るので、絵文字の片割れが残ることがある（{cut}）。入力欄は maxlength=10 で片割れを作らないため、いまの画面からは起きない')
     g.close()
 
-    # ===== 7. 日付の境目：日本時間 23:59:59 に始めて 0:00 をまたいで送る =====
+    # ===== 7. 日付の境目：日本時間 0:00 の直前に始めて、またいでから送る → 始めた日のデイリーに載る =====
     g = new_game(b, 'midnight')
     # 次の日本時間 0:00 の 1.2 秒前に時計を合わせる
     g.T("(()=>{ const D = Date.now, n = D(), j = n + 9 * 3600e3, next = (Math.floor(j / 864e5) + 1) * 864e5 - 9 * 3600e3; const k = next - 1200 - n; Date.now = () => D() + k; })()")
@@ -380,9 +380,10 @@ def run(b):
     n = len(g.sent)
     g.T('__caught()'); wait_res(g, 3)
     ws = writes(g, n)
-    check_writes(g, ws, '0:00 をまたいだ', None, (d_after, d_after))
-    if d_before != d_after:
-        info.append(f'日本時間 0:00 をまたいだ回：{d_before} の配置で遊んだ記録が daily-{d_after} に載る（ルールは日付を確かめない。仕様として受け入れるかは要判断）')
+    # 4.51.7 から：その回を始めた日の「今日のランキング」に載る（0時をまたいでも翌日に載らない）
+    r.check(d_before != d_after, f'0:00 をまたいだ：時計が実際に日をまたいでいる {d_before} → {d_after}')
+    r.check(any(c.startswith('daily-') for c, *_ in ws), '0:00 をまたいだ：今日のランキングに送っている')
+    check_writes(g, ws, '0:00 をまたいだ', None, (d_before, d_before))
     g.close()
 
     # ===== 7b. ルールの書き直し自体の確認：わざと壊した記録をはじくこと =====
