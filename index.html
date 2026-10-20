@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.51.2', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.51.3', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -2071,9 +2071,11 @@ function say(text, t) { owner.say = text; owner.sayT = t || 1.6; }
 function newPlan(hint) {
   const stops = [];
   if (hint != null) stops.push({ kind: 'check', x: clamp(hint, 50, 330), quick: true });
-  // 床に散らかった小物があれば、まず片付けに行く（7割）。片付けている間は下を向くので隙ができる
+  // 床に散らかった小物があれば、まず片付けに行く。片付けている間は下を向くので隙ができる
+  // 4.51.3：7割・1個 → 必ず・2個まで（散らかっているのが3個以上なら2個、1〜2個なら全部）。近い順に拾う
   const mess = items.filter(o => o.extra && o.home !== 'floor' && o.plat === PL.floor && o.state === 'rest' && o.scored && o.x < PL.book.x0 - 12);
-  if (mess.length && Math.random() < 0.7) { const m = pick(mess); stops.push({ kind: 'tidy', x: clamp(m.x, 30, 330), item: m }); }
+  if (mess.length) { const m = pick(mess), m2 = mess.filter(q => q !== m).sort((p, q) => Math.abs(p.x - m.x) - Math.abs(q.x - m.x))[0];
+    for (const it of [m, m2].filter(Boolean).sort((p, q) => p.x - q.x)) stops.push({ kind: 'tidy', x: clamp(it.x, 30, 330), item: it }); }
   const n = level >= 4 ? 3 : 2;
   // 飼い主は高いもののそばを確認しに行きやすい（半分の確率で、残っている一番高いものの前に立ち止まる）
   const val = items.filter(o => o.state === 'rest').sort((a, b) => IT[b.t].yen - IT[a.t].yen)[0];
