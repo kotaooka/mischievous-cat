@@ -363,7 +363,7 @@ const FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","B
 try { document.fonts.load(`500 16px "M PLUS Rounded 1c"`); document.fonts.load(`800 16px "M PLUS Rounded 1c"`); } catch (e) {}
 const SITE = 'https://kotaooka.github.io/mischievous-cat/';
 // バージョン（中身を変えたら上げる。sw.js の VERSION とは別）
-const APP_VER = '4.51.8', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
+const APP_VER = '4.51.9', REPO = 'https://github.com/kotaooka/mischievous-cat', AUTHOR = 'Kota Ooka';   // AUTHOR：スタッフロールと締めの画面に出す作者名
 const verLine = () => `<p class="ver">v${APP_VER}　<a href="${REPO}" target="_blank" rel="noopener">GitHub</a></p>${lastErrLine()}`;
 // 最後に起きたエラーを端末に残し、設定画面のバージョンの下に小さく出す（原因を調べるため。押すと消える）
 function noteErr(kind, e) { try { const msg = (e && (e.message || e.reason && e.reason.message)) || String(e && e.reason || e), st = (e && (e.error && e.error.stack || e.reason && e.reason.stack)) || ''; store.set('nekoLastErr', JSON.stringify({ v: APP_VER, kind, state: typeof state === 'string' ? state : '', msg: String(msg).slice(0, 160), stack: String(st).slice(0, 400), at: new Date().toISOString() })); } catch (e2) {} }
@@ -7090,8 +7090,7 @@ function showCatShop() {
     <div class="stats" id="stats"></div>
     <div class="accs icons" role="group" aria-label="${lt('きせかえ', 'Accessories')}">${ACCS.map(a => { const ok = accOk(a); return `<button type="button" data-a="${a.id}" class="${ok ? '' : 'lock'}" aria-pressed="${a.id === selAcc}" aria-label="${a.name}"><canvas width="80" height="80"></canvas></button>`; }).join('')}</div>
     <p class="acc-info" id="accInfo"></p>
-    <button class="btn go" id="goBtn" type="button">${lt('あそぶ', 'PLAY')}</button>
-    <div class="row"><button class="btn w" id="csBack" type="button">${lt('もどる', 'Back')}</button></div></div>`;
+    <button class="btn go" id="csBack" type="button">${lt('けってい', 'Done')}</button></div>`;
   const drawCats = () => ov.querySelectorAll('.cats canvas').forEach((cn, i) => { const c2 = cn.getContext('2d'); c2.setTransform(2, 0, 0, 2, 0, 0); c2.clearRect(0, 0, 72, 54); drawCat(c2, 34, 49, { type: catLook(i), face: 1, scale: 0.8, t: 0, pose: 'walk', acc: catsOpen.has(CATS[i].id) ? selAcc : 'none' }); });
   const drawAccs = () => ov.querySelectorAll('.accs button').forEach(b => accIcon(b.querySelector('canvas'), b.dataset.a, !b.classList.contains('lock')));
   const info = () => {
@@ -7116,8 +7115,8 @@ function showCatShop() {
     ov.querySelectorAll('.accs button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
     drawCats(); showStats(); info();
   }));
-  $('goBtn').addEventListener('click', () => { audio(); if (loadSave()) { showTitle(); return; } startGame(); });   // セーブがあるときはトップで選ばせる
-  $('csBack').addEventListener('click', () => showTitle());
+  // 4.51.9：選んだ時点で保存しているので、「けってい」でトップへ戻り、トップの「あそぶ」から始める（前はここに「あそぶ」があり、そのまま始まっていた）
+  $('csBack').addEventListener('click', () => { audio(); showTitle(); });
 }
 // ---------- みんなのランキング（Firebase Cloud Firestore の REST API）----------
 // projectId を空にしておくと、みんなのランキングは出さない（この端末のランキングだけ）
