@@ -166,3 +166,7 @@ As stages go on, pricey items start appearing up high (hanging shelf, curtain ra
 ---
 
 The full rulebook with every number (time limits, bonus rates, item prices, title conditions) is in Japanese: [docs/rules.md](docs/rules.md).
+
+## License
+
+The code is released under the [MIT License](LICENSE). The fonts in `fonts/` (Rounded M+) are licensed under the SIL Open Font License 1.1 ([fonts/OFL.txt](fonts/OFL.txt)).

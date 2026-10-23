@@ -185,3 +185,7 @@ PC はゲームパッドでも遊べます（十字キー／左スティック�
 ---
 
 数字まで知りたい人は [くわしいルール](docs/rules.md) へ（**ネタバレあり**。制限時間の式、ボーナスの割合、ものの値段、称号の条件など）。
+
+## ライセンス
+
+プログラムは [MIT](LICENSE)。`fonts/` の字体（Rounded M+）は SIL Open Font License 1.1（[fonts/OFL.txt](fonts/OFL.txt)）に従います。
