@@ -15,7 +15,7 @@
 - 画面・README の色・字体・文言・配置は kotaooka/kotaooka.github.io の `DESIGN.md` に従う。
 - 頼まれていない機能・画面要素は足さない。範囲外の変更が必要なら、先に理由を添えて確認する。
 
-## push する前に（CI と同じ確認。すべて通るまで push しない）
+## push する前に（CI は無いので手元で実行する。すべて通るまで push しない）
 ```
 pip install playwright
 python -m playwright install chromium
@@ -27,7 +27,7 @@ python tests/run_all.py
 
 ## 公開ファイルを更新したとき
 - 公開しているファイル（ページ・JS・アイコン・文言）を変えたら `sw.js` の `VERSION` を上げる。上げないと PWA で古い版が残る。
-- 公開に新しいファイルを加えたら `sw.js` の `ASSETS` にも足す。
+- 公開に新しいファイルを加えたら `sw.js` の `CORE` にも足す。
 
 ## Issue
 - 作業中に依頼の範囲外の問題・改善点を見つけたら、直さずに Issue に起票して報告する（ラベル：不具合／改善）。本文は `.github/ISSUE_TEMPLATE/` の欄（現象・期待する動き・根拠・完了の条件など）に沿って書く。
